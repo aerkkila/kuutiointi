@@ -196,23 +196,24 @@ int main(int argc, char** argv) {
   kuvat.sij = &kuvaalue;
   vntaolio.kuvat = &kuvat;
   kaikki.vnta_o = &vntaolio;
+  
+  tkset_s tkset;
+  kaikki.tkset = &(tkset);
+  kaikki.tkset->strtulos = NULL;
+  kaikki.tkset->ftulos = NULL;
+  kaikki.tkset->tuloshetki = NULL;
+  kaikki.tkset->sijarj = _strlisaa_kopioiden(NULL, "");
+  kaikki.tkset->fjarj = _flisaa(NULL, -INFINITY);
+  kaikki.tkset->strjarj = _strlisaa_kopioiden(NULL, "");
 
   /*kiinnittämättömät*/
   laitot_s laitot = (laitot_s){1, 1, 1, 1, 1, 1, 1};
   kaikki.laitot = &laitot;
   kaikki.viive = viive;
-  kaikki.strtulos = NULL;
-  kaikki.liukutulos = NULL;
   kaikki.tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));
   kaikki.sekoitukset = NULL;
   kaikki.tiedot = NULL;
   kaikki.lisatd = NULL;
-  kaikki.sjarj = NULL;
-  kaikki.sijarj = NULL;
-  kaikki.fjarj = NULL;
-  kaikki.sjarj = _strlisaa_kopioiden(kaikki.sjarj, "");
-  kaikki.sijarj = _strlisaa_kopioiden(kaikki.sijarj, "");
-  kaikki.fjarj = _flisaa(kaikki.fjarj, -INFINITY); //alkuun ylimääräinen
 
   time_t t;
   srand((unsigned) time(&t));
@@ -225,11 +226,15 @@ int main(int argc, char** argv) {
 
   SDL_DestroyTexture(kaikki.vnta_o->kuvat->valittu);
   SDL_DestroyTexture(kaikki.vnta_o->kuvat->ei_valittu);
-  _strpoista_kaikki(_yalkuun(kaikki.strtulos));
+  _strpoista_kaikki(_yalkuun(kaikki.tkset->strtulos));
+  _yrma(_yalkuun(kaikki.tkset->ftulos));
+  _yrma(_yalkuun(kaikki.tkset->tuloshetki));
+  _yrma(_yalkuun(kaikki.tkset->fjarj));
+  _strpoista_kaikki(_yalkuun(kaikki.tkset->strjarj));
+  _strpoista_kaikki(_yalkuun(kaikki.tkset->sijarj));
   _strpoista_kaikki(_yalkuun(kaikki.tietoalut));
   _strpoista_kaikki(_yalkuun(kaikki.sekoitukset));
   _strpoista_kaikki(_yalkuun(kaikki.tiedot));
-  _yrma(_yalkuun(kaikki.liukutulos));
   free(kelloolio.teksti);
  EI_KUVAA:
   TTF_CloseFont(kelloolio.font);

@@ -34,15 +34,15 @@ SDL_Rect tiedotsij = (SDL_Rect){900, 30, 500, 500};
 
 SDL_Rect tluvutsij = (SDL_Rect){900, 30, 500, 500};
 
-int lisakoko = 18;
-char lisafonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf";
-SDL_Color lisavari = {150, 255, 150, 255};
-SDL_Rect lisasij = (SDL_Rect){940, 230, 400, 500};
+int lisakoko = 19;
+char lisafonttied[] = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf";
+SDL_Color lisavari = {180, 180, 80, 255};
+SDL_Rect lisasij = (SDL_Rect){940, 230, 800, 500};
 
-int sektuskoko = 18;
+int sektuskoko = 19;
 char sektusfonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf";
 SDL_Color sektusvari = {255, 255, 255, 255};
-SDL_Rect sektussij = (SDL_Rect){0, 380, 1000, 150};
+SDL_Rect sektussij = (SDL_Rect){0, 390, 1000, 200};
 
 int vntakoko = 12;
 char vntateksti[] = "Tarkasteluaika";

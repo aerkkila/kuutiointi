@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "tulokset.h"
 #include "rakenteet.h"
 
@@ -87,18 +88,22 @@ strlista* tee_tiedot(strlista* strtiedot, flista* fl, int* avgind) {
 }
 
 /*laittaa yhden suurimman ja pienimmän sulkeisiin*/
-strlista* tee_lisatiedot(strlista* sl, flista* fl, strlista* sektus, int alkuind, int n) {
+strlista* tee_lisatiedot(tkset_s* t, strlista* sektus, int alkuind, int n) {
   strlista* r = NULL;
-  char tmp[100];
-  char* apucp;
-  sl = _ynouda(_yalkuun(sl), alkuind);
-  fl = _ynouda(_yalkuun(fl), alkuind);
+  char tmp[150];
+  char aikastr[100];
+  strlista* sl = _ynouda(_yalkuun(t->strtulos), alkuind);
+  flista* fl = _ynouda(_yalkuun(t->ftulos), alkuind);
   if(sektus) sektus = _ynouda(_yalkuun(sektus), alkuind);
   if(!sl)
     return NULL;
-  sprintf(tmp, "Avg%i: %.2f; σ = %.2f", n, floatavg(fl, 0, n-1, 1, 1), sigma(fl, n, 1));
-  while( (apucp = strstr(tmp, ".")) )
-    *apucp = ',';
+
+  /*tehdään aikastring*/
+  time_t aika_t = ((ilista*)_ynouda(_yalkuun(t->tuloshetki), alkuind+n-1))->i;
+  struct tm *aika = localtime(&aika_t);
+  strftime(aikastr, 150, "%A %d.%m.%Y klo %H.%M", aika);
+
+  sprintf(tmp, "Avg%i: %.2f; σ = %.2f; %s", n, floatavg(fl, 0, n-1, 1, 1), sigma(fl, n, 1), aikastr);
   r = _strlisaa_kopioiden(r, tmp);
   floatint max = floatmax(fl, n);
   floatint min = floatmin(fl, n);
@@ -180,4 +185,43 @@ void poista_jarjlistalta(int i, strlista** si, strlista** s, flista** fl) {
     apu = _strpoista1(apu, -1);
     _strlisaa_kopioiden(apu, tmpc);
   }
+}
+
+void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja) {
+  char tmp[10];
+  t->strtulos = _strlisaa_kopioiden(t->strtulos, kello);
+  t->ftulos = _flisaa(t->ftulos, lue_kellosta(kello));
+  t->tuloshetki = _ilisaa(t->tuloshetki, hetki);
+  int paikka = hae_paikka(t->ftulos->f, _yalkuun(t->fjarj)) - 1; //0. elementti on kansilehti
+  if( (t->fjarj = _ynouda(_yalkuun(t->fjarj), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+    _flisaa(t->fjarj, t->ftulos->f);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), t->strtulos->str);
+    sprintf(tmp, "%i. ", ++(*aikoja));
+    _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
+  }
+}
+
+void poista_listoilta(tkset_s* t, int i) {
+  if(!i) {
+    t->strtulos = _strpoista1(t->strtulos, -1);
+    t->ftulos = _yrm1(t->ftulos, -1);
+    t->tuloshetki = _yrm1(t->tuloshetki, -1);
+  } else {
+    _strpoista1(_ynouda(t->strtulos, i), 1);
+    _yrm1(_ynouda(t->ftulos, i), 1);
+    _yrm1(_ynouda(t->tuloshetki, i), 1);
+  }
+  poista_jarjlistalta(_ylaske(_yalkuun(t->strtulos)), &(t->sijarj), &(t->strjarj), &(t->fjarj));
+}
+
+float lue_kellosta(char* s) {
+  if(strstr(s, "Ø"))
+    return INFINITY;
+  float fsek=0;
+  short min=0;
+  if(!strstr(s, ":"))
+    sscanf(s, "%f", &fsek);
+  else
+    sscanf(s, "%hi:%f", &min, &fsek);
+  return min*60 + fsek;
 }

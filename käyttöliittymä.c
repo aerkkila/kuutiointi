@@ -38,9 +38,12 @@ char* sekoitus(char* s);
 #define TIEDOT (kaikki->tiedot)
 #define KELLO (kaikki->kello_o->teksti)
 #define LAITOT (*(kaikki->laitot))
-#define SJARJ (kaikki->sjarj)
-#define SIJARJ (kaikki->sijarj)
-#define FJARJ (kaikki->fjarj)
+#define STRTULOS (kaikki->tkset->strtulos)
+#define FTULOS (kaikki->tkset->ftulos)
+#define HETKI (kaikki->tkset->tuloshetki)
+#define SJARJ (kaikki->tkset->strjarj)
+#define SIJARJ (kaikki->tkset->sijarj)
+#define FJARJ (kaikki->tkset->fjarj)
 #define LISATD (kaikki->lisatd)
 #define MUUTA_TULOS LAITOT.sektus=1; LAITOT.tulos=1; LAITOT.jarj=1; LAITOT.tiedot=1; LAITOT.lisatd=1
 
@@ -85,9 +88,6 @@ int kaunnista(kaikki_s *kaikki) {
 	{
 	case SDL_QUIT:
 	  _strpoista_kaikki(_yalkuun(LISATD));
-	  _strpoista_kaikki(_yalkuun(SJARJ));
-	  _strpoista_kaikki(_yalkuun(SIJARJ));
-	  _yrma(_yalkuun(FJARJ));
 	  SDL_FreeCursor(kursori);
 	  return 0;
 	case SDL_KEYDOWN:
@@ -97,30 +97,17 @@ int kaunnista(kaikki_s *kaikki) {
 	      /*pysäytä*/
 	      if(tila == juoksee) {
 		tila = seis;
-		kaikki->strtulos = _strlisaa_kopioiden(kaikki->strtulos, KELLO);
-		if(sakko != dnf)
-		  kaikki->liukutulos = _flisaa(kaikki->liukutulos, min*60 + min*60 + sek + csek/100.0);
-		else
-		  kaikki->liukutulos = _flisaa(kaikki->liukutulos, INFINITY);
-	        int paikka = hae_paikka(kaikki->liukutulos->f, _yalkuun(FJARJ)) - 1; //0. elementti on kansilehti
-		if( (FJARJ = _ynouda(_yalkuun(FJARJ), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-		  _flisaa(FJARJ, kaikki->liukutulos->f);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SJARJ), paikka), KELLO);
-		  sprintf(tmp, "%i. ", ++aikoja);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SIJARJ), paikka), tmp);
-		}
+		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec, &aikoja);
 		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
-		TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
+		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		MUUTA_TULOS;
 	      }
 	      break;
 	    case SDLK_BACKSPACE:
-	      if(tila == seis && kaikki->strtulos) {
+	      if(tila == seis && STRTULOS) {
 		SEKTUS = _strpoista1(SEKTUS, -1);
-		kaikki->strtulos = _strpoista1(kaikki->strtulos, -1);
-		kaikki->liukutulos = _yrm1(kaikki->liukutulos, -1);
-		TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
-		poista_jarjlistalta(_ylaske(_yalkuun(kaikki->strtulos)), &SIJARJ, &SJARJ, &FJARJ);
+		poista_listoilta(kaikki->tkset, 0);
+		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	        MUUTA_TULOS;
 		aikoja--;
 	      } else if (tila == kirjoitustila) {
@@ -142,25 +129,8 @@ int kaunnista(kaikki_s *kaikki) {
 		/*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		while((apucp = strstr(KELLO, ".")))
 		  *apucp = ',';
-		if(strstr(KELLO, "Ø"))
-		  kaikki->liukutulos = _flisaa(kaikki->liukutulos, INFINITY);
-		else {
-		  float fsek;
-		  if(!strstr(KELLO, ":"))
-		    sscanf(KELLO, "%f", &fsek);
-		  else
-		    sscanf(KELLO, "%hi:%f", &min, &fsek);
-		  kaikki->liukutulos = _flisaa(kaikki->liukutulos, min*60 + fsek);
-		}
-		kaikki->strtulos = _strlisaa_kopioiden(kaikki->strtulos, KELLO);
-	        int paikka = hae_paikka(kaikki->liukutulos->f, _yalkuun(FJARJ)) - 1;
-		if( (FJARJ = _ynouda(_yalkuun(FJARJ), paikka)) ) { //0. on -infinity eikä mukana listalla
-		  _flisaa(FJARJ, kaikki->liukutulos->f);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SJARJ), paikka), KELLO);
-		  sprintf(tmp, "%i. ", ++aikoja);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SIJARJ), paikka), tmp);
-		}
-		TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
+	        lisaa_listoille(kaikki->tkset, KELLO, time(NULL), &aikoja);
+		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
 		LAITOT.kello = 1;
 	        MUUTA_TULOS;
@@ -170,14 +140,14 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_KP_PLUS:
 	      if(tila != kirjoitustila) {
 		if(hae_sakko(KELLO) != dnf) //tätä ei ollutkaan jarjlistalla
-		  poista_jarjlistalta(_ylaske(_yalkuun(kaikki->strtulos))-1, &SIJARJ, &SJARJ, &FJARJ);
-		muuta_sakko(kaikki->strtulos, &(kaikki->liukutulos->f), KELLO);
-		TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
+		  poista_jarjlistalta(_ylaske(_yalkuun(STRTULOS))-1, &SIJARJ, &SJARJ, &FJARJ);
+		muuta_sakko(STRTULOS, &(FTULOS->f), KELLO);
+		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		LAITOT.kello=1;
-	        int paikka = hae_paikka(kaikki->liukutulos->f, _yalkuun(FJARJ)) - 1; //0. elementti on kansilehti
+	        int paikka = hae_paikka(FTULOS->f, _yalkuun(FJARJ)) - 1; //0. elementti on kansilehti
 		flista* ftmp = FJARJ;
 		if( (FJARJ = _ynouda(_yalkuun(FJARJ), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-		  _flisaa(FJARJ, kaikki->liukutulos->f);
+		  _flisaa(FJARJ, FTULOS->f);
 		  _strlisaa_kopioiden(_ynouda(_yalkuun(SJARJ), paikka), KELLO);
 		  sprintf(tmp, "%i. ", aikoja);
 		  _strlisaa_kopioiden(_ynouda(_yalkuun(SIJARJ), paikka), tmp);
@@ -234,18 +204,12 @@ int kaunnista(kaikki_s *kaikki) {
 	      case 0:
 	      case 1:
 	        LISATD = _strpoista_kaikki(LISATD);
-		LISATD = tee_lisatiedot(kaikki->strtulos,		\
-					    kaikki->liukutulos,		\
-					    sektus,			\
-					    avgind[sarake]-4, 5);
+		LISATD = tee_lisatiedot(kaikki->tkset, sektus, avgind[sarake]-4, 5);
 		break;
 	      case 2:
 	      case 3:
 	        LISATD = _strpoista_kaikki(LISATD);
-		LISATD = tee_lisatiedot(kaikki->strtulos,		\
-					    kaikki->liukutulos,		\
-					    sektus,			\
-					    avgind[sarake+3]-11, 12);
+		LISATD = tee_lisatiedot(kaikki->tkset, sektus, avgind[sarake+3]-11, 12);
 		break;
 	      case 4:
 	        LISATD = _strpoista_kaikki(LISATD);
@@ -288,24 +252,24 @@ int kaunnista(kaikki_s *kaikki) {
 	    int tmpind = (kaikki->tulos_o->alku +			\
 			  (tapaht.button.y - kaikki->tulos_o->toteutuma->y) / \
 			  TTF_FontLineSkip(kaikki->tulos_o->font));
-	    strlista* tmpstr = _ynouda(_yalkuun(kaikki->strtulos), tmpind);
+	    strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      if(tmpstr != kaikki->strtulos) {
-		_strpoista1((strlista*)(_ynouda(_yalkuun(kaikki->strtulos), tmpind)), 1);
-		_yrm1((flista*)(_ynouda(_yalkuun(kaikki->liukutulos), tmpind)), 1);
+	      if(tmpstr != STRTULOS) {
+		_strpoista1((strlista*)(_ynouda(_yalkuun(STRTULOS), tmpind)), 1);
+		_yrm1((flista*)(_ynouda(_yalkuun(FTULOS), tmpind)), 1);
 	      } else {
-		kaikki->strtulos = _strpoista1(kaikki->strtulos, -1);
-		kaikki->liukutulos = _yrm1(kaikki->liukutulos, -1);
+		STRTULOS = _strpoista1(STRTULOS, -1);
+		FTULOS = _yrm1(FTULOS, -1);
 	      }
 	      _strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
 	      poista_jarjlistalta(tmpind, &SIJARJ, &SJARJ, &FJARJ);
-	      TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
+	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	      alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      flista* tmpfl = _ynouda(_yalkuun(kaikki->liukutulos), tmpind);
-	      muuta_sakko(tmpstr, &(tmpfl->f),		\
-			  (kaikki->strtulos == tmpstr)? KELLO : tmp);
-	      TIEDOT = tee_tiedot(TIEDOT, kaikki->liukutulos, avgind);
+	      flista* tmpfl = _ynouda(_yalkuun(FTULOS), tmpind);
+	      muuta_sakko(tmpstr, &(tmpfl->f),			\
+			  (STRTULOS == tmpstr)? KELLO : tmp);
+	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	    }
 	    MUUTA_TULOS;
 	    aikoja--;

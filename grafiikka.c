@@ -45,12 +45,12 @@ void piirra(kaikki_s* k) {
     LAITOT.sektus = 0;
   }
   if(LAITOT.tulos) {
-    laita_vasemmalle(k->kello_o, 10, _yalkuun(k->strtulos), 1, k->tulos_o, k->rend);
+    laita_vasemmalle(k->kello_o, 10, _yalkuun(k->tkset->strtulos), 1, k->tulos_o, k->rend);
     LAITOT.tulos = 0;
   }
   if(LAITOT.jarj) {
-    laita_aaret(k->tulos_o, 20, _ynouda(_yalkuun(k->sijarj), 1),	\
-		_ynouda(_yalkuun(k->sjarj), 1),				\
+    laita_aaret(k->tulos_o, 20, _ynouda(_yalkuun(k->tkset->sijarj), 1),	\
+		_ynouda(_yalkuun(k->tkset->strjarj), 1),			\
 		k->jarj_o, k->jarjsuhde, k->rend);
     LAITOT.jarj = 0;
   }
@@ -68,7 +68,7 @@ void piirra(kaikki_s* k) {
 }
 
 void laita_teksti_solid(tekstiolio_s *o, SDL_Renderer *rend) {
-  SDL_Surface *pinta = TTF_RenderUTF8_Solid(o->font, o->teksti, o->vari);
+  SDL_Surface *pinta = TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari);
   if(!pinta) {
     fprintf(stderr, "Virhe tekstin luomisessa: %s\n", TTF_GetError());
     return;

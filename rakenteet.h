@@ -40,6 +40,15 @@ typedef struct {
 } laitot_s;
 
 typedef struct {
+  strlista* strtulos;
+  flista* ftulos;
+  ilista* tuloshetki; //unix-aika tuloksen saamishetkellä
+  strlista* sijarj;
+  flista* fjarj;
+  strlista* strjarj;
+} tkset_s;
+
+typedef struct {
   SDL_Window* ikkuna;
   SDL_Renderer* rend;
   tekstiolio_s* kello_o;
@@ -49,11 +58,7 @@ typedef struct {
   tekstiolio_s* tluvut_o;
   tekstiolio_s* lisa_o;
   tekstiolio_s* sektus_o;
-  strlista* sjarj;
-  flista* fjarj;
-  strlista* sijarj;
-  strlista* strtulos;
-  flista* liukutulos;
+  tkset_s* tkset;
   strlista* tiedot;
   strlista* tietoalut;
   strlista* lisatd;
