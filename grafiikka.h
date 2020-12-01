@@ -2,7 +2,7 @@
 #include "rakenteet.h"
 
 void piirra(kaikki_s*);
-void laita_teksti_solid(tekstiolio_s*, SDL_Renderer*);
+void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
 void laita_tekstilista(strlista*, int, tekstiolio_s*, SDL_Renderer*);
 void laita_tekstilistan_paat(strlista*, tekstiolio_s*, float, SDL_Renderer*);
 void laita_aaret(tekstiolio_s* ov, short vali, strlista* luvut, strlista* l, tekstiolio_s*, float, SDL_Renderer*);

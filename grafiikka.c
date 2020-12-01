@@ -33,7 +33,7 @@ void piirra(kaikki_s* k) {
   /*laitetaan uudet*/
   if(LAITOT.kello) {
     if(KELLO[0])
-      laita_teksti_solid(k->kello_o, k->rend);
+      laita_teksti_ttf(k->kello_o, k->rend);
     LAITOT.kello = 0;
   }
   if(LAITOT.valinta) {
@@ -67,8 +67,23 @@ void piirra(kaikki_s* k) {
   SDL_RenderPresent(k->rend);
 }
 
-void laita_teksti_solid(tekstiolio_s *o, SDL_Renderer *rend) {
-  SDL_Surface *pinta = TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari);
+void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
+  SDL_Surface *pinta;
+  switch(o->ttflaji) {
+  case 0:
+  OLETUSLAJI:
+    pinta = TTF_RenderUTF8_Solid(o->font, o->teksti, o->vari);
+    break;
+  case 1:
+    pinta = TTF_RenderUTF8_Shaded(o->font, o->teksti, o->vari, (SDL_Color){0,0,0,0});
+    break;
+  case 2:
+    pinta = TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari);
+    break;
+  default:
+    printf("Varoitus: tekstin laittamisen laji on tuntematon, käytetään oletusta\n");
+    goto OLETUSLAJI;
+  }
   if(!pinta) {
     fprintf(stderr, "Virhe tekstin luomisessa: %s\n", TTF_GetError());
     return;
@@ -123,7 +138,7 @@ void laita_tekstilista(strlista* l, int alku, tekstiolio_s *o, SDL_Renderer *ren
     } else {
       o->teksti = l->str;
     }
-    laita_teksti_solid(o, rend);
+    laita_teksti_ttf(o, rend);
     if(o->toteutuma->w > maksw)
       maksw = o->toteutuma->w;
     (o->sij->y) += rvali;
@@ -192,7 +207,7 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
     SDL_RenderCopy(rend, o->kuvat->valittu, NULL, o->kuvat->sij);
   else
     SDL_RenderCopy(rend, o->kuvat->ei_valittu, NULL, o->kuvat->sij);
-  laita_teksti_solid(o->teksti, rend);
+  laita_teksti_ttf(o->teksti, rend);
   return;
 }
 
