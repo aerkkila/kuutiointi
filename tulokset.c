@@ -225,3 +225,67 @@ float lue_kellosta(char* s) {
     sscanf(s, "%hi:%f", &min, &fsek);
   return min*60 + fsek;
 }
+
+#if 0
+struct tm aikaero(time_t t1, time_t t2) {
+  time_t ero = abs(t2-t1);
+  struct tm aika = localtime(&ero);
+  return aika;
+}
+#endif
+
+char tallenna(tkset_s* t, char* tiednimi) {
+  flista* ft = _yalkuun(t->ftulos);
+  ilista* th = _yalkuun(t->tuloshetki);
+  if(!ft)
+    return 1;
+  
+  FILE *f = fopen(tiednimi, "r+");
+  /*jos tiedostoa ei ollut, se tehdään, muuten haetaan oikea kohta*/
+  if(!f) {
+    f = fopen(tiednimi, "w");
+    goto KIRJOITA;
+  }
+  
+  /*kirjoitetaan jo olleen ajan päälle, jos on samalta hetkeltä tiedostossa*/
+  time_t hetki = th->i;
+  time_t yrite = 0;
+  char c = 0;
+  while(1) {
+    fflush(f);
+    unsigned long sij = ftell(f);
+    int skan = fscanf(f, "%*f %li\n", &yrite);
+    if(skan == EOF)
+      goto KIRJOITA;
+    if(!skan) {
+      while( (c=fgetc(f)) < 0x21 && c && c != '\n' && c != EOF ); //välit ohi rivillä
+    SWITCH:
+      switch(c) {
+      case '#': //kommenttirivi
+	while((c=fgetc(f)) != '\n' && c != EOF);
+	goto SWITCH;
+      case '\n':
+	continue;
+      case EOF:
+      case 0:
+	goto KIRJOITA;
+      default:
+	fprintf(stderr, "Virhe: Lukeminen epäonnistui, c = %hhx (hexa) '%c'\n", c, c);
+	return 1;
+      }
+    } else {
+      if (yrite >= hetki) {
+	fseek(f, sij, SEEK_SET); //takaisin rivin alkuun, tämän päälle kirjoitetaan
+	goto KIRJOITA;
+      }
+    }
+  }
+ KIRJOITA:
+  while(ft) {
+    fprintf(f, "%.2f\t%i\n", ft->f, th->i);
+    ft = ft->seur;
+    th = th->seur;
+  }
+  fclose(f);
+  return 0;
+}

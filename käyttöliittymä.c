@@ -71,6 +71,7 @@ int kaunnista(kaikki_s *kaikki) {
     juoksee,
     kirjoitustila
   } tila = seis;
+  char kontrol = 0;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
   sakko_e sakko;
@@ -102,6 +103,14 @@ int kaunnista(kaikki_s *kaikki) {
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		MUUTA_TULOS;
 	      }
+	      break;
+	    case SDLK_LCTRL:
+	    case SDLK_RCTRL:
+	      kontrol = 1;
+	      break;
+	    case SDLK_s:
+	      if(kontrol)
+		tallenna(kaikki->tkset, kaikki->ulosnimi);
 	      break;
 	    case SDLK_BACKSPACE:
 	      if(tila == seis && STRTULOS) {
@@ -187,6 +196,10 @@ int kaunnista(kaikki_s *kaikki) {
 		  nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
 		    break;
 	      }
+	    case SDLK_LCTRL:
+	    case SDLK_RCTRL:
+	      kontrol = 0;
+	      break;
 	    }
 	  break;
 	case SDL_MOUSEBUTTONDOWN:

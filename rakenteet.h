@@ -69,6 +69,7 @@ typedef struct {
   vnta_s* vnta_o;
   Uint32 viive;
   SDL_Color* kvarit;
+  char* ulosnimi;
 } kaikki_s;
 
 typedef struct {

@@ -13,5 +13,7 @@ void poista_jarjlistalta(int i, strlista** si, strlista** s, flista** fl);
 void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja);
 void poista_listoilta(tkset_s*, int);
 float lue_kellosta(char* s);
+//struct tm aikaero(time_t t1, time_t t2);
+char tallenna(tkset_s* t, char* tiednimi);
 
 #endif

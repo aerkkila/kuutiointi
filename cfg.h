@@ -3,6 +3,7 @@
 char ohjelman_nimi[] = "Kajastin";
 int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1600, ikkuna_h=600;
 Uint32 viive = 3;
+char ulosnimi[] = "tulokset.txt";
 
 char url_valittu[] = "/home/antterkk/kajastin/kuva_valittu.bmp";
 char url_eivalittu[] = "/home/antterkk/kajastin/kuva_valittu_ei.bmp";

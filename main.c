@@ -221,6 +221,7 @@ int main(int argc, char** argv) {
   kaikki.sekoitukset = NULL;
   kaikki.tiedot = NULL;
   kaikki.lisatd = NULL;
+  kaikki.ulosnimi = ulosnimi;
 
   time_t t;
   srand((unsigned) time(&t));
