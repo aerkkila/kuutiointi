@@ -201,17 +201,17 @@ void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja) {
   }
 }
 
-void poista_listoilta(tkset_s* t, int i) {
-  if(!i) {
+void poista_listoilta(tkset_s* t, int ind) {
+  if(ind+1 == _ylaske(_yalkuun(t->strtulos))) {
     t->strtulos = _strpoista1(t->strtulos, -1);
     t->ftulos = _yrm1(t->ftulos, -1);
     t->tuloshetki = _yrm1(t->tuloshetki, -1);
   } else {
-    _strpoista1(_ynouda(t->strtulos, i), 1);
-    _yrm1(_ynouda(t->ftulos, i), 1);
-    _yrm1(_ynouda(t->tuloshetki, i), 1);
+    _strpoista1(_ynouda(_yalkuun(t->strtulos), ind), 1);
+    _yrm1(_ynouda(_yalkuun(t->ftulos), ind), 1);
+    _yrm1(_ynouda(_yalkuun(t->tuloshetki), ind), 1);
   }
-  poista_jarjlistalta(_ylaske(_yalkuun(t->strtulos)), &(t->sijarj), &(t->strjarj), &(t->fjarj));
+  poista_jarjlistalta(ind, &(t->sijarj), &(t->strjarj), &(t->fjarj));
 }
 
 float lue_kellosta(char* s) {

@@ -115,7 +115,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_BACKSPACE:
 	      if(tila == seis && STRTULOS) {
 		SEKTUS = _strpoista1(SEKTUS, -1);
-		poista_listoilta(kaikki->tkset, 0);
+		int ind = _ylaske(_yalkuun(FTULOS))-1;
+		poista_listoilta(kaikki->tkset, ind);
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	        MUUTA_TULOS;
 		aikoja--;
@@ -265,20 +266,13 @@ int kaunnista(kaikki_s *kaikki) {
 	    int tmpind = (kaikki->tulos_o->alku +			\
 			  (tapaht.button.y - kaikki->tulos_o->toteutuma->y) / \
 			  TTF_FontLineSkip(kaikki->tulos_o->font));
-	    strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      if(tmpstr != STRTULOS) {
-		_strpoista1((strlista*)(_ynouda(_yalkuun(STRTULOS), tmpind)), 1);
-		_yrm1((flista*)(_ynouda(_yalkuun(FTULOS), tmpind)), 1);
-	      } else {
-		STRTULOS = _strpoista1(STRTULOS, -1);
-		FTULOS = _yrm1(FTULOS, -1);
-	      }
+	      poista_listoilta(kaikki->tkset, tmpind);
 	      _strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
-	      poista_jarjlistalta(tmpind, &SIJARJ, &SJARJ, &FJARJ);
 	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	      alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
+	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
 	      flista* tmpfl = _ynouda(_yalkuun(FTULOS), tmpind);
 	      muuta_sakko(tmpstr, &(tmpfl->f),			\
 			  (STRTULOS == tmpstr)? KELLO : tmp);
