@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   tekstiolio_s kelloolio;
   kelloolio.teksti = malloc(90);
   strcpy(kelloolio.teksti, "");
-  kelloolio.ttflaji = 1;
+  kelloolio.ttflaji = kellottflaji;
   kelloolio.font = TTF_OpenFont(kellofonttied, kellokoko);
   if(!kelloolio.font) {
     fprintf(stderr, "Virhe: Ei avattu kellofonttia: %s\n", TTF_GetError());
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 
   /*tulosolio*/
   tekstiolio_s tulosolio;
-  tulosolio.ttflaji = 2;
+  tulosolio.ttflaji = tulosttflaji;
   tulosolio.font = TTF_OpenFont(tulosfonttied, tuloskoko);
   if(!tulosolio.font) {
     fprintf(stderr, "Virhe: Ei avattu tulosfonttia: %s\n", TTF_GetError());
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 
   /*jarjolio*/
   tekstiolio_s jarjolio;
-  jarjolio.ttflaji = 2;
+  jarjolio.ttflaji = jarjttflaji;
   jarjolio.font = TTF_OpenFont(jarjfonttied, jarjkoko);
   if(!jarjolio.font) {
     fprintf(stderr, "Virhe: Ei avattu äärifonttia: %s\n", TTF_GetError());
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
   /*tiedotolio*/
   tekstiolio_s tiedotolio;
-  tiedotolio.ttflaji = 0;
+  tiedotolio.ttflaji = tiedotttflaji;
   tiedotolio.font = TTF_OpenFont(tiedotfonttied, tiedotkoko);
   if(!tiedotolio.font) {
     fprintf(stderr, "Virhe: Ei avattu tiedotfonttia: %s\n", TTF_GetError());
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
   /*tlukuolio on pitkälti sama kuin tiedotolio*/
   tekstiolio_s tlukuolio;
-  tlukuolio.ttflaji = 0;
+  tlukuolio.ttflaji = tiedotttflaji;
   tlukuolio.font = tiedotolio.font;
   tlukuolio.sij = &tluvutsij;
   SDL_Rect tlukuapu = (SDL_Rect){0, 0, 0, 0};
@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 
   /*lisätiedot*/
   tekstiolio_s lisaolio;
-  lisaolio.ttflaji = 2;
+  lisaolio.ttflaji = lisattflaji;
   lisaolio.font = TTF_OpenFont(lisafonttied, lisakoko);
   if(!lisaolio.font) {
     fprintf(stderr, "Virhe: Ei avattu lisafonttia: %s\n", TTF_GetError());
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 
   /*sekoitusolio*/
   tekstiolio_s sektusolio;
-  sektusolio.ttflaji = 0;
+  sektusolio.ttflaji = sektusttflaji;
   sektusolio.font = TTF_OpenFont(sektusfonttied, sektuskoko);
   if(!sektusolio.font) {
     fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 
   /*valintaolion teksti*/
   vnta_s vntaolio;
-  vntaolio.valittu = 0;
+  vntaolio.valittu = vntattflaji;
   tekstiolio_s vto;
   vto.ttflaji = 2;
   vto.font = TTF_OpenFont(vntafonttied, vntakoko);
