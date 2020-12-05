@@ -148,46 +148,34 @@ int hae_silistalta(strlista* l, int i) {
 }
 
 /*i on tuloksen indeksi nollasta alkaen järjestämättä*/
-void poista_jarjlistalta(int i, strlista** si, strlista** s, flista** fl) {
-  int paikka = hae_silistalta(_yalkuun(*si), i+1);
+int poista_jarjlistalta(int i, tkset_s* t) {
+  int paikka = hae_silistalta(_yalkuun(t->sijarj), i+1);
   if(paikka < 0)
-    goto NUMEROINTI; //kyseistä ei ollut jarjlistalla ensinkään
+    return paikka;; //kyseistä ei ollut jarjlistalla ensinkään
   char palsuunta = (paikka == 0)? 1 : -1;
-  *si = _strpoista1(_ynouda(_yalkuun(*si), paikka), palsuunta);
-  *s  = _strpoista1(_ynouda(_yalkuun(*s ), paikka), palsuunta);
-  *fl = _yrm1(_ynouda(_yalkuun(*fl), paikka), palsuunta);
-
- NUMEROINTI:;
-  /*korjataan numerointi, jos poistettiin välistä*/
-  /*haetaan ensin maksimi si-listalta*/
-  strlista *l = _yalkuun(*si);
-  int maks = 0;
-  int yrite = 0;
-  while(l) {
-    sscanf(l->str, "%i", &yrite);
-    if(yrite > maks)
-      maks = yrite;
-    l = l->seur;
-  }
-
-  /*sitten korjataan*/
-  l = _yalkuun(*si);
-  strlista* apu;
-  char tmpc[10];
-  for(int luku = i+1; luku<=maks; luku++) {
-    paikka = hae_silistalta(l, luku);
-    if(paikka<0)
-      continue;
-    sprintf(tmpc, "%i. ", luku-1);
-    apu = _ynouda(l, paikka);
-    if(*si == apu)
-      *si = apu->edel;
-    apu = _strpoista1(apu, -1);
-    _strlisaa_kopioiden(apu, tmpc);
-  }
+  t->sijarj = _strpoista1(_ynouda(_yalkuun(t->sijarj), paikka), palsuunta);
+  t->strjarj  = _strpoista1(_ynouda(_yalkuun(t->strjarj), paikka), palsuunta);
+  t->fjarj = _yrm1(_ynouda(_yalkuun(t->fjarj), paikka), palsuunta);
+  return paikka;
 }
 
-void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja) {
+/*alku on pienin luku, jota muutetaan eli alku ≥ 1*/
+void numerointi_miinus_miinus(strlista* l, int alku) {
+  if(!l)
+    return;
+  char tmpc[15];
+  int li;
+  do {
+    sscanf(l->str, "%i. ", &li);
+    if(li < alku)
+      continue;
+    sprintf(tmpc, "%i. ", li-1);
+    l = _strpoista1(l, -1);
+    l = _strlisaa_kopioiden(l, tmpc);
+  } while((l = l->seur));
+}
+
+void lisaa_listoille(tkset_s* t, char* kello, time_t hetki) {
   char tmp[10];
   t->strtulos = _strlisaa_kopioiden(t->strtulos, kello);
   t->ftulos = _flisaa(t->ftulos, lue_kellosta(kello));
@@ -196,7 +184,7 @@ void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja) {
   if( (t->fjarj = _ynouda(_yalkuun(t->fjarj), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
     _flisaa(t->fjarj, t->ftulos->f);
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), t->strtulos->str);
-    sprintf(tmp, "%i. ", ++(*aikoja));
+    sprintf(tmp, "%i. ", _ylaske(_yalkuun(t->ftulos)));
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
   }
 }
@@ -211,7 +199,8 @@ void poista_listoilta(tkset_s* t, int ind) {
     _yrm1(_ynouda(_yalkuun(t->ftulos), ind), 1);
     _yrm1(_ynouda(_yalkuun(t->tuloshetki), ind), 1);
   }
-  poista_jarjlistalta(ind, &(t->sijarj), &(t->strjarj), &(t->fjarj));
+  poista_jarjlistalta(ind, t);
+  numerointi_miinus_miinus(_yalkuun(t->sijarj), ind+1);
 }
 
 float lue_kellosta(char* s) {
@@ -288,4 +277,80 @@ char tallenna(tkset_s* t, char* tiednimi) {
   }
   fclose(f);
   return 0;
+}
+
+/*teksti voi olla kello tai turha*/
+void muuta_sakko(tkset_s* t, char* teksti, int ind) {
+  strlista* sl = _ynouda(_yalkuun(t->strtulos), ind);
+  float* fp = &( ((flista*)_ynouda(_yalkuun(t->ftulos), ind))->f );
+  int min=0;
+  sakko_e sakko = hae_sakko(sl->str);
+
+  /*tuloslistat*/
+  switch(sakko) {
+  case ei:
+    *fp += 2;
+    break;
+  case plus:
+    *fp -= 2;
+    break;
+  case dnf:
+    if(!strstr(sl->str, ":")) {
+      sscanf(sl->str, "Ø(%f)", fp);
+    } else {
+      float fsek;
+      sscanf(sl->str, "Ø(%i:%f)", &min, &fsek);
+      *fp = min*60 + fsek;
+    }
+    break;
+  }
+  min = (int)(*fp+0.00001) / 60;
+  
+  if(sakko != dnf) //järjestyslistalta poisto ennen sakon muuttamista
+    poista_jarjlistalta(ind, t);
+  
+  sakko = (sakko + 1) % 3;
+  
+  if(!min) {
+    sprintf(teksti, "%s%.2f%s",					\
+	    (sakko==dnf)? "Ø(" : "", *fp,			\
+	    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
+  } else {
+    float fsek = *fp+0.00001 - min*60;
+    char muoto[30];
+    if (fsek < 10)
+      strcpy(muoto, "%s%i:0%.2f%s");
+    else
+      strcpy(muoto, "%s%i:%.2f%s");
+    sprintf(teksti, muoto,					\
+	    (sakko==dnf)? "Ø(" : "",				\
+	    min, fsek,						\
+	    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
+  }
+  
+  sl->str = realloc(sl->str, strlen(teksti)+1);
+  strcpy(sl->str, teksti);
+  
+  if(sakko == dnf)
+    *fp = INFINITY;
+
+  /*järjestyslistat*/
+  int paikka = hae_paikka(*fp, _yalkuun(t->fjarj)) - 1; //0. elementti on kansilehti
+  flista* ftmp = t->fjarj;
+  if( (t->fjarj = _ynouda(_yalkuun(t->fjarj), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+    _flisaa(t->fjarj, *fp);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), teksti);
+    char tmp[15];
+    sprintf(tmp, "%i. ", ind+1);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
+  } else
+    t->fjarj = ftmp;
+}
+
+sakko_e hae_sakko(char* s) {
+  if(strstr(s, "Ø"))
+    return dnf;
+  if(strstr(s, "+"))
+    return plus;
+  return ei;
 }

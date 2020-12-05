@@ -9,11 +9,14 @@ strlista* tee_tiedot(strlista* tiedot, flista* fl, int* avgind);
 strlista* tee_lisatiedot(tkset_s* t, strlista* sektus, int alkuind, int n);
 int hae_paikka(float f, flista* l);
 int hae_silistalta(strlista* l, int i);
-void poista_jarjlistalta(int i, strlista** si, strlista** s, flista** fl);
-void lisaa_listoille(tkset_s* t, char* kello, time_t hetki, int* aikoja);
+int poista_jarjlistalta(int i, tkset_s *t);
+void numerointi_miinus_miinus(strlista*, int);
+void lisaa_listoille(tkset_s* t, char* kello, time_t hetki);
 void poista_listoilta(tkset_s*, int);
 float lue_kellosta(char* s);
 //struct tm aikaero(time_t t1, time_t t2);
 char tallenna(tkset_s* t, char* tiednimi);
+void muuta_sakko(tkset_s* t, char* teksti, int ind);
+sakko_e hae_sakko(char*);
 
 #endif

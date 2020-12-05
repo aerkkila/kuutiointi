@@ -22,16 +22,8 @@ typedef enum {
   muu
 } alue_e;
 
-typedef enum {
-  ei = 0,
-  plus,
-  dnf
-} sakko_e;
-
 char piste_alueella(int x, int y, SDL_Rect* alue);
 alue_e hae_alue(int x, int y, kaikki_s *kaikki);
-sakko_e hae_sakko(char*);
-void muuta_sakko(strlista* sl, float* fp, char* teksti);
 char* sekoitus(char* s);
 
 #define SEKTUS (kaikki->sekoitukset)
@@ -53,7 +45,6 @@ int kaunnista(kaikki_s *kaikki) {
   short min, sek, csek;
   double dalku, dnyt;
   char tmp[200];
-  int aikoja = 0;
   int avgind[6];
   enum hiirilaji {
     perus,
@@ -98,7 +89,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      /*pysäytä*/
 	      if(tila == juoksee) {
 		tila = seis;
-		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec, &aikoja);
+		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec);
 		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		MUUTA_TULOS;
@@ -119,7 +110,6 @@ int kaunnista(kaikki_s *kaikki) {
 		poista_listoilta(kaikki->tkset, ind);
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	        MUUTA_TULOS;
-		aikoja--;
 	      } else if (tila == kirjoitustila) {
 		/*koko utf-8-merkki pois kerralla*/
 		char jatka = 1;
@@ -139,7 +129,7 @@ int kaunnista(kaikki_s *kaikki) {
 		/*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		while((apucp = strstr(KELLO, ".")))
 		  *apucp = ',';
-	        lisaa_listoille(kaikki->tkset, KELLO, time(NULL), &aikoja);
+	        lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
 		LAITOT.kello = 1;
@@ -149,20 +139,10 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_PLUS:
 	    case SDLK_KP_PLUS:
 	      if(tila != kirjoitustila) {
-		if(hae_sakko(KELLO) != dnf) //tätä ei ollutkaan jarjlistalla
-		  poista_jarjlistalta(_ylaske(_yalkuun(STRTULOS))-1, &SIJARJ, &SJARJ, &FJARJ);
-		muuta_sakko(STRTULOS, &(FTULOS->f), KELLO);
+		int tmpind = _ylaske(_yalkuun(STRTULOS)) - 1;
+		muuta_sakko(kaikki->tkset, KELLO, tmpind);
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 		LAITOT.kello=1;
-	        int paikka = hae_paikka(FTULOS->f, _yalkuun(FJARJ)) - 1; //0. elementti on kansilehti
-		flista* ftmp = FJARJ;
-		if( (FJARJ = _ynouda(_yalkuun(FJARJ), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-		  _flisaa(FJARJ, FTULOS->f);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SJARJ), paikka), KELLO);
-		  sprintf(tmp, "%i. ", aikoja);
-		  _strlisaa_kopioiden(_ynouda(_yalkuun(SIJARJ), paikka), tmp);
-		} else
-		  FJARJ = ftmp;
 		MUUTA_TULOS;
 		break;
 	      }
@@ -203,7 +183,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    }
 	  break;
-	case SDL_MOUSEBUTTONDOWN:
+	case SDL_MOUSEBUTTONDOWN: //tässä on vain tietoalue
 	  if(alue == tietoalue) {
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 	       tapaht.button.button == SDL_BUTTON_RIGHT) {
@@ -273,13 +253,11 @@ int kaunnista(kaikki_s *kaikki) {
 	      alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
-	      flista* tmpfl = _ynouda(_yalkuun(FTULOS), tmpind);
-	      muuta_sakko(tmpstr, &(tmpfl->f),			\
-			  (STRTULOS == tmpstr)? KELLO : tmp);
+	      muuta_sakko(kaikki->tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
 	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	    }
 	    MUUTA_TULOS;
-	    aikoja--;
+	    LAITOT.kello=1;
 	  }
 	  break;
 	case SDL_MOUSEWHEEL:
@@ -413,14 +391,6 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
   return muu;
 }
 
-sakko_e hae_sakko(char* s) {
-  if(strstr(s, "Ø"))
-    return dnf;
-  if(strstr(s, "+"))
-    return plus;
-  return ei;
-}
-
 char* sekoitus(char* s) {
   const short pit = 21;
   enum {
@@ -464,48 +434,4 @@ char* sekoitus(char* s) {
     }
   }
   return s;
-}
-
-void muuta_sakko(strlista* sl, float* fp, char* teksti) {
-  sakko_e sakko;
-  int min=0, sek, csek;
-  char d=0, c=0;
-  switch( (sakko = hae_sakko(sl->str)) ) {
-  case ei:
-    *fp += 2;
-    sek = (int)(*fp) % 60;
-    min = (int)(*fp) / 60;
-    csek = (int)(*fp * 100) % 100;
-    d = csek / 10;
-    c = csek % 10;
-    break;
-  case plus:
-    *fp -= 2;
-    sek = (int)(*fp) % 60;
-    min = (int)(*fp) / 60;
-    csek = (int)(*fp * 100) % 100;
-    d = csek / 10;
-    c = csek % 10;
-    *fp = INFINITY;
-    break;
-  case dnf:
-    if(!strstr(sl->str, ":"))
-      sscanf(sl->str, "Ø(%i,%1hhi%1hhi)", &sek, &d, &c);
-    else
-      sscanf(sl->str, "Ø(%i:%i,%1hhi%1hhi)", &min, &sek, &d, &c);
-    *fp = min*60 + sek + d/10.0 + c/100.0;
-    break;
-  }
-  sakko = (sakko + 1) % 3;
-  if(!min)
-    sprintf(teksti, "%s%i,%hhi%hhi%s",				\
-	    (sakko==dnf)? "Ø(" : "", sek, d, c,			\
-	    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
-  else
-    sprintf(teksti, "%s%i:%i%i,%hhi%hhi%s",			\
-	    (sakko==dnf)? "Ø(" : "",				\
-	    min, sek/10, sek%10, d, c,				\
-	    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
-  sl->str = realloc(sl->str, strlen(teksti)+1);
-  strcpy(sl->str, teksti);
 }
