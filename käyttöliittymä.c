@@ -108,6 +108,7 @@ int kaunnista(kaikki_s *kaikki) {
 		SEKTUS = _strpoista1(SEKTUS, -1);
 		int ind = _ylaske(_yalkuun(FTULOS))-1;
 		poista_listoilta(kaikki->tkset, ind);
+		strcpy(KELLO, kaikki->tkset->strtulos->str);
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
@@ -117,8 +118,8 @@ int kaunnista(kaikki_s *kaikki) {
 		  jatka = ( (KELLO[strlen(KELLO)-1] & 0xc0) == 0x80 )? 1 : 0; //alkaako 10:lla
 		  KELLO[strlen(KELLO)-1] = '\0';
 		}
-		LAITOT.kello = 1;
 	      }
+	      LAITOT.kello = 1;
 	      break;
 	    case SDLK_RETURN:
 	    case SDLK_KP_ENTER:
