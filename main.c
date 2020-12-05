@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 
   /*valintaolion teksti*/
   vnta_s vntaolio;
-  vntaolio.valittu = vntattflaji;
+  vntaolio.valittu = vntavalittu;
   tekstiolio_s vto;
   vto.ttflaji = 2;
   vto.font = TTF_OpenFont(vntafonttied, vntakoko);
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
   kaikki.tkset->strjarj = _strlisaa_kopioiden(NULL, "");
 
   /*kiinnittämättömät*/
-  laitot_s laitot = (laitot_s){1, 1, 1, 1, 1, 1, 1, 1};
+  laitot_s laitot = kaikki_laitot();
   kaikki.laitot = &laitot;
   kaikki.viive = viive;
   kaikki.tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));

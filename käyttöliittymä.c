@@ -317,7 +317,7 @@ int kaunnista(kaikki_s *kaikki) {
 	  switch(tapaht.window.event) {
 	  case SDL_WINDOWEVENT_RESIZED:
 	    SDL_RenderClear(kaikki->rend);
-	    MUUTA_TULOS; LAITOT.kello=1; LAITOT.valinta=1;
+	    LAITOT = kaikki_laitot();
 	    break;
 	  }
 	  break;
