@@ -38,6 +38,7 @@ typedef struct {
   char jarj;
   char tiedot;
   char lisatd;
+  char muut;
 } laitot_s;
 
 typedef struct {
@@ -59,12 +60,15 @@ typedef struct {
   tekstiolio_s* tluvut_o;
   tekstiolio_s* lisa_o;
   tekstiolio_s* sektus_o;
+  tekstiolio_s* muut_o;
   tkset_s* tkset;
   strlista* tiedot;
   strlista* tietoalut;
   strlista* lisatd;
   strlista* sekoitukset;
   laitot_s* laitot;
+  strlista* muut_a;
+  strlista* muut_b;
   float jarjsuhde;
   vnta_s* vnta_o;
   Uint32 viive;

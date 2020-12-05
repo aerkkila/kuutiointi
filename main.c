@@ -152,6 +152,23 @@ int main(int argc, char** argv) {
   sektusolio.numerointi = 1;
   kaikki.sektus_o = &sektusolio;
 
+  /*muutolio*/
+  tekstiolio_s muutolio;
+  muutolio.ttflaji = muutttflaji;
+  muutolio.font = TTF_OpenFont(muutfonttied, muutkoko);
+  if(!muutolio.font) {
+    fprintf(stderr, "Virhe: Ei avattu muutfonttia: %s\n", TTF_GetError());
+    r = 1;
+    goto EI_FONTTI;
+  }
+  muutolio.sij = &muutsij;
+  SDL_Rect muut_toteutuma = (SDL_Rect){0, 0, 0, 0};
+  muutolio.toteutuma = &muut_toteutuma;
+  muutolio.vari = muutvari;
+  muutolio.rullaus = 0;
+  muutolio.numerointi = 0;
+  kaikki.muut_o = &muutolio;
+
   /*valintaolion teksti*/
   vnta_s vntaolio;
   vntaolio.valittu = vntattflaji;
@@ -214,13 +231,16 @@ int main(int argc, char** argv) {
   kaikki.tkset->strjarj = _strlisaa_kopioiden(NULL, "");
 
   /*kiinnittämättömät*/
-  laitot_s laitot = (laitot_s){1, 1, 1, 1, 1, 1, 1};
+  laitot_s laitot = (laitot_s){1, 1, 1, 1, 1, 1, 1, 1};
   kaikki.laitot = &laitot;
   kaikki.viive = viive;
   kaikki.tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));
   kaikki.sekoitukset = NULL;
   kaikki.tiedot = NULL;
   kaikki.lisatd = NULL;
+  kaikki.muut_a = _yalkuun(_strlistaksi(muut_a_str, "|"));
+  kaikki.muut_b = NULL;
+  kaikki.muut_b = _strlisaa_kopioiden(kaikki.muut_b, ulosnimi);
   kaikki.ulosnimi = ulosnimi;
 
   time_t t;
@@ -230,7 +250,6 @@ int main(int argc, char** argv) {
   SDL_RenderClear(kaikki.rend);
   SDL_SetRenderDrawColor(kaikki.rend, 0, 0, 0, 255);
   r = kaunnista(&kaikki);
-  //tähän tulosten kirjaaminen
 
   SDL_DestroyTexture(kaikki.vnta_o->kuvat->valittu);
   SDL_DestroyTexture(kaikki.vnta_o->kuvat->ei_valittu);
@@ -243,6 +262,8 @@ int main(int argc, char** argv) {
   _strpoista_kaikki(_yalkuun(kaikki.tietoalut));
   _strpoista_kaikki(_yalkuun(kaikki.sekoitukset));
   _strpoista_kaikki(_yalkuun(kaikki.tiedot));
+  _strpoista_kaikki(_yalkuun(kaikki.muut_a));
+  _strpoista_kaikki(_yalkuun(kaikki.muut_b));
   free(kelloolio.teksti);
  EI_KUVAA:
   TTF_CloseFont(kelloolio.font);
@@ -252,6 +273,7 @@ int main(int argc, char** argv) {
   TTF_CloseFont(sektusolio.font);
   TTF_CloseFont(vto.font);
   TTF_CloseFont(lisaolio.font);
+  TTF_CloseFont(muutolio.font);
  EI_FONTTI:
   SDL_DestroyRenderer(kaikki.rend);
   SDL_DestroyWindow(kaikki.ikkuna);

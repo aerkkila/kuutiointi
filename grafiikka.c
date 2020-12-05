@@ -29,6 +29,8 @@ void piirra(kaikki_s* k) {
   }
   if(LAITOT.lisatd)
     PYYHI(lisa_o);
+  if(LAITOT.muut)
+    PYYHI(muut_o);
 
   /*laitetaan uudet*/
   if(LAITOT.kello) {
@@ -39,6 +41,10 @@ void piirra(kaikki_s* k) {
   if(LAITOT.valinta) {
     laita_valinta(k->vnta_o, k->rend);
     LAITOT.valinta = 0;
+  }
+  if(LAITOT.muut) {
+    laita_vierekkain(k->muut_a, k->muut_b, 0, k->muut_o, k->rend);
+    LAITOT.muut = 0;
   }
   if(LAITOT.sektus) {
     laita_tekstilista(_yalkuun(k->sekoitukset), 1, k->sektus_o, k->rend);
@@ -222,20 +228,22 @@ void laita_tiedot(strlista* a, tekstiolio_s* oa,			\
   return;
 }
 
-void laita_vierekkain(strlista* a, int ai, strlista* b, int bi,
-		      tekstiolio_s* oa, tekstiolio_s* ob, SDL_Renderer* r) {
-  laita_tekstilista(a, ai, oa, r);
-  SDL_Rect sij = *(oa->sij);
-  if(!ob)
-    ob = oa;
+/*tämä palauttaa toteutumaksi näitten yhteisen alueen*/
+void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_Renderer* r) {
+  laita_tekstilista(a, alku, o, r);
+  SDL_Rect sij0 = *(o->sij);
+  SDL_Rect tot0 = *(o->toteutuma);
   
-  ob->sij->x = oa->toteutuma->x + oa->toteutuma->w;
-  ob->sij->y = oa->toteutuma->y;
-  ob->sij->w = oa->sij->w - oa->toteutuma->w;
-  ob->sij->h = oa->toteutuma->h;
+  o->sij->x = o->toteutuma->x + o->toteutuma->w;
+  o->sij->y = o->toteutuma->y;
+  o->sij->w = o->sij->w - o->toteutuma->w;
+  o->sij->h = o->toteutuma->h;
 
-  laita_tekstilista(b, ai, ob, r);
-  *(oa->sij) = sij;
+  laita_tekstilista(b, alku, o, r);
+  
+  *(o->sij) = sij0;
+  o->toteutuma->x = tot0.x;
+  o->toteutuma->w += tot0.w;
 }
 
 void laita_vasemmalle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {
