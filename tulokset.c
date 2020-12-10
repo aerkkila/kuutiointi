@@ -279,6 +279,79 @@ char tallenna(tkset_s* t, char* tiednimi) {
   return 0;
 }
 
+char lue_tiedosto(kaikki_s* k, char* tiednimi) {
+  FILE *f = fopen(tiednimi, "r");
+  if(!f) {
+    fprintf(stderr, "Virhe, ei tiedostoa \"%s\"\n", tiednimi);
+    return 1;
+  }
+
+  float faika;
+  int i;
+  char c;
+  tkset_s* t = k->tkset;
+  char* kello = k->kello_o->teksti;
+  
+  while(1) {
+    while((c=fgetc(f)) < 0x21) //välien yli
+      if(c == EOF)
+	goto LUETTU;
+    if(c == '#') //kommenttirivi
+      while( (c=fgetc(f)) != '\n')
+	if(c==EOF)
+	  goto LUETTU;
+    fseek(f, -1, SEEK_CUR);
+    if(fscanf(f, "%f%i", &faika, &i) < 2) {
+      fprintf(stderr, "Virhe, tiedostosta \"%s\" ei luettu arvoa\n", tiednimi);
+      goto LUETTU;
+    }
+    t->ftulos = _flisaa(t->ftulos, faika);
+    t->tuloshetki = _ilisaa(t->tuloshetki, i);
+    t->strtulos = _strlisaa_kopioiden(t->strtulos, float_kelloksi(kello, faika));
+  }
+ LUETTU:
+  tee_jarjlista(t);
+  fclose(f);
+  return 0;
+}
+
+char* float_kelloksi(char* kello, float f) {
+  if(f+0.00001 < 60.0)
+    sprintf(kello, "%.2f", f+0.00001);
+  else if(isfinite(f)) {
+    int sek = (int)(f+0.00001);
+    char c = (char)( (f+0.00001 - sek) * 100 );
+    sprintf(kello, "%i:%s%i,%s%hhi", sek/60,
+	    (sek%60 < 10)? "0": "", sek%60,
+	    (c<10)? "0": "", c);
+  } else
+    sprintf(kello, "Ø");
+  return kello;
+}
+
+void tee_jarjlista(tkset_s* t) {
+  char str[50];
+  flista* ft = _yalkuun(t->ftulos);
+  flista* fj = _yalkuun(t->fjarj);
+  strlista* sj = _yalkuun(t->strjarj);
+  strlista* sij = _yalkuun(t->sijarj);
+  flista* apuf;
+  strlista* apus;
+  int i=1;
+  while(ft) {
+    int jarji = hae_paikka(ft->f, fj)-1;
+    apuf = _ynouda(fj, jarji); //fjarj
+    _flisaa(apuf, ft->f);
+    apus = _ynouda(sj, jarji); //strjarj
+    _strlisaa_kopioiden(apus, float_kelloksi(str, ft->f));
+    apus = _ynouda(sij, jarji); //sijarj
+    sprintf(str, "%i. ", i++);
+    _strlisaa_kopioiden(apus, str);
+    ft = ft->seur;
+  }
+}
+
+
 /*teksti voi olla kello tai turha*/
 void muuta_sakko(tkset_s* t, char* teksti, int ind) {
   strlista* sl = _ynouda(_yalkuun(t->strtulos), ind);

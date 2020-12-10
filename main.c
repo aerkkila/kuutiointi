@@ -9,6 +9,7 @@
 #include "rakenteet.h"
 #include "cfg.h"
 #include "grafiikka.h"
+#include "tulokset.h"
 
 int kaunnista(kaikki_s *kaikki);
 
@@ -249,6 +250,12 @@ int main(int argc, char** argv) {
 
   SDL_RenderClear(kaikki.rend);
   SDL_SetRenderDrawColor(kaikki.rend, 0, 0, 0, 255);
+
+  /*luetaan tiedosto tarvittaessa*/
+  if(argc > 1)
+    if(lue_tiedosto(&kaikki, argv[1]))
+      return 1;
+  
   r = kaunnista(&kaikki);
 
   SDL_DestroyTexture(kaikki.vnta_o->kuvat->valittu);

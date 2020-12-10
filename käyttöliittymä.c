@@ -72,6 +72,7 @@ int kaunnista(kaikki_s *kaikki) {
 
   char* apucp;
 
+  TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
   SDL_StopTextInput();
   SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
   while(1) {
