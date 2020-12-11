@@ -39,6 +39,7 @@ typedef struct {
   char tiedot;
   char lisatd;
   char muut;
+  char tkstal;
 } laitot_s;
 
 typedef struct {
@@ -61,6 +62,7 @@ typedef struct {
   tekstiolio_s* lisa_o;
   tekstiolio_s* sektus_o;
   tekstiolio_s* muut_o;
+  tekstiolio_s* tkstal_o;
   tkset_s* tkset;
   strlista* tiedot;
   strlista* tietoalut;

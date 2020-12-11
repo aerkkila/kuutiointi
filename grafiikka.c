@@ -31,6 +31,8 @@ void piirra(kaikki_s* k) {
     PYYHI(lisa_o);
   if(LAITOT.muut)
     PYYHI(muut_o);
+  if(LAITOT.tkstal)
+    PYYHI(tkstal_o);
 
   /*laitetaan uudet*/
   if(LAITOT.kello) {
@@ -51,8 +53,12 @@ void piirra(kaikki_s* k) {
     LAITOT.sektus = 0;
   }
   if(LAITOT.tulos) {
-    laita_vasemmalle(k->kello_o, 10, _yalkuun(k->tkset->strtulos), 1, k->tulos_o, k->rend);
+    laita_oikealle(k->kello_o, 10, _yalkuun(k->tkset->strtulos), 1, k->tulos_o, k->rend);
     LAITOT.tulos = 0;
+  }
+  if(LAITOT.tkstal) {
+    laita_teksti_ttf_vasemmalle(k->tulos_o, 10, k->tkstal_o, k->rend);
+    LAITOT.tkstal = 0;
   }
   if(LAITOT.jarj) {
     laita_aaret(k->tulos_o, 20, _ynouda(_yalkuun(k->tkset->sijarj), 1),	\
@@ -62,12 +68,12 @@ void piirra(kaikki_s* k) {
   }
   if(LAITOT.tiedot) {
     /*tässä muuttujien nimet ovat aivan epäloogiset*/
-    laita_vasemmalle(k->jarj_o, 25, k->tietoalut, 1, k->tiedot_o, k->rend);
-    laita_vasemmalle(k->tiedot_o, 0, _yalkuun(k->tiedot), 1, k->tluvut_o, k->rend);
+    laita_oikealle(k->jarj_o, 25, k->tietoalut, 1, k->tiedot_o, k->rend);
+    laita_oikealle(k->tiedot_o, 0, _yalkuun(k->tiedot), 1, k->tluvut_o, k->rend);
     LAITOT.tiedot = 0;
   }
   if(LAITOT.lisatd) {
-    laita_vasemmalle(k->jarj_o, 20, _yalkuun(k->lisatd), 1, k->lisa_o, k->rend);
+    laita_oikealle(k->jarj_o, 20, _yalkuun(k->lisatd), 1, k->lisa_o, k->rend);
     LAITOT.lisatd = 0;
   }
   SDL_RenderPresent(k->rend);
@@ -95,7 +101,7 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
     return;
   }
   SDL_Texture *ttuuri = SDL_CreateTextureFromSurface(rend, pinta);
-  if(!pinta)
+  if(!ttuuri)
     fprintf(stderr, "Virhe tekstuurin luomisessa: %s\n", SDL_GetError());
 
   /*kuvan koko on luodun pinnan koko, mutta enintään objektille määritelty koko
@@ -246,7 +252,7 @@ void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_R
   o->toteutuma->w += tot0.w;
 }
 
-void laita_vasemmalle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {
+void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {
   if(!o)
     o = ov;
   int vanha_x = o->sij->x;
@@ -255,5 +261,59 @@ void laita_vasemmalle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekst
     o->sij->x = uusi_x;
   laita_tekstilista(l, alku, o, r);
   o->sij->x = vanha_x;
+  return;
+}
+
+void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, SDL_Renderer* r) {
+  if(!strcmp(o->teksti, ""))
+    return;
+  if(!o)
+    o = ov;
+  SDL_Surface *pinta;
+  switch(o->ttflaji) {
+  case 0:
+  OLETUSLAJI:
+    pinta = TTF_RenderUTF8_Solid(o->font, o->teksti, o->vari);
+    break;
+  case 1:
+    pinta = TTF_RenderUTF8_Shaded(o->font, o->teksti, o->vari, (SDL_Color){0,0,0,0});
+    break;
+  case 2:
+    pinta = TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari);
+    break;
+  default:
+    printf("Varoitus: tekstin laittamisen laji on tuntematon, käytetään oletusta\n");
+    goto OLETUSLAJI;
+  }
+  if(!pinta) {
+    fprintf(stderr, "Virhe tekstin luomisessa: %s\n", TTF_GetError());
+    return;
+  }
+  SDL_Texture *ttuuri = SDL_CreateTextureFromSurface(r, pinta);
+  if(!ttuuri)
+    fprintf(stderr, "Virhe tekstuurin luomisessa: %s\n", SDL_GetError());
+
+  /*kuvan koko on luodun pinnan koko, mutta enintään objektille määritelty koko
+    tulostetaan vain se osa lopusta, joka mahtuu kuvaan*/
+
+  /*kumpi tahansa, x tai w voi rajoittaa tätä*/
+  int yrite = ov->sij->x - vali - pinta->w;
+  if(pinta->w > o->sij->w)
+    yrite = ov->sij->x - vali - o->sij->w;
+  *(o->toteutuma) = (SDL_Rect){(yrite > o->sij->x)? yrite : o->sij->x,	\
+			       o->sij->y,				\
+			       (o->sij->w < pinta->w)? o->sij->w : pinta->w, \
+			       (pinta->h < o->sij->h)? pinta->h : o->sij->h};
+
+  yrite = pinta->w - o->toteutuma->w;
+  SDL_Rect osa = (SDL_Rect){(yrite>0)? yrite : 0,			\
+			    (pinta->h < o->sij->h)? 0 : pinta->h - o->toteutuma->h, \
+			    pinta->w - ((yrite>0)? yrite : 0),		\
+			    pinta->h};
+
+  SDL_RenderFillRect(r, o->toteutuma);
+  SDL_RenderCopy(r, ttuuri, &osa, o->toteutuma);
+  SDL_FreeSurface(pinta);
+  SDL_DestroyTexture(ttuuri);
   return;
 }

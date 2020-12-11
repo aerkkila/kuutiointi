@@ -29,6 +29,7 @@ char* sekoitus(char* s);
 #define SEKTUS (kaikki->sekoitukset)
 #define TIEDOT (kaikki->tiedot)
 #define KELLO (kaikki->kello_o->teksti)
+#define TEKSTI (kaikki->tkstal_o->teksti)
 #define LAITOT (*(kaikki->laitot))
 #define STRTULOS (kaikki->tkset->strtulos)
 #define FTULOS (kaikki->tkset->ftulos)
@@ -38,6 +39,9 @@ char* sekoitus(char* s);
 #define FJARJ (kaikki->tkset->fjarj)
 #define LISATD (kaikki->lisatd)
 #define MUUTA_TULOS LAITOT.sektus=1; LAITOT.tulos=1; LAITOT.jarj=1; LAITOT.tiedot=1; LAITOT.lisatd=1
+#define LISTARIVI(nimi) (kaikki->nimi->alku +			\
+			 (tapaht.button.y - kaikki->nimi->toteutuma->y) / \
+			 TTF_FontLineSkip(kaikki->nimi->font))
 
 int kaunnista(kaikki_s *kaikki) {
   SDL_Event tapaht;
@@ -245,9 +249,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      LAITOT.valinta=1;
 	    }
 	  } else if(alue == tulokset) {
-	    int tmpind = (kaikki->tulos_o->alku +			\
-			  (tapaht.button.y - kaikki->tulos_o->toteutuma->y) / \
-			  TTF_FontLineSkip(kaikki->tulos_o->font));
+	    int tmpind = LISTARIVI(tulos_o);
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      poista_listoilta(kaikki->tkset, tmpind);
 	      _strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
@@ -278,6 +280,10 @@ int kaunnista(kaikki_s *kaikki) {
 	  }
 	  break;
 	case SDL_MOUSEMOTION:
+	  if(alue == tulokset) { //entinen alue
+	    strcpy(TEKSTI, "");
+	    LAITOT.tkstal = 1;
+	  }
 	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y, kaikki);
 	  switch(alue) {
 	  case kello:
@@ -289,8 +295,17 @@ int kaunnista(kaikki_s *kaikki) {
 	      hlaji = teksti;
 	    }
 	    break;
+	  case tulokset:;
+	    /*laitetaan aika näkyviin*/
+	    int tmpind = LISTARIVI(tulos_o);
+	    if(tmpind < _ylaske_taakse(kaikki->tkset->tuloshetki)) {
+	      time_t aika_t = ((ilista*)_ynouda(_yalkuun(HETKI), tmpind))->i;
+	      struct tm *aika = localtime(&aika_t);
+	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
+	      LAITOT.tkstal = 1;
+	    }
+	    /*ei break-komentoa*/
 	  case tietoalue:
-	  case tulokset:
 	  case tarkasteluaikanappi:
 	    if(hlaji != kasi) {
 	      SDL_FreeCursor(kursori);

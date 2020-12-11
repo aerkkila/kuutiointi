@@ -170,6 +170,24 @@ int main(int argc, char** argv) {
   muutolio.numerointi = 0;
   kaikki.muut_o = &muutolio;
 
+  /*tekstialueolio*/
+  tekstiolio_s tkstalolio;
+  tkstalolio.teksti = calloc(300, 1);
+  tkstalolio.ttflaji = tkstalttflaji;
+  tkstalolio.font = TTF_OpenFont(tkstalfonttied, tkstalkoko);
+  if(!tkstalolio.font) {
+    fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
+    r = 1;
+    goto EI_FONTTI;
+  }
+  tkstalolio.sij = &tkstalsij;
+  SDL_Rect tkstalapu = (SDL_Rect){0, 0, 0, 0};
+  tkstalolio.toteutuma = &tkstalapu;
+  tkstalolio.vari = tkstalvari;
+  tkstalolio.rullaus = 0;
+  tkstalolio.numerointi = 1;
+  kaikki.tkstal_o = &tkstalolio;
+
   /*valintaolion teksti*/
   vnta_s vntaolio;
   vntaolio.valittu = vntavalittu;
@@ -272,12 +290,14 @@ int main(int argc, char** argv) {
   _strpoista_kaikki(_yalkuun(kaikki.muut_a));
   _strpoista_kaikki(_yalkuun(kaikki.muut_b));
   free(kelloolio.teksti);
+  free(tkstalolio.teksti);
  EI_KUVAA:
   TTF_CloseFont(kelloolio.font);
   TTF_CloseFont(tulosolio.font);
   TTF_CloseFont(jarjolio.font);
   TTF_CloseFont(tiedotolio.font);
   TTF_CloseFont(sektusolio.font);
+  TTF_CloseFont(tkstalolio.font);
   TTF_CloseFont(vto.font);
   TTF_CloseFont(lisaolio.font);
   TTF_CloseFont(muutolio.font);
