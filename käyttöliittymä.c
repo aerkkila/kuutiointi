@@ -134,7 +134,8 @@ int kaunnista(kaikki_s *kaikki) {
 		SEKTUS = _strpoista1(SEKTUS, -1);
 		int ind = _ylaske(_yalkuun(FTULOS))-1;
 		poista_listoilta(kaikki->tkset, ind);
-		strcpy(KELLO, kaikki->tkset->strtulos->str);
+		if(kaikki->tkset->strtulos)
+		  strcpy(KELLO, kaikki->tkset->strtulos->str);
 		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
@@ -170,12 +171,26 @@ int kaunnista(kaikki_s *kaikki) {
 		  strcpy(TEKSTI, "");
 		  _strpoista1(kaikki->muut_b->edel, 1);
 		  kaikki->ulosnimi = kaikki->muut_b->str;
-		  float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
+		  if(kaikki->tkset->ftulos)
+		    float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
 		  LAITOT.muut = 1;
 		  LAITOT.tkstal = 1;
 		  LAITOT.kello = 1;
 		  break;
 		}
+	      }
+	      break;
+	    case SDLK_ESCAPE:
+	      /*pois kirjoitustilasta muuttamatta mitään*/
+	      if(tila == kirjoitustila) {
+		SDL_StopTextInput();
+		tila = seis;
+		nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
+		if(kaikki->tkset->strtulos)
+		  strcpy(KELLO, kaikki->tkset->strtulos->str);
+		TEKSTI[0] = '\0';
+		LAITOT.tkstal = 1;
+		LAITOT.kello = 1;
 	      }
 	      break;
 	    case SDLK_PLUS:
@@ -225,8 +240,20 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    }
 	  break;
-	case SDL_MOUSEBUTTONDOWN: //tässä on vain tietoalue
-	  if(alue == tietoalue) {
+	case SDL_MOUSEBUTTONDOWN:
+	  if(alue == kello && tila != juoksee) {
+	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
+	      SDL_StartTextInput();
+	      tila = kirjoitustila;
+	      kirjoituslaji = aika;
+	      nostotoimi = ei_mitaan;
+	      SDL_SetTextInputRect(kaikki->kello_o->sij);
+	      strcpy(KELLO, "");
+	      strcpy(TEKSTI, "Ajan syöttö");
+	      LAITOT.kello=1;
+	      LAITOT.tkstal=1;
+	    }
+	  } else if(alue == tietoalue) {
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 	       tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      char rivi = ((tapaht.button.y - kaikki->tluvut_o->toteutuma->y) / \
@@ -269,17 +296,7 @@ int kaunnista(kaikki_s *kaikki) {
 	  }
 	  break;
 	case SDL_MOUSEBUTTONUP:
-	  if(alue == kello && tila != juoksee) {
-	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      SDL_StartTextInput();
-	      tila = kirjoitustila;
-	      kirjoituslaji = aika;
-	      nostotoimi = ei_mitaan;
-	      SDL_SetTextInputRect(kaikki->kello_o->sij);
-	      strcpy(KELLO, "");
-	      LAITOT.kello=1;
-	    }
-	  } else if(alue == tarkasteluaikanappi) {
+	  if(alue == tarkasteluaikanappi) {
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      kaikki->vnta_o->valittu = (kaikki->vnta_o->valittu+1) % 2;
 	      nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
@@ -288,10 +305,22 @@ int kaunnista(kaikki_s *kaikki) {
 	  } else if(alue == tulokset) {
 	    int tmpind = LISTARIVI(tulos_o);
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      poista_listoilta(kaikki->tkset, tmpind);
-	      _strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
-	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
-	      alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
+	      if(kontrol) {
+		/*poistetaan (ctrl + hiiri1)*/
+		poista_listoilta(kaikki->tkset, tmpind);
+		_strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
+		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
+	      } else {
+		/*kopioidaan leikepöydälle (hiiri1)*/
+	        char* tmpstr = ((strlista*)_ynoudaf(STRTULOS, tmpind, 0))->str;
+		time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
+		struct tm *aika = localtime(&aika_t);
+		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
+		char* tmpsekt = ((strlista*)_ynoudaf(SEKTUS, tmpind, 0))->str;
+		sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsekt);
+		SDL_SetClipboardText(tmp);
+	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
 	      muuta_sakko(kaikki->tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
@@ -316,11 +345,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    LAITOT.sektus=1;
 	  }
 	  break;
-	case SDL_MOUSEMOTION:
-	  if(alue == tulokset) { //entinen alue
-	    strcpy(TEKSTI, "");
-	    LAITOT.tkstal = 1;
-	  }
+	case SDL_MOUSEMOTION:;
+	  alue_e vanha = alue;
 	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y, kaikki);
 	  switch(alue) {
 	  case kello:
@@ -336,7 +362,7 @@ int kaunnista(kaikki_s *kaikki) {
 	    /*laitetaan aika näkyviin*/
 	    int tmpind = LISTARIVI(tulos_o);
 	    if(tmpind < _ylaske_taakse(kaikki->tkset->tuloshetki)) {
-	      time_t aika_t = ((ilista*)_ynouda(_yalkuun(HETKI), tmpind))->i;
+	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
 	      struct tm *aika = localtime(&aika_t);
 	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
 	      LAITOT.tkstal = 1;
@@ -361,6 +387,18 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	    break;
 	  }
+	  if(vanha == tulokset && alue != tulokset) { //poistuttiin tuloksista
+	    LAITOT.tkstal = 1;
+	    if(tila != kirjoitustila)
+	      strcpy(TEKSTI, "");
+	    else if(kirjoituslaji == aika)
+	      strcpy(TEKSTI, "Ajan syöttö");
+	    else if(kirjoituslaji == ulosnimi)
+	      strcpy(TEKSTI, "Ulosnimen vaihto");
+	    else
+	      strcpy(TEKSTI, "");
+	  }
+	  
 	  break;
 	case SDL_TEXTINPUT:
 	  strcat(KELLO, tapaht.text.text);
