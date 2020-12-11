@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
   kaikki.muut_a = _yalkuun(_strlistaksi(muut_a_str, "|"));
   kaikki.muut_b = NULL;
   kaikki.muut_b = _strlisaa_kopioiden(kaikki.muut_b, ulosnimi);
-  kaikki.ulosnimi = ulosnimi;
+  kaikki.ulosnimi = kaikki.muut_b->str;
 
   time_t t;
   srand((unsigned) time(&t));

@@ -66,6 +66,10 @@ int kaunnista(kaikki_s *kaikki) {
     juoksee,
     kirjoitustila
   } tila = seis;
+  enum {
+    aika,
+    ulosnimi
+  } kirjoituslaji = aika;
   char kontrol = 0;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
@@ -105,8 +109,25 @@ int kaunnista(kaikki_s *kaikki) {
 	      kontrol = 1;
 	      break;
 	    case SDLK_s:
-	      if(kontrol)
-		tallenna(kaikki->tkset, kaikki->ulosnimi);
+	      if(tila != seis)
+		break;
+	      if(kontrol) {
+		if(tallenna(kaikki->tkset, kaikki->ulosnimi))
+		  sprintf(TEKSTI, "Tallennettiin \"%s\"", kaikki->ulosnimi);
+		else
+		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", kaikki->ulosnimi);
+		LAITOT.tkstal = 1;
+	      } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
+		SDL_StartTextInput();
+		SDL_SetTextInputRect(kaikki->kello_o->sij);
+		tila = kirjoitustila;
+		kirjoituslaji = ulosnimi;
+		nostotoimi = ei_mitaan;
+		strcpy(KELLO, "");
+		LAITOT.kello=1;
+		sprintf(TEKSTI, "Ulosnimen vaihto");
+		LAITOT.tkstal = 1;
+	      }
 	      break;
 	    case SDLK_BACKSPACE:
 	      if(tila == seis && STRTULOS) {
@@ -132,14 +153,29 @@ int kaunnista(kaikki_s *kaikki) {
 		SDL_StopTextInput();
 	        tila = seis;
 	        nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
-		/*laitetaan tuloksiin se, mitä kirjoitettiin*/
-		while((apucp = strstr(KELLO, ".")))
-		  *apucp = ',';
-	        lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
-		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
-		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
-		LAITOT.kello = 1;
-	        MUUTA_TULOS;
+		switch(kirjoituslaji) {
+		case aika:
+		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
+		  while((apucp = strstr(KELLO, ".")))
+		    *apucp = ',';
+		  lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
+		  TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		  SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
+		  LAITOT.kello = 1;
+		  MUUTA_TULOS;
+		  break;
+		case ulosnimi:
+		  /*vaihdetaan ulosnimi ja kelloon taas aika*/
+		  kaikki->muut_b = _strlisaa_kopioiden(kaikki->muut_b, KELLO);
+		  strcpy(TEKSTI, "");
+		  _strpoista1(kaikki->muut_b->edel, 1);
+		  kaikki->ulosnimi = kaikki->muut_b->str;
+		  float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
+		  LAITOT.muut = 1;
+		  LAITOT.tkstal = 1;
+		  LAITOT.kello = 1;
+		  break;
+		}
 	      }
 	      break;
 	    case SDLK_PLUS:
@@ -237,6 +273,7 @@ int kaunnista(kaikki_s *kaikki) {
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      SDL_StartTextInput();
 	      tila = kirjoitustila;
+	      kirjoituslaji = aika;
 	      nostotoimi = ei_mitaan;
 	      SDL_SetTextInputRect(kaikki->kello_o->sij);
 	      strcpy(KELLO, "");

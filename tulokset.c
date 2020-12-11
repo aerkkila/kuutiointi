@@ -227,7 +227,7 @@ char tallenna(tkset_s* t, char* tiednimi) {
   flista* ft = _yalkuun(t->ftulos);
   ilista* th = _yalkuun(t->tuloshetki);
   if(!ft)
-    return 1;
+    return 0;
   
   FILE *f = fopen(tiednimi, "r+");
   /*jos tiedostoa ei ollut, se tehdään, muuten haetaan oikea kohta*/
@@ -260,7 +260,7 @@ char tallenna(tkset_s* t, char* tiednimi) {
 	goto KIRJOITA;
       default:
 	fprintf(stderr, "Virhe: Lukeminen epäonnistui, c = %hhx (hexa) '%c'\n", c, c);
-	return 1;
+	return 0;
       }
     } else {
       if (yrite >= hetki) {
@@ -276,7 +276,7 @@ char tallenna(tkset_s* t, char* tiednimi) {
     th = th->seur;
   }
   fclose(f);
-  return 0;
+  return 1;
 }
 
 char lue_tiedosto(kaikki_s* k, char* tiednimi) {
