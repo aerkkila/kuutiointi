@@ -76,6 +76,7 @@ typedef struct {
   Uint32 viive;
   SDL_Color* kvarit;
   char* ulosnimi;
+  char* uloskansio;
 } kaikki_s;
 
 typedef struct {

@@ -112,7 +112,8 @@ int kaunnista(kaikki_s *kaikki) {
 	      if(tila != seis)
 		break;
 	      if(kontrol) {
-		if(tallenna(kaikki->tkset, kaikki->ulosnimi))
+		sprintf(tmp, "%s/%s", kaikki->uloskansio, kaikki->ulosnimi);
+		if(tallenna(kaikki->tkset, tmp))
 		  sprintf(TEKSTI, "Tallennettiin \"%s\"", kaikki->ulosnimi);
 		else
 		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", kaikki->ulosnimi);
