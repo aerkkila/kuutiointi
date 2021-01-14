@@ -70,8 +70,12 @@ int kaunnista(kaikki_s *kaikki) {
   } tila = seis;
   enum {
     aika,
-    ulosnimi
+    ulosnimi,
+    tulosalku
   } kirjoituslaji = aika;
+  char* tekstialue[] = {"Ajan syöttö",\
+		       "Ulosnimen vaihto",\
+		       "Tuloslistan alkukohta"};
   char kontrol = 0;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
@@ -128,7 +132,7 @@ int kaunnista(kaikki_s *kaikki) {
 		nostotoimi = ei_mitaan;
 		strcpy(KELLO, "");
 		LAITOT.kello=1;
-		sprintf(TEKSTI, "Ulosnimen vaihto");
+		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
 		LAITOT.tkstal = 1;
 	      }
 	      break;
@@ -157,7 +161,7 @@ int kaunnista(kaikki_s *kaikki) {
 		SDL_StopTextInput();
 	        tila = seis;
 	        nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
-		switch(kirjoituslaji) {
+		switch((int)kirjoituslaji) {
 		case aika:
 		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		  while((apucp = strstr(KELLO, ".")))
@@ -180,7 +184,22 @@ int kaunnista(kaikki_s *kaikki) {
 		  LAITOT.tkstal = 1;
 		  LAITOT.kello = 1;
 		  break;
+		case tulosalku:
+		  sscanf(KELLO, "%i", &apuind);
+		  if(apuind <= _ylaske_taakse(STRTULOS)) {
+		    kaikki->tulos_o->rullaus += kaikki->tulos_o->alku - (apuind-1);
+		    strcpy(TEKSTI, "");
+		  } else {
+		    strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
+		  }
+		  if(kaikki->tkset->ftulos)
+		    float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
+		  LAITOT.tulos = 1;
+		  LAITOT.tkstal = 1;
+		  LAITOT.kello = 1;
+		  break;
 		}
+		break;
 	      }
 	    case SDLK_END:
 	      kaikki->tulos_o->rullaus = 0;
@@ -251,25 +270,29 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	  break;
 	case SDL_MOUSEBUTTONDOWN:
-	  if(alue == kello && tila != juoksee) {
-	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      SDL_StartTextInput();
-	      tila = kirjoitustila;
-	      kirjoituslaji = aika;
-	      nostotoimi = ei_mitaan;
-	      SDL_SetTextInputRect(kaikki->kello_o->sij);
-	      strcpy(KELLO, "");
-	      strcpy(TEKSTI, "Ajan syöttö");
-	      LAITOT.kello=1;
-	      LAITOT.tkstal=1;
+	  switch(alue) {
+	  case kello:
+	    if(tila != juoksee) {
+	      if(tapaht.button.button == SDL_BUTTON_LEFT) {
+		SDL_StartTextInput();
+		tila = kirjoitustila;
+		kirjoituslaji = aika;
+		nostotoimi = ei_mitaan;
+		SDL_SetTextInputRect(kaikki->kello_o->sij);
+		strcpy(KELLO, "");
+		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
+		LAITOT.kello=1;
+		LAITOT.tkstal=1;
+	      }
 	    }
-	  } else if(alue == tietoalue) {
+	    break;
+	  case tietoalue:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 	       tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      char rivi = ((tapaht.button.y - kaikki->tluvut_o->toteutuma->y) / \
-			  TTF_FontLineSkip(kaikki->tluvut_o->font));
+			   TTF_FontLineSkip(kaikki->tluvut_o->font));
 	      int sarake = ((tapaht.button.x - kaikki->tluvut_o->toteutuma->x) / \
-			     (kaikki->tluvut_o->toteutuma->w / 6));
+			    (kaikki->tluvut_o->toteutuma->w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
 	      LISATD = _strpoista_kaikki(_yalkuun(LISATD));
 	      strlista* sektus = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : SEKTUS;
@@ -303,6 +326,24 @@ int kaunnista(kaikki_s *kaikki) {
 		LAITOT.lisatd=1;
 	      }
 	    }
+	    break;
+	  case tulokset:
+	    if(tapaht.button.button == SDL_BUTTON_MIDDLE) {
+	      if(tila != juoksee) {
+		SDL_StartTextInput();
+		tila = kirjoitustila;
+		kirjoituslaji = tulosalku;
+		nostotoimi = ei_mitaan;
+		SDL_SetTextInputRect(kaikki->kello_o->sij);
+		strcpy(KELLO, "");
+		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
+		LAITOT.kello=1;
+		LAITOT.tkstal=1;
+	      }
+	    }
+	    break;
+	  default:
+	    break;
 	  }
 	  break;
 	case SDL_MOUSEBUTTONUP:
@@ -427,12 +468,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    LAITOT.tkstal = 1;
 	    if(tila != kirjoitustila)
 	      strcpy(TEKSTI, "");
-	    else if(kirjoituslaji == aika)
-	      strcpy(TEKSTI, "Ajan syöttö");
-	    else if(kirjoituslaji == ulosnimi)
-	      strcpy(TEKSTI, "Ulosnimen vaihto");
 	    else
-	      strcpy(TEKSTI, "");
+	      strcpy(TEKSTI, tekstialue[kirjoituslaji]);
 	  }
 	  
 	  break;
