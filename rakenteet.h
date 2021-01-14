@@ -16,6 +16,8 @@ typedef struct {
   short alku; //koskee vain listoja, ensimmäisen näytetyn indeksi, 'r'
   short rullaus; //koskee vain listoja, 'w'
   char numerointi; //koskee vain listoja;
+  int y_alku; //alkupään loppu laitettaessa listan päät
+  int y_loppu; //loppupään alku laitettaessa listan päät
 } tekstiolio_s;
 
 typedef struct {

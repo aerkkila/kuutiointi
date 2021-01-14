@@ -15,6 +15,7 @@
 typedef enum {
   kello,
   tulokset,
+  jarjestus,
   tiedot,
   sektus,
   tarkasteluaikanappi,
@@ -50,6 +51,7 @@ int kaunnista(kaikki_s *kaikki) {
   double dalku, dnyt;
   char tmp[200];
   int avgind[6];
+  int apuind;
   enum hiirilaji {
     perus,
     teksti,
@@ -180,6 +182,13 @@ int kaunnista(kaikki_s *kaikki) {
 		  break;
 		}
 	      }
+	    case SDLK_END:
+	      kaikki->tulos_o->rullaus = 0;
+	      LAITOT.tulos = 1;
+	      break;
+	    case SDLK_HOME:
+	      kaikki->tulos_o->rullaus += kaikki->tulos_o->alku;
+	      LAITOT.tulos = 1;
 	      break;
 	    case SDLK_ESCAPE:
 	      /*pois kirjoitustilasta muuttamatta mitään*/
@@ -359,11 +368,36 @@ int kaunnista(kaikki_s *kaikki) {
 	      hlaji = teksti;
 	    }
 	    break;
+	  case jarjestus:;
+	    if(tapaht.motion.y < kaikki->jarj_o->y_alku) {
+	      apuind = (kaikki->jarj_o->rullaus +			\
+			    (tapaht.button.y - kaikki->jarj_o->toteutuma->y) / \
+			    TTF_FontLineSkip(kaikki->jarj_o->font));
+	      if(apuind+1 < _ylaske(SIJARJ)) {
+		sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+		apuind--;
+		goto LAITA_AIKA_NAKUVIIN;
+	      }
+	    } else if (tapaht.motion.y >= kaikki->jarj_o->y_loppu) {
+	      apuind = (kaikki->jarj_o->alku + \
+			    (tapaht.button.y - kaikki->jarj_o->y_loppu) / \
+			    TTF_FontLineSkip(kaikki->jarj_o->font));
+	      if(apuind+1 < _ylaske(SIJARJ)) {
+		sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+		apuind--;
+		goto LAITA_AIKA_NAKUVIIN;
+	      }
+	    } else {
+	      strcpy(TEKSTI, "");
+	    }
+	    LAITOT.tkstal = 1;
+	    break;
 	  case tulokset:;
 	    /*laitetaan aika näkyviin*/
-	    int tmpind = LISTARIVI(tulos_o);
-	    if(tmpind < _ylaske_taakse(kaikki->tkset->tuloshetki)) {
-	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
+	    apuind = LISTARIVI(tulos_o);
+	    if(apuind < _ylaske_taakse(kaikki->tkset->tuloshetki)) {
+	    LAITA_AIKA_NAKUVIIN:;
+	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
 	      struct tm *aika = localtime(&aika_t);
 	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
 	      LAITOT.tkstal = 1;
@@ -388,7 +422,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	    break;
 	  }
-	  if(vanha == tulokset && alue != tulokset) { //poistuttiin tuloksista
+	  if( (vanha == tulokset && alue != tulokset) ||		\
+	      (vanha == jarjestus && alue != jarjestus) ) { //poistuttiin tuloksista
 	    LAITOT.tkstal = 1;
 	    if(tila != kirjoitustila)
 	      strcpy(TEKSTI, "");
@@ -471,6 +506,8 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
     return kello;
   if(piste_alueella(x, y, kaikki->tulos_o->toteutuma))
     return tulokset;
+  if(piste_alueella(x, y, kaikki->jarj_o->toteutuma))
+    return jarjestus;
   if(piste_alueella(x, y, kaikki->tiedot_o->toteutuma))
     return tiedot;
   if(piste_alueella(x, y, kaikki->sektus_o->toteutuma))

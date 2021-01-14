@@ -124,7 +124,7 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
   return;
 }
 
-/*antamalla aluksi 0:n lista tulostetaan alkupäästä, muuten loppupäästä*/
+/*antamalla aluksi (alku) 0:n lista tulostetaan alkupäästä, muuten loppupäästä*/
 void laita_tekstilista(strlista* l, int alku, tekstiolio_s *o, SDL_Renderer *rend) {
   if(!l) {
     o->toteutuma->w = 0;
@@ -178,10 +178,12 @@ void laita_tekstilistan_paat(strlista* l, tekstiolio_s *o, float suhde, SDL_Rend
   o->sij->h *= suhde;
   laita_tekstilista(l, 0, o, rend);
   tot1 = *(o->toteutuma);
+  o->y_alku = o->toteutuma->y + o->toteutuma->h;
   /*loppupää*/
   o->sij->h = sij0.h * (1 - suhde) - TTF_FontLineSkip(o->font);
   o->sij->y = o->toteutuma->h + o->toteutuma->y + TTF_FontLineSkip(o->font);
   laita_tekstilista(l, 1, o, rend);
+  o->y_loppu = o->toteutuma->y;
 
   if(o->toteutuma->h == 0) o->toteutuma->y -= TTF_FontLineSkip(o->font);
 
