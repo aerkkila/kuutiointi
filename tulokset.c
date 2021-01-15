@@ -153,9 +153,9 @@ int poista_jarjlistalta(int i, tkset_s* t) {
   if(paikka < 0)
     return paikka;; //kyseistä ei ollut jarjlistalla ensinkään
   char palsuunta = (paikka == 0)? 1 : -1;
-  t->sijarj = _strpoista1(_ynouda(_yalkuun(t->sijarj), paikka), palsuunta);
-  t->strjarj  = _strpoista1(_ynouda(_yalkuun(t->strjarj), paikka), palsuunta);
-  t->fjarj = _yrm1(_ynouda(_yalkuun(t->fjarj), paikka), palsuunta);
+  _strpoista1(_ynouda(_yalkuun(t->sijarj), paikka), palsuunta);
+  _strpoista1(_ynouda(_yalkuun(t->strjarj), paikka), palsuunta);
+  _yrm1(_ynouda(_yalkuun(t->fjarj), paikka), palsuunta);
   return paikka;
 }
 

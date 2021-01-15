@@ -437,7 +437,7 @@ int kaunnista(kaikki_s *kaikki) {
 	  case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
 	    o = kaikki->jarj1_o;
 	    int riveja = kaikki->jarj1_o->toteutuma->h / TTF_FontLineSkip(o->font);
-	    if((o->alku + riveja == _ylaske(SIJARJ) && tapaht.wheel.y < 0) || \
+	    if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
 	       (o->rullaus == 0 && tapaht.wheel.y > 0))
 	      break;
 	    o->rullaus += tapaht.wheel.y;
