@@ -38,12 +38,12 @@ char* sekoitus(char* s);
 #define HETKI (kaikki->tkset->tuloshetki)
 #define SJARJ (kaikki->tkset->strjarj)
 #define SIJARJ (kaikki->tkset->sijarj)
-#define FJARJ (kaikki->tkset->fjarj)
 #define LISATD (kaikki->lisatd)
 #define MUUTA_TULOS LAITOT.sektus=1; LAITOT.tulos=1; LAITOT.jarj=1; LAITOT.tiedot=1; LAITOT.lisatd=1
 #define LISTARIVI(nimi) (kaikki->nimi->alku +			\
 			 (tapaht.button.y - kaikki->nimi->toteutuma->y) / \
 			 TTF_FontLineSkip(kaikki->nimi->font))
+#define TEE_TIEDOT TIEDOT = tee_tiedot(TIEDOT, kaikki->tkset, avgind);
 
 int kaunnista(kaikki_s *kaikki) {
   SDL_Event tapaht;
@@ -88,7 +88,7 @@ int kaunnista(kaikki_s *kaikki) {
 
   char* apucp;
 
-  TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+  TEE_TIEDOT;
   SDL_StopTextInput();
   SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
   while(1) {
@@ -108,7 +108,7 @@ int kaunnista(kaikki_s *kaikki) {
 		tila = seis;
 		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec);
 		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
-		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		TEE_TIEDOT;
 		MUUTA_TULOS;
 	      }
 	      break;
@@ -145,7 +145,7 @@ int kaunnista(kaikki_s *kaikki) {
 		poista_listoilta(kaikki->tkset, ind);
 		if(kaikki->tkset->strtulos)
 		  strcpy(KELLO, kaikki->tkset->strtulos->str);
-		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		TEE_TIEDOT;
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
 		/*koko utf-8-merkki pois kerralla*/
@@ -169,7 +169,7 @@ int kaunnista(kaikki_s *kaikki) {
 		  while((apucp = strstr(KELLO, ".")))
 		    *apucp = ',';
 		  lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
-		  TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		  TEE_TIEDOT;
 		  SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
 		  LAITOT.kello = 1;
 		  MUUTA_TULOS;
@@ -264,7 +264,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      if(tila != kirjoitustila) {
 		int tmpind = _ylaske(_yalkuun(STRTULOS)) - 1;
 		muuta_sakko(kaikki->tkset, KELLO, tmpind);
-		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		TEE_TIEDOT;
 		LAITOT.kello=1;
 		MUUTA_TULOS;
 		break;
@@ -397,7 +397,7 @@ int kaunnista(kaikki_s *kaikki) {
 		/*poistetaan (ctrl + hiiri1)*/
 		poista_listoilta(kaikki->tkset, tmpind);
 		_strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
-		TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+		TEE_TIEDOT;
 		alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
 	      } else {
 		/*kopioidaan leikepöydälle (hiiri1)*/
@@ -412,7 +412,7 @@ int kaunnista(kaikki_s *kaikki) {
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
 	      muuta_sakko(kaikki->tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
-	      TIEDOT = tee_tiedot(TIEDOT, FTULOS, avgind);
+	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;
 	    LAITOT.kello=1;

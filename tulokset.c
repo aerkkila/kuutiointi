@@ -35,7 +35,9 @@ double sigma(flista* fl, int n, int pois) {
   return r;
 }
 
-strlista* tee_tiedot(strlista* strtiedot, flista* fl, int* avgind) {
+strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
+  flista* fl = tkset->ftulos;
+  flista* fj = _yalkuun(tkset->fjarj); //tämä ei välttämättä ole alussa
   avgtulos at;
   char *tmp;
   tmp = calloc(200, 1);
@@ -75,8 +77,10 @@ strlista* tee_tiedot(strlista* strtiedot, flista* fl, int* avgind) {
   }
 
   /*Keskiarvo*/
+  /*karsitaan niin monta kuin on DNF:iä jättämällä erotus pois järjestyslistan alusta*/
+  int ero = _ylaske_taakse(fl) - (_ylaske(fj)-1);
   sprintf(tmp, " = %.2lf (σ = %.2f)",		\
-	  floatmean(_yalkuun(fl), -1), floatstd(_yalkuun(fl), -1));
+	  floatmean(_ynouda(fj, ero+1), -1), floatstd(_ynouda(fj, ero+1), -1));
   strtiedot = _strlisaa_kopioiden(strtiedot, tmp);
 
   /*Mediaani*/
