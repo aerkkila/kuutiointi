@@ -16,8 +16,6 @@ typedef struct {
   short alku; //koskee vain listoja, ensimmäisen näytetyn indeksi, 'r'
   short rullaus; //koskee vain listoja, 'w'
   char numerointi; //koskee vain listoja;
-  int y_alku; //alkupään loppu laitettaessa listan päät
-  int y_loppu; //loppupään alku laitettaessa listan päät
 } tekstiolio_s;
 
 typedef struct {
@@ -58,7 +56,8 @@ typedef struct {
   SDL_Renderer* rend;
   tekstiolio_s* kello_o;
   tekstiolio_s* tulos_o;
-  tekstiolio_s* jarj_o;
+  tekstiolio_s* jarj1_o;
+  tekstiolio_s* jarj2_o;
   tekstiolio_s* tiedot_o;
   tekstiolio_s* tluvut_o;
   tekstiolio_s* lisa_o;
@@ -73,7 +72,6 @@ typedef struct {
   laitot_s* laitot;
   strlista* muut_a;
   strlista* muut_b;
-  float jarjsuhde;
   vnta_s* vnta_o;
   Uint32 viive;
   SDL_Color* kvarit;

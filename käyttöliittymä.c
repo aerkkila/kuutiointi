@@ -15,7 +15,8 @@
 typedef enum {
   kello,
   tulokset,
-  jarjestus,
+  jarjestus1,
+  jarjestus2,
   tiedot,
   sektus,
   tarkasteluaikanappi,
@@ -52,6 +53,7 @@ int kaunnista(kaikki_s *kaikki) {
   char tmp[200];
   int avgind[6];
   int apuind;
+  tekstiolio_s* o;
   enum hiirilaji {
     perus,
     teksti,
@@ -202,12 +204,47 @@ int kaunnista(kaikki_s *kaikki) {
 		break;
 	      }
 	    case SDLK_END:
-	      kaikki->tulos_o->rullaus = 0;
-	      LAITOT.tulos = 1;
+	      switch(alue) {
+	      default:
+	      case tulokset:
+		kaikki->tulos_o->rullaus = 0;
+		LAITOT.tulos = 1;
+		break;
+	      case jarjestus1:;
+		int mahtuu = kaikki->jarj1_o->sij->h / TTF_FontLineSkip(kaikki->jarj1_o->font);
+		kaikki->jarj1_o->rullaus = -(_ylaske(SIJARJ)-1 - mahtuu);
+		LAITOT.jarj = 1;
+		break;
+	      case jarjestus2:
+		kaikki->jarj2_o->rullaus = 0;
+		LAITOT.jarj = 1;
+		break;
+	      case sektus:
+		kaikki->sektus_o->rullaus = 0;
+		LAITOT.sektus = 1;
+		break;
+	      }
 	      break;
 	    case SDLK_HOME:
-	      kaikki->tulos_o->rullaus += kaikki->tulos_o->alku;
-	      LAITOT.tulos = 1;
+	      switch(alue) {
+	      default:
+	      case tulokset:
+		kaikki->tulos_o->rullaus += kaikki->tulos_o->alku;
+		LAITOT.tulos = 1;
+		break;
+	      case jarjestus1:
+		kaikki->jarj1_o->rullaus = 0;
+		LAITOT.jarj = 1;
+		break;
+	      case jarjestus2:
+		kaikki->jarj2_o->rullaus += kaikki->jarj2_o->alku;
+		LAITOT.jarj = 1;
+		break;
+	      case sektus:
+		kaikki->sektus_o->rullaus += kaikki->sektus_o->alku;
+		LAITOT.sektus = 1;
+		break;
+	      }
 	      break;
 	    case SDLK_ESCAPE:
 	      /*pois kirjoitustilasta muuttamatta mitään*/
@@ -382,18 +419,40 @@ int kaunnista(kaikki_s *kaikki) {
 	  }
 	  break;
 	case SDL_MOUSEWHEEL:
-	  if(alue == tulokset) {
+	  switch(alue) {
+	  case tulokset:
 	    if((kaikki->tulos_o->alku == 0 && tapaht.wheel.y > 0) ||	\
 	       (kaikki->tulos_o->rullaus == 0 && tapaht.wheel.y < 0))
 	      break;
 	    kaikki->tulos_o->rullaus += tapaht.wheel.y;
 	    LAITOT.tulos=1;
-	  } else if (alue == sektus) {
+	    break;
+	  case sektus:
 	    if((kaikki->sektus_o->alku == 0 && tapaht.wheel.y > 0) ||	\
 	       (kaikki->sektus_o->rullaus == 0 && tapaht.wheel.y < 0))
 	      break;
 	    kaikki->sektus_o->rullaus += tapaht.wheel.y;
 	    LAITOT.sektus=1;
+	    break;
+	  case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
+	    o = kaikki->jarj1_o;
+	    int riveja = kaikki->jarj1_o->toteutuma->h / TTF_FontLineSkip(o->font);
+	    if((o->alku + riveja == _ylaske(SIJARJ) && tapaht.wheel.y < 0) || \
+	       (o->rullaus == 0 && tapaht.wheel.y > 0))
+	      break;
+	    o->rullaus += tapaht.wheel.y;
+	    LAITOT.jarj = 1;
+	    break;
+	  case jarjestus2:;
+	    o = kaikki->jarj2_o;
+	    if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
+	       (o->rullaus == 0 && tapaht.wheel.y < 0))
+	      break;
+	    o->rullaus += tapaht.wheel.y;
+	    LAITOT.jarj = 1;
+	    break;
+	  default:
+	    break;
 	  }
 	  break;
 	case SDL_MOUSEMOTION:;
@@ -409,27 +468,17 @@ int kaunnista(kaikki_s *kaikki) {
 	      hlaji = teksti;
 	    }
 	    break;
-	  case jarjestus:;
-	    if(tapaht.motion.y < kaikki->jarj_o->y_alku) {
-	      apuind = (kaikki->jarj_o->rullaus +			\
-			    (tapaht.button.y - kaikki->jarj_o->toteutuma->y) / \
-			    TTF_FontLineSkip(kaikki->jarj_o->font));
-	      if(apuind+1 < _ylaske(SIJARJ)) {
-		sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
-		apuind--;
-		goto LAITA_AIKA_NAKUVIIN;
-	      }
-	    } else if (tapaht.motion.y >= kaikki->jarj_o->y_loppu) {
-	      apuind = (kaikki->jarj_o->alku + \
-			    (tapaht.button.y - kaikki->jarj_o->y_loppu) / \
-			    TTF_FontLineSkip(kaikki->jarj_o->font));
-	      if(apuind+1 < _ylaske(SIJARJ)) {
-		sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
-		apuind--;
-		goto LAITA_AIKA_NAKUVIIN;
-	      }
-	    } else {
-	      strcpy(TEKSTI, "");
+	  case jarjestus1:
+	  case jarjestus2:;
+	    tekstiolio_s* o = kaikki->jarj1_o;
+	    if(alue == jarjestus2)
+	      o = kaikki->jarj2_o;
+	    apuind = (o->alku + (tapaht.button.y - o->toteutuma->y) /	\
+		      TTF_FontLineSkip(o->font));
+	    if(apuind+1 < _ylaske(SIJARJ)) {
+	      sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+	      apuind--;
+	      goto LAITA_AIKA_NAKUVIIN;
 	    }
 	    LAITOT.tkstal = 1;
 	    break;
@@ -464,7 +513,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    break;
 	  }
 	  if( (vanha == tulokset && alue != tulokset) ||		\
-	      (vanha == jarjestus && alue != jarjestus) ) { //poistuttiin tuloksista
+	      (vanha == jarjestus1 && alue != jarjestus1) ||		\
+	      (vanha == jarjestus2 && alue != jarjestus2) ) { //poistuttiin tuloksista
 	    LAITOT.tkstal = 1;
 	    if(tila != kirjoitustila)
 	      strcpy(TEKSTI, "");
@@ -543,8 +593,10 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
     return kello;
   if(piste_alueella(x, y, kaikki->tulos_o->toteutuma))
     return tulokset;
-  if(piste_alueella(x, y, kaikki->jarj_o->toteutuma))
-    return jarjestus;
+  if(piste_alueella(x, y, kaikki->jarj1_o->toteutuma))
+    return jarjestus1;
+  if(piste_alueella(x, y, kaikki->jarj2_o->toteutuma))
+    return jarjestus2;
   if(piste_alueella(x, y, kaikki->tiedot_o->toteutuma))
     return tiedot;
   if(piste_alueella(x, y, kaikki->sektus_o->toteutuma))

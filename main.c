@@ -72,23 +72,39 @@ int main(int argc, char** argv) {
   tulosolio.numerointi = 1;
   kaikki.tulos_o = &tulosolio;
 
-  /*jarjolio*/
-  tekstiolio_s jarjolio;
-  jarjolio.ttflaji = jarjttflaji;
-  jarjolio.font = TTF_OpenFont(jarjfonttied, jarjkoko);
-  if(!jarjolio.font) {
+  /*jarjolio1*/
+  tekstiolio_s jarjolio1;
+  jarjolio1.ttflaji = jarjttflaji;
+  jarjolio1.font = TTF_OpenFont(jarjfonttied, jarjkoko);
+  if(!jarjolio1.font) {
     fprintf(stderr, "Virhe: Ei avattu äärifonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  jarjolio.sij = &jarjsij;
-  SDL_Rect jarjapu = (SDL_Rect){0, 0, 0, 0};
-  jarjolio.toteutuma = &jarjapu;
-  jarjolio.vari = jarjvari;
-  jarjolio.rullaus = 0;
-  jarjolio.numerointi = 0;
-  kaikki.jarj_o = &jarjolio;
-  kaikki.jarjsuhde = jarjsuhde;
+  SDL_Rect jarjsij1 = jarjsij;
+  jarjolio1.sij = &jarjsij1;
+  jarjolio1.sij->h *= jarjsuhde;
+  SDL_Rect jarjapu1 = (SDL_Rect){0, 0, 0, 0};
+  jarjolio1.toteutuma = &jarjapu1;
+  jarjolio1.vari = jarjvari1;
+  jarjolio1.rullaus = 0;
+  jarjolio1.numerointi = 0;
+  kaikki.jarj1_o = &jarjolio1;
+
+  /*jarjolio2*/
+  tekstiolio_s jarjolio2;
+  jarjolio2.ttflaji = jarjttflaji;
+  jarjolio2.font = jarjolio1.font;
+  SDL_Rect jarjsij2 = jarjsij;
+  jarjolio2.sij = &jarjsij2;
+  jarjolio2.sij->h *= (1-jarjsuhde);
+  jarjolio2.sij->y += jarjolio1.sij->h;
+  SDL_Rect jarjapu2 = (SDL_Rect){0, 0, 0, 0};
+  jarjolio2.toteutuma = &jarjapu2;
+  jarjolio2.vari = jarjvari2;
+  jarjolio2.rullaus = 0;
+  jarjolio2.numerointi = 0;
+  kaikki.jarj2_o = &jarjolio2;
 
   /*tiedotolio*/
   tekstiolio_s tiedotolio;
@@ -295,7 +311,7 @@ int main(int argc, char** argv) {
  EI_KUVAA:
   TTF_CloseFont(kelloolio.font);
   TTF_CloseFont(tulosolio.font);
-  TTF_CloseFont(jarjolio.font);
+  TTF_CloseFont(jarjolio1.font);
   TTF_CloseFont(tiedotolio.font);
   TTF_CloseFont(sektusolio.font);
   TTF_CloseFont(tkstalolio.font);
