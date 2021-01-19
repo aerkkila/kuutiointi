@@ -44,6 +44,17 @@ char* sekoitus(char* s);
 			 (tapaht.button.y - kaikki->nimi->toteutuma->y) / \
 			 TTF_FontLineSkip(kaikki->nimi->font))
 #define TEE_TIEDOT TIEDOT = tee_tiedot(TIEDOT, kaikki->tkset, avgind);
+#define KIRJOITUSLAJIKSI(laji) {			   \
+    SDL_StartTextInput();				   \
+    SDL_SetTextInputRect(kaikki->kello_o->sij);		   \
+    tila = kirjoitustila;				   \
+    kirjoituslaji = laji;				   \
+    nostotoimi = ei_mitaan;				   \
+    strcpy(KELLO, "");					   \
+    LAITOT.kello=1;					   \
+    strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
+    LAITOT.tkstal = 1;					   \
+}
 
 int kaunnista(kaikki_s *kaikki) {
   SDL_Event tapaht;
@@ -73,11 +84,13 @@ int kaunnista(kaikki_s *kaikki) {
   enum {
     aika,
     ulosnimi,
-    tulosalku
+    tulosalku,
+    komento
   } kirjoituslaji = aika;
   char* tekstialue[] = {"Ajan syöttö",\
 		       "Ulosnimen vaihto",\
-		       "Tuloslistan alkukohta"};
+			"Tuloslistan alkukohta",\
+			"Komento"};
   char kontrol = 0;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
@@ -116,6 +129,10 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_RCTRL:
 	      kontrol = 1;
 	      break;
+	    case SDLK_k:
+	      if(tila == seis)
+		KIRJOITUSLAJIKSI(komento);
+	      break;
 	    case SDLK_s:
 	      if(tila != seis)
 		break;
@@ -127,15 +144,7 @@ int kaunnista(kaikki_s *kaikki) {
 		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", kaikki->ulosnimi);
 		LAITOT.tkstal = 1;
 	      } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
-		SDL_StartTextInput();
-		SDL_SetTextInputRect(kaikki->kello_o->sij);
-		tila = kirjoitustila;
-		kirjoituslaji = ulosnimi;
-		nostotoimi = ei_mitaan;
-		strcpy(KELLO, "");
-		LAITOT.kello=1;
-		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-		LAITOT.tkstal = 1;
+	        KIRJOITUSLAJIKSI(ulosnimi);
 	      }
 	      break;
 	    case SDLK_BACKSPACE:
@@ -159,6 +168,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    case SDLK_RETURN:
 	    case SDLK_KP_ENTER:
+	      LAITOT = kaikki_laitot();
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
 	        tila = seis;
@@ -171,7 +181,6 @@ int kaunnista(kaikki_s *kaikki) {
 		  lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
 		  TEE_TIEDOT;
 		  SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
-		  LAITOT.kello = 1;
 		  MUUTA_TULOS;
 		  break;
 		case ulosnimi:
@@ -180,11 +189,6 @@ int kaunnista(kaikki_s *kaikki) {
 		  strcpy(TEKSTI, "");
 		  _strpoista1(kaikki->muut_b->edel, 1);
 		  kaikki->ulosnimi = kaikki->muut_b->str;
-		  if(kaikki->tkset->ftulos)
-		    float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
-		  LAITOT.muut = 1;
-		  LAITOT.tkstal = 1;
-		  LAITOT.kello = 1;
 		  break;
 		case tulosalku:
 		  sscanf(KELLO, "%i", &apuind);
@@ -194,13 +198,22 @@ int kaunnista(kaikki_s *kaikki) {
 		  } else {
 		    strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
 		  }
-		  if(kaikki->tkset->ftulos)
-		    float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
-		  LAITOT.tulos = 1;
-		  LAITOT.tkstal = 1;
-		  LAITOT.kello = 1;
+		  break;
+		case komento:
+		  if(strstr("eri_sekunnit", KELLO)) {
+		    int *ia = eri_sekunnit(kaikki->tkset->fjarj->seur, NULL, 0);
+		    int tmp=0;
+		    while(ia[tmp] != -1) {
+		      printf("%i\t%i\n", ia[tmp], ia[tmp+1]);
+		      tmp+=2;
+		    }
+		    free(ia);
+		  }
 		  break;
 		}
+		/*koskee kaikkia kirjoituslajeja*/
+		if(kaikki->tkset->ftulos)
+		  float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
 		break;
 	      }
 	    case SDLK_END:
@@ -309,19 +322,9 @@ int kaunnista(kaikki_s *kaikki) {
 	case SDL_MOUSEBUTTONDOWN:
 	  switch(alue) {
 	  case kello:
-	    if(tila != juoksee) {
-	      if(tapaht.button.button == SDL_BUTTON_LEFT) {
-		SDL_StartTextInput();
-		tila = kirjoitustila;
-		kirjoituslaji = aika;
-		nostotoimi = ei_mitaan;
-		SDL_SetTextInputRect(kaikki->kello_o->sij);
-		strcpy(KELLO, "");
-		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-		LAITOT.kello=1;
-		LAITOT.tkstal=1;
-	      }
-	    }
+	    if(tapaht.button.button == SDL_BUTTON_LEFT)
+	      if(tila == seis)
+		KIRJOITUSLAJIKSI(aika);
 	    break;
 	  case tietoalue:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
@@ -365,19 +368,9 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	    break;
 	  case tulokset:
-	    if(tapaht.button.button == SDL_BUTTON_MIDDLE) {
-	      if(tila != juoksee) {
-		SDL_StartTextInput();
-		tila = kirjoitustila;
-		kirjoituslaji = tulosalku;
-		nostotoimi = ei_mitaan;
-		SDL_SetTextInputRect(kaikki->kello_o->sij);
-		strcpy(KELLO, "");
-		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-		LAITOT.kello=1;
-		LAITOT.tkstal=1;
-	      }
-	    }
+	    if(tapaht.button.button == SDL_BUTTON_MIDDLE)
+	      if(tila == seis)
+		KIRJOITUSLAJIKSI(tulosalku);
 	    break;
 	  default:
 	    break;

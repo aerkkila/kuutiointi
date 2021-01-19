@@ -35,9 +35,48 @@ double sigma(flista* fl, int n, int pois) {
   return r;
 }
 
+/*palauttaa listan, montako tulosta on kullakin kokonaissekunnilla
+  esim. 15, 4, 16, 6, -1 tarkoittaisi 4 15:n sekunnin ja 6 16:n sekunnin tulosta
+  -1 merkitsee loppua
+  tarvittaessa ia:an alustetaan lisää tilaa*/
+int* eri_sekunnit(flista* jarj, int* ia, int iapit) {
+  /*lasketaan ja alustetaan tarvittavien sekuntien määrä*/
+  int n = 0;
+  int vanha_sek = -1;
+  if(!ia && jarj)
+    ia = malloc(1);
+  flista* jarj0 = jarj;
+  while(jarj) {
+    if(vanha_sek != (int)(jarj->f)) {
+      vanha_sek = (int)(jarj->f);
+      n++;
+    }
+    jarj = jarj->seur;
+  }
+  jarj = jarj0;
+  if(iapit < n*2+1)
+    ia = realloc(ia, (n*2+1)*sizeof(int));
+
+  /*tehdään lista*/
+  for(int i=0; i<n; i++) {
+    int sek = (int)(jarj->f);
+    ia[i*2] = sek;
+    ia[i*2+1] = 0;
+    while((int)(jarj->f) == sek) {
+      ia[i*2+1]++;
+      if( !(jarj = jarj->seur) ) {
+	ia[(i+1)*2] = -1;
+	return ia;
+      }
+    }
+  }
+  printf("\"eri_sekunnit\"-funktio ei loppunut asianmukaisesti\n");
+  return ia;
+}
+
 strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
   flista* fl = tkset->ftulos;
-  flista* fj = _yalkuun(tkset->fjarj); //tämä ei välttämättä ole alussa
+  flista* fj = tkset->fjarj;
   avgtulos at;
   char *tmp;
   tmp = calloc(200, 1);
@@ -159,7 +198,7 @@ int poista_jarjlistalta(int i, tkset_s* t) {
   char palsuunta = (paikka == 0)? 1 : -1;
   _strpoista1(_ynouda(_yalkuun(t->sijarj), paikka), palsuunta);
   _strpoista1(_ynouda(_yalkuun(t->strjarj), paikka), palsuunta);
-  _yrm1(_ynouda(_yalkuun(t->fjarj), paikka), palsuunta);
+  _yrm1(_ynouda(t->fjarj, paikka), palsuunta);
   return paikka;
 }
 
@@ -184,9 +223,10 @@ void lisaa_listoille(tkset_s* t, char* kello, time_t hetki) {
   t->strtulos = _strlisaa_kopioiden(t->strtulos, kello);
   t->ftulos = _flisaa(t->ftulos, lue_kellosta(kello));
   t->tuloshetki = _ilisaa(t->tuloshetki, hetki);
-  int paikka = hae_paikka(t->ftulos->f, _yalkuun(t->fjarj)) - 1; //0. elementti on kansilehti
-  if( (t->fjarj = _ynouda(_yalkuun(t->fjarj), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-    _flisaa(t->fjarj, t->ftulos->f);
+  int paikka = hae_paikka(t->ftulos->f, t->fjarj) - 1; //0. elementti on kansilehti
+  flista* tmpfl = t->fjarj;
+  if( (tmpfl = _ynouda(t->fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+    _flisaa(tmpfl, t->ftulos->f);
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), t->strtulos->str);
     sprintf(tmp, "%i. ", _ylaske(_yalkuun(t->ftulos)));
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
@@ -218,14 +258,6 @@ float lue_kellosta(char* s) {
     sscanf(s, "%hi:%f", &min, &fsek);
   return min*60 + fsek;
 }
-
-#if 0
-struct tm aikaero(time_t t1, time_t t2) {
-  time_t ero = abs(t2-t1);
-  struct tm aika = localtime(&ero);
-  return aika;
-}
-#endif
 
 char tallenna(tkset_s* t, char* tiednimi) {
   flista* ft = _yalkuun(t->ftulos);
@@ -336,9 +368,9 @@ char* float_kelloksi(char* kello, float f) {
 void tee_jarjlista(tkset_s* t) {
   char str[50];
   flista* ft = _yalkuun(t->ftulos);
-  flista* fj = _yalkuun(t->fjarj);
-  strlista* sj = _yalkuun(t->strjarj);
-  strlista* sij = _yalkuun(t->sijarj);
+  flista* fj = t->fjarj;
+  strlista* sj = t->strjarj;
+  strlista* sij = t->sijarj;
   flista* apuf;
   strlista* apus;
   int i=1;
@@ -412,16 +444,15 @@ void muuta_sakko(tkset_s* t, char* teksti, int ind) {
     *fp = INFINITY;
 
   /*järjestyslistat*/
-  int paikka = hae_paikka(*fp, _yalkuun(t->fjarj)) - 1; //0. elementti on kansilehti
+  int paikka = hae_paikka(*fp, t->fjarj) - 1; //0. elementti on kansilehti
   flista* ftmp = t->fjarj;
-  if( (t->fjarj = _ynouda(_yalkuun(t->fjarj), paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-    _flisaa(t->fjarj, *fp);
+  if( (ftmp = _ynouda(t->fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+    _flisaa(ftmp, *fp);
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), teksti);
     char tmp[15];
     sprintf(tmp, "%i. ", ind+1);
     _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
-  } else
-    t->fjarj = ftmp;
+  }
 }
 
 sakko_e hae_sakko(char* s) {
