@@ -238,6 +238,8 @@ void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_R
   *(o->sij) = sij0;
   o->toteutuma->x = tot0.x;
   o->toteutuma->w += tot0.w;
+  if(o->toteutuma->h < tot0.h)
+    o->toteutuma->h = tot0.h;
 }
 
 void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {

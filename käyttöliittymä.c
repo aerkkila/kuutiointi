@@ -21,6 +21,7 @@ typedef enum {
   sektus,
   tarkasteluaikanappi,
   tietoalue,
+  muut,
   muu
 } alue_e;
 
@@ -372,6 +373,20 @@ int kaunnista(kaikki_s *kaikki) {
 	      if(tila == seis)
 		KIRJOITUSLAJIKSI(tulosalku);
 	    break;
+	  case muut:;
+	    int rivi = LISTARIVI(muut_o);
+	    char* tmpstr = ((strlista*)(_ynouda(_yalkuun(kaikki->muut_a), rivi)))->str;
+	    if(!strcmp(tmpstr, "ulosnimi:")) {
+	      KIRJOITUSLAJIKSI(ulosnimi);
+	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
+	      int *ia = eri_sekunnit(kaikki->tkset->fjarj->seur, NULL, 0);
+	      int tmp=0;
+	      while(ia[tmp] != -1) {
+		printf("%i\t%i\n", ia[tmp], ia[tmp+1]);
+		tmp+=2;
+	      }
+	      free(ia);
+	    }
 	  default:
 	    break;
 	  }
@@ -486,6 +501,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      LAITOT.tkstal = 1;
 	    }
 	    /*ei break-komentoa*/
+	  case muut:
 	  case tietoalue:
 	  case tarkasteluaikanappi:
 	    if(hlaji != kasi) {
@@ -596,6 +612,8 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
     return sektus;
   if(piste_alueella(x, y, kaikki->vnta_o->kuvat->sij))
     return tarkasteluaikanappi;
+  if(piste_alueella(x, y, kaikki->muut_o->toteutuma))
+    return muut;
   if(piste_alueella(x, y, kaikki->tluvut_o->toteutuma)) {
     if(((x - kaikki->tluvut_o->toteutuma->x) / (kaikki->tluvut_o->toteutuma->w / 6)) % 2)
       return tietoalue;
