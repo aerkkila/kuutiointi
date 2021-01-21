@@ -386,6 +386,16 @@ int kaunnista(kaikki_s *kaikki) {
 		tmp+=2;
 	      }
 	      free(ia);
+	    } else if(!strcmp(tmpstr, "plottaa")) {
+	      flista* tmpfl = _yalkuun(kaikki->tkset->ftulos);
+	      FILE *f = fopen("plottaa.bin", "wb");
+	      while(tmpfl) {
+	        fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
+		tmpfl = tmpfl->seur;
+	      }
+	      fclose(f);
+	      system("python3 plottaa.py");
+	      system("rm plottaa.bin");
 	    }
 	  default:
 	    break;
