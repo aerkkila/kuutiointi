@@ -9,6 +9,8 @@
 #define KELLO (k->kello_o->teksti)
 #define LAITOT (*(k->laitot))
 
+float skaala = 1.0;
+
 void piirra(kaikki_s* k) {
   /*pyyhitään vanhat*/
   if(LAITOT.kello)
@@ -117,10 +119,12 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
   /*kuvan koko on luodun pinnan koko, mutta enintään objektille määritelty koko
     tulostetaan vain se osa lopusta, joka mahtuu kuvaan*/
 
-  *(o->toteutuma) = (SDL_Rect){o->sij->x,				\
-			       o->sij->y,				\
+  *(o->toteutuma) = (SDL_Rect){o->sij->x*skaala,			\
+			       o->sij->y*skaala,			\
 			       (pinta->w < o->sij->w)? pinta->w : o->sij->w, \
 			       (pinta->h < o->sij->h)? pinta->h : o->sij->h};
+  o->toteutuma->w *= skaala;
+  o->toteutuma->h *= skaala;
 
   SDL_Rect osa = (SDL_Rect){(pinta->w < o->sij->w)? 0 : pinta->w - o->toteutuma->w, \
 			    (pinta->h < o->sij->h)? 0 : pinta->h - o->toteutuma->h, \

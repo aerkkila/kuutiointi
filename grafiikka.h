@@ -7,6 +7,7 @@
 inline laitot_s __attribute__((always_inline)) kaikki_laitot() {
   return (laitot_s){1, 1, 1, 1, 1, 1, 1, 1, 1};
 }
+
 void piirra(kaikki_s*);
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
 int laita_tekstilista(strlista*, int, tekstiolio_s*, SDL_Renderer*);

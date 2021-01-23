@@ -377,6 +377,10 @@ void tee_jarjlista(tkset_s* t) {
   while(ft) {
     int jarji = hae_paikka(ft->f, fj)-1;
     apuf = _ynouda(fj, jarji); //fjarj
+    if(!apuf) {
+      ft = ft->seur; //ei löydy, jos on inf
+      continue;
+    }
     _flisaa(apuf, ft->f);
     apus = _ynouda(sj, jarji); //strjarj
     _strlisaa_kopioiden(apus, float_kelloksi(str, ft->f));

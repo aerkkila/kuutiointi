@@ -55,7 +55,9 @@ char* sekoitus(char* s);
     LAITOT.kello=1;					   \
     strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
     LAITOT.tkstal = 1;					   \
-}
+  }
+
+extern float skaala;
 
 int kaunnista(kaikki_s *kaikki) {
   SDL_Event tapaht;
@@ -129,6 +131,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_LCTRL:
 	    case SDLK_RCTRL:
 	      kontrol = 1;
+	      strcpy(TEKSTI, "kontrol");
+	      LAITOT.tkstal = 1;
 	      break;
 	    case SDLK_k:
 	      if(tila == seis)
@@ -169,6 +173,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    case SDLK_RETURN:
 	    case SDLK_KP_ENTER:
+	      SDL_RenderClear(kaikki->rend);
 	      LAITOT = kaikki_laitot();
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
@@ -275,13 +280,26 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    case SDLK_PLUS:
 	    case SDLK_KP_PLUS:
-	      if(tila != kirjoitustila) {
+	      if(kontrol) {
+		SDL_RenderClear(kaikki->rend);
+		skaala *= 1.1;
+		SDL_RenderSetScale(kaikki->rend, skaala, skaala);
+		LAITOT = kaikki_laitot();
+	      } else if(tila != kirjoitustila) {
 		int tmpind = _ylaske(_yalkuun(STRTULOS)) - 1;
 		muuta_sakko(kaikki->tkset, KELLO, tmpind);
 		TEE_TIEDOT;
 		LAITOT.kello=1;
 		MUUTA_TULOS;
-		break;
+	      }
+	      break;
+	    case SDLK_MINUS:
+	    case SDLK_KP_MINUS:
+	      if(kontrol) {
+		SDL_RenderClear(kaikki->rend);
+		skaala /= 1.1;
+		SDL_RenderSetScale(kaikki->rend, skaala, skaala);
+		LAITOT = kaikki_laitot();
 	      }
 	      break;
 	    }
@@ -317,6 +335,11 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_LCTRL:
 	    case SDLK_RCTRL:
 	      kontrol = 0;
+	      if(tila == kirjoitustila)
+		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
+	      else
+		strcpy(TEKSTI, "");
+	      LAITOT.tkstal = 1;
 	      break;
 	    }
 	  break;
@@ -437,6 +460,42 @@ int kaunnista(kaikki_s *kaikki) {
 	  }
 	  break;
 	case SDL_MOUSEWHEEL:
+	  if(kontrol) {
+	    switch(alue) {
+	    case kello:
+	      TTF_CloseFont(kaikki->kello_o->font);
+	      kaikki->kello_o->fonttikoko += tapaht.wheel.y*4;
+	      kaikki->kello_o->font = TTF_OpenFont(kaikki->kello_o->fonttied, \
+						   kaikki->kello_o->fonttikoko);
+	      LAITOT.kello = 1;
+	      break;
+	    case tulokset:
+	      TTF_CloseFont(kaikki->tulos_o->font);
+	      kaikki->tulos_o->fonttikoko += tapaht.wheel.y;
+	      kaikki->tulos_o->font = TTF_OpenFont(kaikki->tulos_o->fonttied, \
+						   kaikki->tulos_o->fonttikoko);
+	      LAITOT.tulos = 1;
+	      break;
+	    case sektus:
+	      TTF_CloseFont(kaikki->sektus_o->font);
+	      kaikki->sektus_o->fonttikoko += tapaht.wheel.y;
+	      kaikki->sektus_o->font = TTF_OpenFont(kaikki->sektus_o->fonttied, \
+						   kaikki->sektus_o->fonttikoko);
+	      LAITOT.sektus = 1;
+	      break;
+	    case jarjestus1:
+	    case jarjestus2:
+	      TTF_CloseFont(kaikki->jarj1_o->font);
+	      kaikki->jarj1_o->fonttikoko += tapaht.wheel.y;
+	      kaikki->jarj1_o->font = TTF_OpenFont(kaikki->jarj1_o->fonttied, \
+						   kaikki->jarj1_o->fonttikoko);
+	      kaikki->jarj2_o->font = kaikki->jarj1_o->font;
+	      LAITOT.jarj = 1;
+	      break;
+	    default:
+	      break;
+	    }
+	  }
 	  switch(alue) {
 	  case tulokset:
 	    if((kaikki->tulos_o->alku == 0 && tapaht.wheel.y > 0) ||	\

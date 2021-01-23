@@ -13,7 +13,7 @@
 
 int kaunnista(kaikki_s *kaikki);
 
-/*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontin,
+/*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
 
 int main(int argc, char** argv) {
@@ -43,6 +43,8 @@ int main(int argc, char** argv) {
   strcpy(kelloolio.teksti, "");
   kelloolio.ttflaji = kellottflaji;
   kelloolio.font = TTF_OpenFont(kellofonttied, kellokoko);
+  kelloolio.fonttikoko = kellokoko;
+  kelloolio.fonttied = kellofonttied;
   if(!kelloolio.font) {
     fprintf(stderr, "Virhe: Ei avattu kellofonttia: %s\n", TTF_GetError());
     r = 1;
@@ -59,6 +61,8 @@ int main(int argc, char** argv) {
   tekstiolio_s tulosolio;
   tulosolio.ttflaji = tulosttflaji;
   tulosolio.font = TTF_OpenFont(tulosfonttied, tuloskoko);
+  tulosolio.fonttikoko = tuloskoko;
+  tulosolio.fonttied = tulosfonttied;
   if(!tulosolio.font) {
     fprintf(stderr, "Virhe: Ei avattu tulosfonttia: %s\n", TTF_GetError());
     r = 1;
@@ -76,6 +80,8 @@ int main(int argc, char** argv) {
   tekstiolio_s jarjolio1;
   jarjolio1.ttflaji = jarjttflaji;
   jarjolio1.font = TTF_OpenFont(jarjfonttied, jarjkoko);
+  jarjolio1.fonttikoko = jarjkoko;
+  jarjolio1.fonttied = jarjfonttied;
   if(!jarjolio1.font) {
     fprintf(stderr, "Virhe: Ei avattu äärifonttia: %s\n", TTF_GetError());
     r = 1;
@@ -110,6 +116,7 @@ int main(int argc, char** argv) {
   tekstiolio_s tiedotolio;
   tiedotolio.ttflaji = tiedotttflaji;
   tiedotolio.font = TTF_OpenFont(tiedotfonttied, tiedotkoko);
+  tiedotolio.fonttikoko = tiedotkoko;
   if(!tiedotolio.font) {
     fprintf(stderr, "Virhe: Ei avattu tiedotfonttia: %s\n", TTF_GetError());
     r = 1;
@@ -139,6 +146,7 @@ int main(int argc, char** argv) {
   tekstiolio_s lisaolio;
   lisaolio.ttflaji = lisattflaji;
   lisaolio.font = TTF_OpenFont(lisafonttied, lisakoko);
+  lisaolio.fonttikoko = lisakoko;
   if(!lisaolio.font) {
     fprintf(stderr, "Virhe: Ei avattu lisafonttia: %s\n", TTF_GetError());
     r = 1;
@@ -156,6 +164,8 @@ int main(int argc, char** argv) {
   tekstiolio_s sektusolio;
   sektusolio.ttflaji = sektusttflaji;
   sektusolio.font = TTF_OpenFont(sektusfonttied, sektuskoko);
+  sektusolio.fonttikoko = sektuskoko;
+  sektusolio.fonttied = sektusfonttied;
   if(!sektusolio.font) {
     fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
     r = 1;
@@ -173,6 +183,7 @@ int main(int argc, char** argv) {
   tekstiolio_s muutolio;
   muutolio.ttflaji = muutttflaji;
   muutolio.font = TTF_OpenFont(muutfonttied, muutkoko);
+  muutolio.fonttikoko = muutkoko;
   if(!muutolio.font) {
     fprintf(stderr, "Virhe: Ei avattu muutfonttia: %s\n", TTF_GetError());
     r = 1;
@@ -191,6 +202,7 @@ int main(int argc, char** argv) {
   tkstalolio.teksti = calloc(300, 1);
   tkstalolio.ttflaji = tkstalttflaji;
   tkstalolio.font = TTF_OpenFont(tkstalfonttied, tkstalkoko);
+  tkstalolio.fonttikoko = tkstalkoko;
   if(!tkstalolio.font) {
     fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
     r = 1;
@@ -210,6 +222,7 @@ int main(int argc, char** argv) {
   tekstiolio_s vto;
   vto.ttflaji = 2;
   vto.font = TTF_OpenFont(vntafonttied, vntakoko);
+  vto.fonttikoko = vntakoko;
   if(!vto.font) {
     fprintf(stderr, "Virhe: Ei avattu valintafonttia: %s\n", TTF_GetError());
     r = 1;

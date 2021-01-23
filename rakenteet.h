@@ -10,6 +10,8 @@ typedef struct {
   char* teksti;
   char ttflaji; //mitä ttf-kirjaston funktiota käytetään (katso laita_teksti_ttf())
   TTF_Font* font;
+  int fonttikoko;
+  char* fonttied;
   SDL_Rect* sij; //tälle varattu maksimitila
   SDL_Rect* toteutuma; //mikä tila oikeasti käytetään
   SDL_Color vari;
