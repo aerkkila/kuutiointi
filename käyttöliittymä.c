@@ -21,6 +21,7 @@ typedef enum {
   sektus,
   tarkasteluaikanappi,
   tietoalue,
+  lisatd,
   muut,
   muu
 } alue_e;
@@ -28,6 +29,8 @@ typedef enum {
 char piste_alueella(int x, int y, SDL_Rect* alue);
 alue_e hae_alue(int x, int y, kaikki_s *kaikki);
 char* sekoitus(char* s);
+void laita_eri_sekunnit(kaikki_s* kaikki, char* tmp);
+void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 
 #define SEKTUS (kaikki->sekoitukset)
 #define TIEDOT (kaikki->tiedot)
@@ -88,12 +91,12 @@ int kaunnista(kaikki_s *kaikki) {
     aika,
     ulosnimi,
     tulosalku,
-    komento
+    avaa_tiedosto
   } kirjoituslaji = aika;
   char* tekstialue[] = {"Ajan syöttö",\
 		       "Ulosnimen vaihto",\
 			"Tuloslistan alkukohta",\
-			"Komento"};
+			"Avattava tiedosto"};
   char kontrol = 0;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
@@ -131,12 +134,10 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_LCTRL:
 	    case SDLK_RCTRL:
 	      kontrol = 1;
-	      strcpy(TEKSTI, "kontrol");
-	      LAITOT.tkstal = 1;
 	      break;
-	    case SDLK_k:
+	    case SDLK_o:
 	      if(tila == seis)
-		KIRJOITUSLAJIKSI(komento);
+		KIRJOITUSLAJIKSI(avaa_tiedosto);
 	      break;
 	    case SDLK_s:
 	      if(tila != seis)
@@ -205,16 +206,10 @@ int kaunnista(kaikki_s *kaikki) {
 		    strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
 		  }
 		  break;
-		case komento:
-		  if(strstr("eri_sekunnit", KELLO)) {
-		    int *ia = eri_sekunnit(kaikki->tkset->fjarj->seur, NULL, 0);
-		    int tmp=0;
-		    while(ia[tmp] != -1) {
-		      printf("%i\t%i\n", ia[tmp], ia[tmp+1]);
-		      tmp+=2;
-		    }
-		    free(ia);
-		  }
+		case avaa_tiedosto:
+		  lue_tiedosto(kaikki, KELLO);
+		  TEE_TIEDOT;
+		  LAITOT = kaikki_laitot();
 		  break;
 		}
 		/*koskee kaikkia kirjoituslajeja*/
@@ -337,8 +332,6 @@ int kaunnista(kaikki_s *kaikki) {
 	      kontrol = 0;
 	      if(tila == kirjoitustila)
 		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-	      else
-		strcpy(TEKSTI, "");
 	      LAITOT.tkstal = 1;
 	      break;
 	    }
@@ -402,23 +395,17 @@ int kaunnista(kaikki_s *kaikki) {
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
 	      KIRJOITUSLAJIKSI(ulosnimi);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
-	      int *ia = eri_sekunnit(kaikki->tkset->fjarj->seur, NULL, 0);
-	      int tmp=0;
-	      while(ia[tmp] != -1) {
-		printf("%i\t%i\n", ia[tmp], ia[tmp+1]);
-		tmp+=2;
-	      }
-	      free(ia);
+	      laita_eri_sekunnit(kaikki, tmp);
 	    } else if(!strcmp(tmpstr, "plottaa")) {
 	      flista* tmpfl = _yalkuun(kaikki->tkset->ftulos);
-	      FILE *f = fopen("plottaa.bin", "wb");
+	      FILE *f = fopen(".plottaa.bin", "wb");
 	      while(tmpfl) {
 	        fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
 		tmpfl = tmpfl->seur;
 	      }
 	      fclose(f);
 	      system("python3 plottaa.py");
-	      system("rm plottaa.bin");
+	      system("rm .plottaa.bin");
 	    }
 	  default:
 	    break;
@@ -463,34 +450,26 @@ int kaunnista(kaikki_s *kaikki) {
 	  if(kontrol) {
 	    switch(alue) {
 	    case kello:
-	      TTF_CloseFont(kaikki->kello_o->font);
-	      kaikki->kello_o->fonttikoko += tapaht.wheel.y*4;
-	      kaikki->kello_o->font = TTF_OpenFont(kaikki->kello_o->fonttied, \
-						   kaikki->kello_o->fonttikoko);
+	      vaihda_fonttikoko(kaikki->kello_o, tapaht.wheel.y*4);
 	      LAITOT.kello = 1;
 	      break;
 	    case tulokset:
-	      TTF_CloseFont(kaikki->tulos_o->font);
-	      kaikki->tulos_o->fonttikoko += tapaht.wheel.y;
-	      kaikki->tulos_o->font = TTF_OpenFont(kaikki->tulos_o->fonttied, \
-						   kaikki->tulos_o->fonttikoko);
+	      vaihda_fonttikoko(kaikki->tulos_o, tapaht.wheel.y);
 	      LAITOT.tulos = 1;
 	      break;
 	    case sektus:
-	      TTF_CloseFont(kaikki->sektus_o->font);
-	      kaikki->sektus_o->fonttikoko += tapaht.wheel.y;
-	      kaikki->sektus_o->font = TTF_OpenFont(kaikki->sektus_o->fonttied, \
-						   kaikki->sektus_o->fonttikoko);
+	      vaihda_fonttikoko(kaikki->sektus_o, tapaht.wheel.y);
 	      LAITOT.sektus = 1;
 	      break;
 	    case jarjestus1:
 	    case jarjestus2:
-	      TTF_CloseFont(kaikki->jarj1_o->font);
-	      kaikki->jarj1_o->fonttikoko += tapaht.wheel.y;
-	      kaikki->jarj1_o->font = TTF_OpenFont(kaikki->jarj1_o->fonttied, \
-						   kaikki->jarj1_o->fonttikoko);
+	      vaihda_fonttikoko(kaikki->jarj1_o, tapaht.wheel.y);
 	      kaikki->jarj2_o->font = kaikki->jarj1_o->font;
 	      LAITOT.jarj = 1;
+	      break;
+	    case lisatd:
+	      vaihda_fonttikoko(kaikki->lisa_o, tapaht.wheel.y);
+	      LAITOT.lisatd = 1;
 	      break;
 	    default:
 	      break;
@@ -513,7 +492,7 @@ int kaunnista(kaikki_s *kaikki) {
 	    break;
 	  case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
 	    o = kaikki->jarj1_o;
-	    int riveja = kaikki->jarj1_o->toteutuma->h / TTF_FontLineSkip(o->font);
+	    int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
 	    if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
 	       (o->rullaus == 0 && tapaht.wheel.y > 0))
 	      break;
@@ -528,6 +507,15 @@ int kaunnista(kaikki_s *kaikki) {
 	    o->rullaus += tapaht.wheel.y;
 	    LAITOT.jarj = 1;
 	    break;
+	  case lisatd:
+	    o = kaikki->lisa_o;
+	    riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+	    if((o->alku + riveja == _ylaske(kaikki->lisatd) && tapaht.wheel.y < 0) || \
+	       (o->rullaus == 0 && tapaht.wheel.y > 0))
+	      break;
+	    o->rullaus += tapaht.wheel.y;
+	    LAITOT.lisatd = 1;
+	    break;
 	  default:
 	    break;
 	  }
@@ -537,6 +525,7 @@ int kaunnista(kaikki_s *kaikki) {
 	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y, kaikki);
 	  switch(alue) {
 	  case kello:
+	  case lisatd:
 	  case sektus:
 	    if(hlaji != teksti) {
 	      SDL_FreeCursor(kursori);
@@ -683,6 +672,8 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
     return tarkasteluaikanappi;
   if(piste_alueella(x, y, kaikki->muut_o->toteutuma))
     return muut;
+  if(piste_alueella(x, y, kaikki->lisa_o->toteutuma))
+    return lisatd;
   if(piste_alueella(x, y, kaikki->tluvut_o->toteutuma)) {
     if(((x - kaikki->tluvut_o->toteutuma->x) / (kaikki->tluvut_o->toteutuma->w / 6)) % 2)
       return tietoalue;
@@ -733,4 +724,30 @@ char* sekoitus(char* s) {
     }
   }
   return s;
+}
+
+inline void __attribute__((always_inline)) laita_eri_sekunnit(kaikki_s* k, char* tmps) {
+  int *ia = eri_sekunnit(k->tkset->fjarj->seur, NULL, 0);
+  int tmp=0;
+  k->lisatd = _strpoista_kaikki(_yalkuun(k->lisatd));
+  k->lisatd = _strlisaa_kopioiden(k->lisatd, "aika  määrä");
+  while(ia[tmp] != -1) {
+    sprintf(tmps, "%i    %i", ia[tmp], ia[tmp+1]);
+    k->lisatd = _strlisaa_kopioiden(k->lisatd, tmps);
+    tmp+=2;
+  }
+  free(ia);
+  k->lisatd = _yalkuun(k->lisatd);
+  k->laitot->lisatd = 1;
+  return;
+}
+
+inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio, int y) {
+  TTF_CloseFont(olio->font);
+  olio->font = NULL;
+  olio->fonttikoko += y;
+  olio->font = TTF_OpenFont(olio->fonttied, olio->fonttikoko);
+  if(!olio->font)
+    fprintf(stderr, "Virhe: Ei avattu fonttia uudesti: %s\n", TTF_GetError());
+  return;
 }

@@ -5,28 +5,44 @@ import struct
 import pymannkendall as mk
 import pandas as pd
 
-f = open("plottaa.bin", "rb");
-a = [];
+f = open(".plottaa.bin", "rb");
+ajat = [];
+ind = [];
+dnfind = [];
+i = 0;
 while 1:
     x = f.read(4);
     if len(x) < 4:
         break;
     x = struct.unpack("f", x)[0];
     if(not np.isinf(x) and not np.isnan(x)):
-        a.append(x);
+        ajat.append(x);
+        ind.append(i);
+    else:
+        dnfind.append(i);
+    i+=1;
 f.close();
 
-y = np.array(a);
-x = np.array(range(len(a)));
-sr = pd.Series(y, x);
+ajat = np.array(ajat);
+dnfind = np.array(dnfind);
+ind = np.array(ind);
+sr = pd.Series(ajat, ind);
 
 ts = mk.original_test(sr);
-pns = stat.linregress(x,y);
+pns = stat.linregress(ind,ajat);
 
-plt.plot(a, 'o');
-plt.plot(x*pns.slope+pns.intercept);
-plt.plot(x*ts.slope+ts.intercept);
-plt.xlim(right=len(y));
+plt.plot(ind, ajat, 'o', color='b');
+plt.plot(ind, ind*pns.slope+pns.intercept, label="pns");
+plt.plot(ind, ind*ts.slope+ts.intercept, label="ts");
+plt.xlim(right=np.max(ind));
+plt.ylim(top=np.max(ajat));
+
+#dnfien plottaus
+ala,ula = plt.ylim();
+dnfaika = np.zeros(np.shape(dnfind)) + ula;
+plt.plot(dnfind, dnfaika, 'o', color='r');
+
+plt.legend();
 #plt.tight_layout();
 plt.title('theil-senn: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f\npns: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f' %(ts.slope*1000, ts.intercept, ts.p, pns.slope*1000, pns.intercept, pns.pvalue));
 plt.show();

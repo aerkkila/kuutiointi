@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <listat.h>
@@ -18,6 +19,7 @@ int kaunnista(kaikki_s *kaikki);
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "fi_FI.utf8");
+  chdir(uloskansio);
   kaikki_s kaikki;
   int r = 0;
   
@@ -147,6 +149,7 @@ int main(int argc, char** argv) {
   lisaolio.ttflaji = lisattflaji;
   lisaolio.font = TTF_OpenFont(lisafonttied, lisakoko);
   lisaolio.fonttikoko = lisakoko;
+  lisaolio.fonttied = lisafonttied;
   if(!lisaolio.font) {
     fprintf(stderr, "Virhe: Ei avattu lisafonttia: %s\n", TTF_GetError());
     r = 1;

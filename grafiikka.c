@@ -85,7 +85,7 @@ void piirra(kaikki_s* k) {
     LAITOT.tiedot = 0;
   }
   if(LAITOT.lisatd) {
-    laita_oikealle(k->jarj1_o, 20, _yalkuun(k->lisatd), 1, k->lisa_o, k->rend);
+    laita_oikealle(k->jarj1_o, 20, _yalkuun(k->lisatd), 0, k->lisa_o, k->rend);
     LAITOT.lisatd = 0;
   }
   SDL_RenderPresent(k->rend);
