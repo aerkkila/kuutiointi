@@ -391,7 +391,9 @@ int kaunnista(kaikki_s *kaikki) {
 	    break;
 	  case muut:;
 	    int rivi = LISTARIVI(muut_o);
-	    char* tmpstr = ((strlista*)(_ynouda(_yalkuun(kaikki->muut_a), rivi)))->str;
+	    if(rivi == _ylaske(kaikki->muut_a))
+	      rivi--;
+	    char* tmpstr = ((strlista*)(_ynouda(kaikki->muut_a, rivi)))->str;
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
 	      KIRJOITUSLAJIKSI(ulosnimi);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
@@ -420,6 +422,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	  } else if(alue == tulokset) {
 	    int tmpind = LISTARIVI(tulos_o);
+	    if(tmpind == _ylaske_taakse(kaikki->tkset->strtulos))
+	      tmpind--;
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
 		/*poistetaan (ctrl + hiiri1)*/
