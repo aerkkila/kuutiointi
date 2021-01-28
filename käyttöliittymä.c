@@ -733,12 +733,26 @@ char* sekoitus(char* s) {
 inline void __attribute__((always_inline)) laita_eri_sekunnit(kaikki_s* k, char* tmps) {
   int *ia = eri_sekunnit(k->tkset->fjarj->seur, NULL, 0);
   int tmp=0;
+  int hyv = _ylaske(k->tkset->fjarj->seur);
+  int yht = _ylaske(_yalkuun(k->tkset->ftulos));
+  int dnf = yht - hyv;
   k->lisatd = _strpoista_kaikki(_yalkuun(k->lisatd));
   k->lisatd = _strlisaa_kopioiden(k->lisatd, "aika  määrä");
+  float osuus;
+  float kertuma = 0;
   while(ia[tmp] != -1) {
-    sprintf(tmps, "%i    %i", ia[tmp], ia[tmp+1]);
+    osuus = ia[tmp+1]/(float)yht;
+    kertuma += osuus;
+    sprintf(tmps, "%i    %i    %.3f    %.3f",		\
+	    ia[tmp], ia[tmp+1], osuus, kertuma);
     k->lisatd = _strlisaa_kopioiden(k->lisatd, tmps);
     tmp+=2;
+  }
+  if(dnf) {
+    osuus = dnf/(float)yht;
+    kertuma += osuus;
+    sprintf(tmps, "DNF  %i    %.3f    %.3f", dnf, osuus, kertuma);
+    k->lisatd = _strlisaa_kopioiden(k->lisatd, tmps);
   }
   free(ia);
   k->lisatd = _yalkuun(k->lisatd);
