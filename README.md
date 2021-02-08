@@ -1,0 +1,1 @@
+Ohjelman kääntämiseksi täytyy ensin luoda kirjastot erillisestä kansiosta "Listat", jota ei siis ole mukana tässä. Vaatii myös grafiikkakirjastot SDL2 ja SDL_TTF.
