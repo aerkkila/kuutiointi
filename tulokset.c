@@ -395,6 +395,8 @@ void tee_jarjlista(tkset_s* t) {
 /*teksti voi olla kello tai turha*/
 void muuta_sakko(tkset_s* t, char* teksti, int ind) {
   strlista* sl = _ynouda(_yalkuun(t->strtulos), ind);
+  if(!sl)
+    return;
   float* fp = &( ((flista*)_ynouda(_yalkuun(t->ftulos), ind))->f );
   int min=0;
   sakko_e sakko = hae_sakko(sl->str);
