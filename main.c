@@ -11,6 +11,7 @@
 #include "cfg.h"
 #include "grafiikka.h"
 #include "tulokset.h"
+#include "ääni.h"
 
 int kaunnista(kaikki_s *kaikki);
 

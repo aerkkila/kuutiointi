@@ -9,6 +9,7 @@
 #include "rakenteet.h"
 #include "grafiikka.h"
 #include "tulokset.h"
+#include "ääni.h"
 #include <math.h>
 #include <lista_math.h>
 
@@ -182,6 +183,14 @@ int kaunnista(kaikki_s *kaikki) {
 	        nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
 		switch((int)kirjoituslaji) {
 		case aika:
+		  /*tällä voi kysyä SDL-version*/
+		  if(!strcmp("SDL -v", KELLO)) {
+		    SDL_version v;
+		    SDL_VERSION(&v);
+		    sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
+		    LAITOT.kello = 1;
+		    break;
+		  }
 		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		  while((apucp = strstr(KELLO, ".")))
 		    *apucp = ',';
@@ -398,7 +407,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      KIRJOITUSLAJIKSI(ulosnimi);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
 	      laita_eri_sekunnit(kaikki, tmp);
-	    } else if(!strcmp(tmpstr, "plottaa")) {
+	    } else if(!strcmp(tmpstr, "kuvaaja")) {
 	      flista* tmpfl = _yalkuun(kaikki->tkset->ftulos);
 	      FILE *f = fopen(".plottaa.bin", "wb");
 	      while(tmpfl) {
@@ -408,7 +417,31 @@ int kaunnista(kaikki_s *kaikki) {
 	      fclose(f);
 	      system("python3 plottaa.py");
 	      system("rm .plottaa.bin");
+	    } else if(!strcmp(tmpstr, "nauhoituslaitteet")) {
+	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
+	      kaikki->lisatd = _yalkuun(nauhoituslaitteet(kaikki->lisatd));
+	      LAITOT.lisatd=1;
+	    } else if(!strcmp(tmpstr, "ääniajurit")) {
+	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
+	      kaikki->lisatd = _yalkuun(aaniajurit(kaikki->lisatd));
+	      LAITOT.lisatd=1;
 	    }
+	    break;
+	  case lisatd:;
+	    rivi = LISTARIVI(lisa_o);
+	    if(rivi == _ylaske(kaikki->lisatd))
+	      rivi--;
+	    strlista *apul = _yalkuun(kaikki->lisatd);
+	    tmpstr = ((strlista*)(_ynouda(apul, rivi)))->str;
+	    if(strstr(((strlista*)(_yloppuun(kaikki->lisatd)))->str, "Ääniajuri nyt: ")) {
+	      if(rivi < _ylaske(apul)-1)
+		SDL_AudioInit(tmpstr);
+	    }
+	    if(strstr(((strlista*)(_yloppuun(kaikki->lisatd)))->str, "Nauhoituslaitteita ")) {
+	      avaa_aani((rivi==_ylaske(apul)-1)? NULL: tmpstr, TEKSTI);
+	      LAITOT.tkstal = 1;
+	    }
+	    break;
 	  default:
 	    break;
 	  }
@@ -478,52 +511,62 @@ int kaunnista(kaikki_s *kaikki) {
 	    default:
 	      break;
 	    }
+	  } else {
+	    switch(alue) {
+	    case tulokset:
+	      if((kaikki->tulos_o->alku == 0 && tapaht.wheel.y > 0) ||	\
+		 (kaikki->tulos_o->rullaus == 0 && tapaht.wheel.y < 0))
+		break;
+	      kaikki->tulos_o->rullaus += tapaht.wheel.y;
+	      LAITOT.tulos=1;
+	      break;
+	    case sektus:
+	      if((kaikki->sektus_o->alku == 0 && tapaht.wheel.y > 0) ||	\
+		 (kaikki->sektus_o->rullaus == 0 && tapaht.wheel.y < 0))
+		break;
+	      kaikki->sektus_o->rullaus += tapaht.wheel.y;
+	      LAITOT.sektus=1;
+	      break;
+	    case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
+	      o = kaikki->jarj1_o;
+	      int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+	      if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
+		 (o->rullaus == 0 && tapaht.wheel.y > 0))
+		break;
+	      o->rullaus += tapaht.wheel.y;
+	      LAITOT.jarj = 1;
+	      break;
+	    case jarjestus2:;
+	      o = kaikki->jarj2_o;
+	      if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
+		 (o->rullaus == 0 && tapaht.wheel.y < 0))
+		break;
+	      o->rullaus += tapaht.wheel.y;
+	      LAITOT.jarj = 1;
+	      break;
+	    case lisatd:
+	      o = kaikki->lisa_o;
+	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+	      if((o->alku + riveja == _ylaske(kaikki->lisatd) && tapaht.wheel.y < 0) || \
+		 (o->rullaus == 0 && tapaht.wheel.y > 0))
+		break;
+	      o->rullaus += tapaht.wheel.y;
+	      LAITOT.lisatd = 1;
+	      break;
+	    case muut:
+	      o = kaikki->muut_o;
+	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+	      if((o->alku + riveja == _ylaske(_yalkuun(kaikki->muut_a)) && tapaht.wheel.y < 0) || \
+		 (o->rullaus == 0 && tapaht.wheel.y > 0))
+		break;
+	      o->rullaus += tapaht.wheel.y;
+	      LAITOT.muut = 1;
+	      break;
+	    default:
+	      break;
+	    }
+	    break;
 	  }
-	  switch(alue) {
-	  case tulokset:
-	    if((kaikki->tulos_o->alku == 0 && tapaht.wheel.y > 0) ||	\
-	       (kaikki->tulos_o->rullaus == 0 && tapaht.wheel.y < 0))
-	      break;
-	    kaikki->tulos_o->rullaus += tapaht.wheel.y;
-	    LAITOT.tulos=1;
-	    break;
-	  case sektus:
-	    if((kaikki->sektus_o->alku == 0 && tapaht.wheel.y > 0) ||	\
-	       (kaikki->sektus_o->rullaus == 0 && tapaht.wheel.y < 0))
-	      break;
-	    kaikki->sektus_o->rullaus += tapaht.wheel.y;
-	    LAITOT.sektus=1;
-	    break;
-	  case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
-	    o = kaikki->jarj1_o;
-	    int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	    if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
-	       (o->rullaus == 0 && tapaht.wheel.y > 0))
-	      break;
-	    o->rullaus += tapaht.wheel.y;
-	    LAITOT.jarj = 1;
-	    break;
-	  case jarjestus2:;
-	    o = kaikki->jarj2_o;
-	    if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
-	       (o->rullaus == 0 && tapaht.wheel.y < 0))
-	      break;
-	    o->rullaus += tapaht.wheel.y;
-	    LAITOT.jarj = 1;
-	    break;
-	  case lisatd:
-	    o = kaikki->lisa_o;
-	    riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	    if((o->alku + riveja == _ylaske(kaikki->lisatd) && tapaht.wheel.y < 0) || \
-	       (o->rullaus == 0 && tapaht.wheel.y > 0))
-	      break;
-	    o->rullaus += tapaht.wheel.y;
-	    LAITOT.lisatd = 1;
-	    break;
-	  default:
-	    break;
-	  }
-	  break;
 	case SDL_MOUSEMOTION:;
 	  alue_e vanha = alue;
 	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y, kaikki);
