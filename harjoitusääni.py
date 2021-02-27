@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import scipy.stats as stat
 import numpy as np
 import sounddevice as sd
 import time
@@ -11,7 +10,9 @@ taajuus = 16000;
 nuku0 = 0; #aika ennen kuin tehdään mitään
 kohinaa = 1; #montako sekunta kuunnellaan taustakohinaa
 tPak = 0.1; #yhden äänityspaketin kesto
-
+varKerr = 10; #monikokertainen varianssi aloittaa ja lopettaa
+tLoppu = 1; #kuinka kauan oltava hiljaista, että loppuu
+nLoppu = np.ceil(tLoppu/tPak);
 
 nPist = int(taajuus*tPak); #äänityspaketin pituus: N
 kohinaPit = int(taajuus*kohinaa); #kohinakuuntelun pituus: N
@@ -20,20 +21,17 @@ sd.default.samplerate = taajuus;
 sd.default.channels = (1, 2);
 sd.default.dtype = 'float32'; #pienempi aiheuttaa ylivuodon, käsittely liukulukuina
 
-pArvo = lambda f, pitOs, pitNim: 1 - stat.f.cdf(f, pitOs, pitNim);
 aani = [np.array([0]*nPist)]*2
 
 class Odottaja(object):
     def __init__(self, var=1, alkukuuntelu=1):
         self.var = var;
-        self.alkukuuntelu = alkukuuntelu;
         self.aInd = 0;
-        self.pit = int(taajuus*kohinaa);
-        if not self.alkukuuntelu:
+        if not alkukuuntelu:
             return;
         print("odota", end="");
         sys.stdout.flush();
-        data = sd.rec(self.pit, blocking=1)[:,0];
+        data = sd.rec(int(taajuus*kohinaa), blocking=1)[:,0];
         self.var = np.var(data);
         print("\r       \r", end="");
     def __enter__(self):
@@ -45,8 +43,8 @@ class Odottaja(object):
             sd.wait();
             aani[bInd] = sd.rec(nPist)[:,0];
             var = np.var(aani[self.aInd]);
-            parv = pArvo(var/self.var, nPist, kohinaPit);
-            if(parv < 1e-12):
+            if(var > self.var*varKerr):
+                print("hep");
                 return;
             self.aInd = bInd;
             bInd = (bInd+1) % 2;
@@ -58,20 +56,21 @@ od = Odottaja();
 
 def yksiAani():
     with od:
-        print("räjähti");
+        nauhoite = np.array([]);
         aInd = od.aInd;
         bInd = (aInd+1) % 2;
-        laskuri = 1;
-        nauhoite = aani[od.aInd];
-        while 0:
-            sd.wait();
-            aani[bInd] = sd.rec(nPist)[:,0];
-            var = np.var(aani[aInd]);
-            if(pArvo(var/od.var, nPist, nPist) > 1e-12):
-                sd.stop();
-                break;
-            np.append(nauhoite, aani[aInd]);
+        laskuri = 0;
+        nHiljaa = 0;
+        while nHiljaa < nLoppu:
+            nauhoite = np.append(nauhoite, aani[aInd]);
             laskuri += 1;
+            sd.wait();
+            aani[aInd] = sd.rec(nPist)[:,0];
+            var = np.var(aani[bInd]);
+            if(var < od.var*varKerr):
+                nHiljaa += 1;
+            else:
+                nHiljaa = 0;
             aInd = bInd;
             bInd = (bInd+1) % 2;
     return nauhoite, laskuri;
