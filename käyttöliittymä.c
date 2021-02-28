@@ -6,6 +6,8 @@
 #include <flista.h>
 #include <strlista.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "rakenteet.h"
 #include "grafiikka.h"
 #include "tulokset.h"
@@ -408,15 +410,30 @@ int kaunnista(kaikki_s *kaikki) {
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
 	      laita_eri_sekunnit(kaikki, tmp);
 	    } else if(!strcmp(tmpstr, "kuvaaja")) {
+	      FILE *f = fopen(".kuvaaja.bin", "wb");
 	      flista* tmpfl = _yalkuun(kaikki->tkset->ftulos);
-	      FILE *f = fopen(".plottaa.bin", "wb");
 	      while(tmpfl) {
-	        fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
+		fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
 		tmpfl = tmpfl->seur;
 	      }
 	      fclose(f);
-	      system("python3 plottaa.py");
-	      system("rm .plottaa.bin");
+	      pid_t pid1, pid2;
+	      if( (pid1 = fork()) < 0 )
+		fprintf(stderr, "Virhe: Ei tehty ensimmäistä alaprosessia\n");
+	      else if(pid1) { //yläprosessi
+		waitpid(pid1, NULL, 0);
+	      } else { //1. alaprosessi
+		if( (pid2 = fork()) < 0 ) {
+		  fprintf(stderr, "Virhe: Ei tehty toista alaprosessia\n");
+		  exit(1);
+		} else if(pid2) { //1. alaprosessi
+		  _exit(0);
+		} else { //2. alaprosessi
+		  system("python3 kuvaaja.py");
+		  system("rm .kuvaaja.bin");
+		  exit(0);
+		}   
+	      }
 	    } else if(!strcmp(tmpstr, "nauhoituslaitteet")) {
 	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
 	      kaikki->lisatd = _yalkuun(nauhoituslaitteet(kaikki->lisatd));

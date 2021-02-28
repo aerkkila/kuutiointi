@@ -5,7 +5,7 @@ import struct
 import pymannkendall as mk
 import pandas as pd
 
-f = open(".plottaa.bin", "rb");
+f = open(".kuvaaja.bin", "rb");
 ajat = [];
 ind = [];
 dnfind = [];
