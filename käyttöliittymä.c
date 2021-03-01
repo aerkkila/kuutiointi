@@ -12,6 +12,7 @@
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "ääni.h"
+#include "kuutio.h"
 #include <math.h>
 #include <lista_math.h>
 
@@ -442,6 +443,20 @@ int kaunnista(kaikki_s *kaikki) {
 	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
 	      kaikki->lisatd = _yalkuun(aaniajurit(kaikki->lisatd));
 	      LAITOT.lisatd=1;
+	    } else if(!strcmp(tmpstr, "kuutio")) {
+	      /*avataan kuutio taustaprosessina*/
+	      int pid1 = fork();
+	      if(pid1 > 0)
+		waitid(pid1, NULL, 0);
+	      else if(!pid1) {
+		int pid2 = fork();
+		if(pid2 > 0)
+		  _exit(0);
+		else if(!pid2) {
+		  ;
+		  exit(0);
+		}
+	      }
 	    }
 	    break;
 	  case lisatd:;
