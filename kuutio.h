@@ -2,15 +2,15 @@
 #define __kuutio__
 
 typedef enum {
-  _U = 0,
-  _F,
-  _R,
-  _L,
-  _D,
-  _B
+  _u = 0,
+  _f,
+  _r,
+  _l,
+  _d,
+  _b
 } sivu_e;
 
-typedef struct {char v[3];} vari;
+typedef struct{ char v[3]; } vari;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
 
@@ -22,9 +22,15 @@ typedef struct {
   char sivuja;
   char N; //NxNxN-kuutio
   char nakuvat;
-  SDL_Window* ikkuna;
-  SDL_Renderer* rend;
 } kuutio_t;
 
-  
+typedef struct {
+  SDL_Window* ikkuna;
+  SDL_Renderer* rend;
+  char* pohja;
+  int xRes;
+  int yRes;
+  char paivita;
+} kuva_t;
+
 #endif

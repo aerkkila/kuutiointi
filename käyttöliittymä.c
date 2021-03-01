@@ -447,7 +447,7 @@ int kaunnista(kaikki_s *kaikki) {
 	      /*avataan kuutio taustaprosessina*/
 	      int pid1 = fork();
 	      if(pid1 > 0)
-		waitid(pid1, NULL, 0);
+		waitpid(pid1, NULL, 0);
 	      else if(!pid1) {
 		int pid2 = fork();
 		if(pid2 > 0)
