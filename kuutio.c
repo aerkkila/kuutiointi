@@ -108,16 +108,17 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
   int pit = kuva->res1*kuva->res1;
   int res1 = kuva->res1;
   koordf ktit[pit];
+  xsij0 = -res1/2.0; ysij0 = res1/2.0; zsij0 = res1/2.0; //keskipiste ylänurkkaan
+  /*y-on aina negatiivinen kuvassa oikeasti*/
 
   /*alkupyöräytykset*/
   for(int sivu=0; sivu<6; sivu++) {
-    xsij0 = res1/2.0; ysij0 = -res1/2.0; zsij0 = -res1/2.0; //keskipiste ylänurkkaan
     switch(sivu) {
     case _u:
-      xrot0 = PI/2; yrot0 = 0;
+      xrot0 = -PI/2; yrot0 = 0;
       break;
     case _d:
-      xrot0 = -PI/2; yrot0 = 0;
+      xrot0 = PI/2; yrot0 = 0;
       break;
     case _f:
       xrot0 = 0; yrot0 = 0;
@@ -140,8 +141,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
     for(int i=0; i<res1; i++) {
       for(int j=0; j<res1; j++) {
 	ktit[i*res1+j].x = (i+xsij0)*1.0;
-	ktit[i*res1+j].y = (res1-j+ysij0)*cosx - zsij0*sinx;
-	ktit[i*res1+j].z = (res1-j+zsij0)*sinx + zsij0*cosx;
+	ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
+	ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
       }
     }
     /*y-pyöräytys*/
@@ -151,7 +152,7 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       //z = -ktit[i].x*siny+ktit[i].z*cosy;
       //z jätetään pois, koska projisoidaan xy-tasoon;
       kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-      kuva->koordtit[sivu][i].y = kuva->yRes-(short)(y+kuva->sij0-ysij0);
+      kuva->koordtit[sivu][i].y = -(short)(y-kuva->sij0-ysij0);
     }
   }
 }
@@ -384,8 +385,8 @@ int main(int argc, char** argv) {
       case SDL_MOUSEMOTION:;
 	/*pyöritetään, raahauksesta hiirellä*/
 	if(hiiri_painettu) {
-	  float xEro = xVanha - tapaht.motion.x;
-	  float yEro = tapaht.motion.y - yVanha;
+	  float xEro = tapaht.motion.x - xVanha;
+	  float yEro = tapaht.motion.y - yVanha;;
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
 	  kuutio->rotY += xEro*PI/(2*kuva->res1);
@@ -401,11 +402,11 @@ int main(int argc, char** argv) {
 
 	  /*näkyvyys*/
 	  kuutio->nakuvat = 0;
-	  if(kuutio->rotX < 0)
+	  if(kuutio->rotX > 0)
 	    kuutio->nakuvat |= 0x01; //yläosa
 	  else
 	    kuutio->nakuvat |= 0x10; //pohja
-	  if(kuutio->rotY > 0)
+	  if(kuutio->rotY < 0)
 	    kuutio->nakuvat |= 0x04; //oikea
 	  else
 	    kuutio->nakuvat |= 0x08; //vasen
