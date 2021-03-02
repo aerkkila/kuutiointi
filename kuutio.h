@@ -11,6 +11,11 @@ typedef enum {
 } sivu_e;
 
 typedef struct{ char v[3]; } vari;
+typedef struct{
+  short x;
+  short y;
+  //short z; jätetään pois koska kuva projisoidaan
+} koord;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
 
@@ -21,15 +26,19 @@ typedef struct {
   vari* varit;
   char sivuja;
   char N; //NxNxN-kuutio
-  char nakuvat;
+  char nakuvat; //UFRLDB
 } kuutio_t;
 
 typedef struct {
   SDL_Window* ikkuna;
   SDL_Renderer* rend;
-  char* pohja;
+  char** pohjat;
+  koord** koordtit;
   int xRes;
   int yRes;
+  int sij0; //nurkan paikka kun katsotaan suoraan edestä
+  int res1;
+  int pit;
   char paivita;
 } kuva_t;
 

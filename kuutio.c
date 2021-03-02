@@ -5,16 +5,15 @@
 #include "kuutio.h"
 
 #define PI 3.14159265358979
-#define NJ2 1.414213562
 
 /*näkyvät sivut määritellään tavuna, jossa bitit oikealta alkaen ovat
-  ylä, etu oikea, vasen, pohja, taka;
+  ylä, etu, oikea, vasen, pohja, taka;
   esim 0x03 tarkoittaa näkyvien olevan ylä, etu ja oikea*/
 
 kuutio_t* luo_kuutio(const unsigned char N) {
   const char sivuja = 6;
   vari varit[] = {VARI(255,255,255),  //valkoinen, ylä
-		  VARI(0,  255,0  ),  //vihrea, etu
+		  VARI(0,  220,  0),  //vihreä, etu
 		  VARI(255,0  ,0  ),  //punainen, oikea
 		  VARI(255,100,0  ),  //oranssi, vasen
 		  VARI(255,255,0  ),  //keltainen, ala
@@ -24,8 +23,8 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   kuutio_t* kuutio = malloc(sizeof(kuutio_t));
   kuutio->sivuja = sivuja;
   kuutio->N = N;
-  kuutio->rotX = PI/4;
-  kuutio->rotY = PI/4;
+  kuutio->rotX = -PI/4*0;
+  kuutio->rotY = PI/4*0;
   kuutio->nakuvat = 0x03;
   kuutio->sivut = malloc(sivuja*sizeof(char*));
   kuutio->varit = malloc(sizeof(varit));
@@ -52,27 +51,19 @@ void* tuhoa_kuutio(kuutio_t* kuutio) {
   return NULL;
 }
 
-kuva_t* suora_sivu_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const unsigned char ind) {
-  int raon_suhde = 10;
-  /*pyyhitään alusta*/
-  for(int i=0; i<kuva->xRes*kuva->yRes; i++)
-    kuva->pohja[i] = 6;
-  /*sivu vie tilaa enintään resol/2**0.5 osaa resoluutiosta*/
+kuva_t* suora_sivu_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
+  //int raon_suhde = 10;
+  char* pohja = kuva->pohjat[sivu];
   int N = kuutio->N;
-  int resol = kuva->yRes;
-  int resPala, alku;
-  if(1) {
-    int res = (int)(resol/NJ2); //if-lause, koska res-muuttuja halutaan hetkelliseksi
-    resPala = res/N;
-    alku = (resol-res)/2; //sivu laitetaan keskelle
-  }
+  int resol = kuva->res1;
+  int resPala = resol/N;
   for(int palaI=0; palaI<N; palaI++) {
     for(int i=0; i<resPala; i++) {
-      int iKoord = alku + palaI*resPala + i;
+      int iKoord = palaI*resPala + i;
       for(int palaJ=0; palaJ<N; palaJ++) {
 	for(int j=0; j<resPala; j++) {
-	  int jKoord = 0 + palaJ*resPala + j;
-	  kuva->pohja[iKoord*resol+jKoord] = kuutio->sivut[ind][palaI*N+palaJ];
+	  int jKoord = palaJ*resPala + j;
+	  pohja[iKoord*resol+jKoord] = kuutio->sivut[sivu][palaI*N+palaJ];
 	}
       }
     }
@@ -81,17 +72,121 @@ kuva_t* suora_sivu_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const unsigned char i
   return kuva;
 }
 
+/*tässä olisi parempi hakea pyöräytysmatriisilla vain ääriviivat
+  ja toimi niitten välillä for-silmukoilla
+  tämä olisi tehokkaampaa ja jokainen piste värjättäisiin*/
+#if 0
+kuva_t* kaanna_sivua_tasolla(kuva_t* kuva, kuutio_t* kuutio, float kulma) {
+  int xRes = kuva->xRes, yRes = kuva->yRes, res1 = kuva->res1;
+  float sin = sinf(kulma);
+  float cos = cosf(kulma);
+  int xSiirt = (int)(res1*sinf(kuutio->rotY));
+  int x, y;
+  for(int i=0; i<kuva->res1; i++) {
+    for(int j=0; j<kuva->res1; j++) {
+      x = (int)(cos*i-sin*j)+xSiirt;
+      y = (int)(sin*i+cos*j);
+      if(x<0 || y<0 || x>=xRes || y>=yRes)
+	continue;
+      kuva->pohja2[x*yRes+y] = kuva->pohja1[i*res1+j];
+      if(x<xRes-1)
+	kuva->pohja2[x*yRes+y+1] = kuva->pohja1[i*res1+j]; //vältetään mustat pisteet
+    }
+  }
+  return kuva;
+}
+#endif
+
+void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
+  float xrot0, yrot0, xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
+  typedef struct {
+    float x;
+    float y;
+    float z;
+  } koordf;
+  float x,y;
+  int pit = kuva->res1*kuva->res1;
+  int res1 = kuva->res1;
+  koordf ktit[pit];
+
+  /*alkupyöräytykset*/
+  for(int sivu=0; sivu<6; sivu++) {
+    xsij0 = res1/2.0; ysij0 = -res1/2.0; zsij0 = -res1/2.0; //keskipiste ylänurkkaan
+    switch(sivu) {
+    case _u:
+      xrot0 = PI/2; yrot0 = 0;
+      break;
+    case _d:
+      xrot0 = -PI/2; yrot0 = 0;
+      break;
+    case _f:
+      xrot0 = 0; yrot0 = 0;
+      break;
+    case _b:
+      xrot0 = 0; yrot0 = PI;
+      break;
+    case _r:
+      xrot0 = 0; yrot0 = PI/2;
+      break;
+    case _l:
+      xrot0 = 0, yrot0 = -PI/2;
+      break;
+    }
+    cosx = cosf(xrot0+xrot);
+    sinx = sinf(xrot0+xrot);
+    cosy = cosf(yrot0+yrot);
+    siny = sinf(yrot0+yrot);
+    /*x-pyöräytys*/
+    for(int i=0; i<res1; i++) {
+      for(int j=0; j<res1; j++) {
+	ktit[i*res1+j].x = (i+xsij0)*1.0;
+	ktit[i*res1+j].y = (res1-j+ysij0)*cosx - zsij0*sinx;
+	ktit[i*res1+j].z = (res1-j+zsij0)*sinx + zsij0*cosx;
+      }
+    }
+    /*y-pyöräytys*/
+    for(int i=0; i<pit; i++) {
+      x = ktit[i].x*cosy + ktit[i].z*siny;
+      y = ktit[i].y;
+      //z = -ktit[i].x*siny+ktit[i].z*cosy;
+      //z jätetään pois, koska projisoidaan xy-tasoon;
+      kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
+      kuva->koordtit[sivu][i].y = kuva->yRes-(short)(y+kuva->sij0-ysij0);
+    }
+  }
+}
+
+void piirra_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
+  koord* ktit = kuva->koordtit[sivu];
+  char* pohja = kuva->pohjat[sivu];
+  for(int i=0; i<kuva->pit; i++) {
+    short laji = pohja[i];
+    vari vari = kuutio->varit[laji];
+    SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
+    SDL_RenderDrawPoint(kuva->rend, ktit[i].x, ktit[i].y);
+  }
+}
+
 void paivita(kuutio_t* kuutio, kuva_t* kuva) {
   if(!kuva->paivita)
     return;
   kuva->paivita = 0;
-  suora_sivu_kuvaksi(kuva, kuutio, 1);
-  for(int i=0; i<kuva->xRes; i++)
-    for(int j=0; j<kuva->yRes; j++) {
-      vari vari = kuutio->varit[(int)kuva->pohja[i*kuva->yRes+j]];
-      SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
-      SDL_RenderDrawPoint(kuva->rend, i, j);
-    }
+  SDL_SetRenderDrawColor(kuva->rend, 0, 0, 0, 255);
+  SDL_RenderClear(kuva->rend);
+  
+  if(kuutio->nakuvat & 0x01)
+    piirra_kuvaksi(kuva, kuutio, _u);
+  else
+    piirra_kuvaksi(kuva, kuutio, _d);
+  if(kuutio->nakuvat & 0x02)
+    piirra_kuvaksi(kuva, kuutio, _f);
+  else
+    piirra_kuvaksi(kuva, kuutio, _b);
+  if(kuutio->nakuvat & 0x04)
+    piirra_kuvaksi(kuva, kuutio, _r);
+  else
+    piirra_kuvaksi(kuva, kuutio, _l);
+
   SDL_RenderPresent(kuva->rend);
 }
 
@@ -99,54 +194,80 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
   if(maara == 0)
     return;
   char N = kuutio->N;
-  struct jarj {int i[4];} jarj;
+  struct i4 {int i[4];} jarj;
+  struct i4 kaistat;
+  int a,b;
+  int kaista1,kaista2;
   char apu[N*N];
-  char kaista=0;
   char *sivu1, *sivu2;
   
   /*toiminta jaetaan kääntöakselin perusteella*/
   switch(puoli) {
   case 'r':
-    kaista = N-1;
-  case 'l':;
-    jarj = (struct jarj){{_u, _f, _d, _b}};
+  case 'l':
+    if(puoli == 'r') {
+      a = N-1;
+      b = (N-1)-a;
+      kaistat = (struct i4){{a,a,a,b}};
+      jarj = (struct i4){{_u, _f, _d, _b}};
+    } else {
+      a = 0;
+      b = (N-1)-a;
+      jarj = (struct i4){{_u, _b, _d, _f}};
+      kaistat = (struct i4){{a,b,a,a}};
+    }
     sivu1 = kuutio->sivut[jarj.i[0]];
     /*1. sivu talteen*/
     for(int i=0; i<N; i++)
-      apu[i] = sivu1[N*kaista+i];
+      apu[i] = sivu1[N*kaistat.i[0]+i];
     /*siirretään*/
     for(int j=0; j<3; j++) {
       sivu1 = kuutio->sivut[jarj.i[j]];
       sivu2 = kuutio->sivut[jarj.i[j+1]];
+      kaista1 = kaistat.i[j];
+      kaista2 = kaistat.i[j+1];
       for(int i=0; i<N; i++)
-	sivu1[N*kaista+i] = sivu2[N*kaista+i];
+	sivu1[N*kaista1+i] = sivu2[N*kaista2+i];
     }
     /*viimeinen*/
     sivu1 = kuutio->sivut[jarj.i[3]];
     for(int i=0; i<N; i++)
-      sivu1[N*kaista+i] = apu[i];
+      sivu1[N*kaistat.i[3]+i] = apu[i];
     break;
-    
+
   case 'd':
-    kaista = N-1;
   case 'u':
-    jarj = (struct jarj){{_f, _r, _b, _l}};
+    if(puoli == 'd') {
+      a = N-1;
+      b = (N-1)-a;
+      kaistat = (struct i4){{a,a,a,a}};
+      jarj = (struct i4){{_f, _l, _b, _r}};
+    } else {
+      a = 0;
+      b = (N-1)-a;
+      jarj = (struct i4){{_f, _r, _b, _l}};
+      kaistat = (struct i4){{a,a,a,a}};
+    }
     sivu1 = kuutio->sivut[jarj.i[0]];
     /*1. sivu talteen*/
     for(int i=0; i<N; i++)
-      apu[i] = sivu1[N*i+kaista];
+      apu[i] = sivu1[N*i + kaistat.i[0]];
     /*siirretään*/
     for(int j=0; j<3; j++) {
       sivu1 = kuutio->sivut[jarj.i[j]];
       sivu2 = kuutio->sivut[jarj.i[j+1]];
+      kaista1 = kaistat.i[j];
+      kaista2 = kaistat.i[j+1];
       for(int i=0; i<N; i++)
-	sivu1[N*i+kaista] = sivu2[N*i+kaista];
+	sivu1[N*i + kaista1] = sivu2[N*i + kaista2];
     }
     /*viimeinen*/
     sivu1 = kuutio->sivut[jarj.i[3]];
     for(int i=0; i<N; i++)
-      sivu1[N*i+kaista] = apu[i];
+      sivu1[N*i+kaistat.i[3]] = apu[i];
     break;
+
+  case 'b':
   default:
     return;
   }
@@ -181,11 +302,10 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
     apu[i] = sivu[i];
 
   /*nyt käännetään: */
-#define arvo(sivu,i,j) sivu[i*N+j]
-  N--; //kuvaa nyt suurinta indeksiä
+#define arvo(sivu,j,i) sivu[i*N+j]
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
-      arvo(sivu,i,j) = arvo(apu,N-j, i);
+      arvo(sivu,j,i) = arvo(apu,N-1-i,j);
 #undef arvo
   siirto(kuutio, puoli, maara-1);
 }
@@ -216,12 +336,26 @@ int main(int argc, char** argv) {
   kuva->rend = SDL_CreateRenderer(kuva->ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
   if(!kuva->rend)
     goto ULOS;
-  kuva->pohja = malloc(sizeof(char)*ikkuna_w*ikkuna_h);
   kuva->xRes = ikkuna_w;
   kuva->yRes = ikkuna_h;
   kuva->paivita = 1;
+  kuva->res1 = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
+  kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->res1)/2: (ikkuna_w-kuva->res1)/2;
+  kuva->pit = kuva->res1*kuva->res1;
+  kuva->pohjat = malloc(6*sizeof(char*));
+  for(int i=0; i<6; i++) {
+    kuva->pohjat[i] = malloc(kuva->res1*kuva->res1);
+    suora_sivu_kuvaksi(kuva, kuutio, i);
+  }
+  kuva->koordtit = malloc(6*sizeof(koord*));
+  for(int i=0; i<6; i++)
+    kuva->koordtit[i] = malloc(kuva->pit*sizeof(koord));
+  tee_koordtit(kuva, kuutio->rotX, kuutio->rotY);
+
 
   SDL_Event tapaht;
+  int xVanha, yVanha;
+  char hiiri_painettu = 0;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -236,9 +370,62 @@ int main(int argc, char** argv) {
 	case 'b':
 	case 'f':
 	  siirto(kuutio, tapaht.key.keysym.sym, 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	}
+	break;
+      case SDL_MOUSEBUTTONDOWN:
+	xVanha = tapaht.button.x;
+	yVanha = tapaht.button.y;
+	hiiri_painettu = 1;
+	break;
+      case SDL_MOUSEMOTION:;
+	/*pyöritetään, raahauksesta hiirellä*/
+	if(hiiri_painettu) {
+	  float xEro = xVanha - tapaht.motion.x;
+	  float yEro = tapaht.motion.y - yVanha;
+	  xVanha = tapaht.motion.x;
+	  yVanha = tapaht.motion.y;
+	  kuutio->rotY += xEro*PI/(2*kuva->res1);
+	  kuutio->rotX += yEro*PI/(2*kuva->res1);
+	  if(kuutio->rotY < -PI)
+	    kuutio->rotY += 2*PI;
+	  else if (kuutio->rotY > PI)
+	    kuutio->rotY -= 2*PI;
+	  if(kuutio->rotX < -PI)
+	    kuutio->rotX += 2*PI;
+	  else if (kuutio->rotX > PI)
+	    kuutio->rotX -= 2*PI;
+
+	  /*näkyvyys*/
+	  kuutio->nakuvat = 0;
+	  if(kuutio->rotX < 0)
+	    kuutio->nakuvat |= 0x01; //yläosa
+	  else
+	    kuutio->nakuvat |= 0x10; //pohja
+	  if(kuutio->rotY > 0)
+	    kuutio->nakuvat |= 0x04; //oikea
+	  else
+	    kuutio->nakuvat |= 0x08; //vasen
+	  char tmpx = 0;
+	  char tmpy = 0;
+	  if(fabs(kuutio->rotX) > PI/2)
+	    tmpx = 1;
+	  if(fabs(kuutio->rotY) > PI/2)
+	    tmpy = 1;
+	  if(tmpx ^ tmpy)
+	    kuutio->nakuvat |= 0x20; //takapinta
+	  else
+	    kuutio->nakuvat |= 0x02; //etupinta
+	  tee_koordtit(kuva, kuutio->rotX, kuutio->rotY);
+	  kuva->paivita = 1;
+	}
+	break;
+      case SDL_MOUSEBUTTONUP:
+	hiiri_painettu = 0;
+	break;
       }
     }
     paivita(kuutio, kuva);
@@ -246,7 +433,9 @@ int main(int argc, char** argv) {
   }
   
  ULOS:
-  free(kuva->pohja);
+  for(int i=0; i<6; i++)
+    free(kuva->pohjat[i]);
+  free(kuva->pohjat);
   SDL_DestroyRenderer(kuva->rend);
   SDL_DestroyWindow(kuva->ikkuna);
   free(kuva);

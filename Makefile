@@ -9,4 +9,4 @@ kajastin: kuutio *.[ch]
 	gcc -gdwarf-2 -g3 -Wall -o kajastin ${tiedostot} ${incdir} ${libdir} ${libs}
 
 kuutio: kuutio.[ch]
-	gcc -gdwarf-2 -g3 -Wall -o kuutio kuutio.c ${incdir} ${libdir} ${libs}
+	gcc -gdwarf-2 -g3 -Wall -o kuutio kuutio.c ${incdir} ${libdir} ${libs} -O3
