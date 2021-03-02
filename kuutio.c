@@ -356,8 +356,13 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
       kaista1 = kaistat.i[j];
       kaista2 = kaistat.i[j+1];
       if(j % 2 == 0) //u tai d alussa
-	for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
-	  sivu1[N*i + kaista1] = sivu2[N*kaista2 + i];
+	if(puoli == 'f') {
+	  for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
+	    sivu1[N*i + kaista1] = sivu2[N*kaista2 + N-1-i];
+	} else {
+	  for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
+	    sivu1[N*i + kaista1] = sivu2[N*kaista2 + i];
+	}
       else
 	for(int i=0; i<N; i++) //1: j-suunta, 2:i-suunta
 	  sivu1[N*kaista1 + i] = sivu2[N*i + kaista2];
@@ -475,13 +480,13 @@ int main(int argc, char** argv) {
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_J:
-	  siirto(kuutio, 'l', 1);
+	  siirto(kuutio, 'r', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
-	case SDL_SCANCODE_COMMA:
-	  siirto(kuutio, 'd', 1);
+	case SDL_SCANCODE_PERIOD:
+	  siirto(kuutio, 'd', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
@@ -493,7 +498,7 @@ int main(int argc, char** argv) {
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_O:
-	  siirto(kuutio, 'b', 1);
+	  siirto(kuutio, 'b', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
@@ -505,7 +510,7 @@ int main(int argc, char** argv) {
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_F:
-	  siirto(kuutio, 'r', 3);
+	  siirto(kuutio, 'l', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
@@ -516,8 +521,8 @@ int main(int argc, char** argv) {
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
-	case SDL_SCANCODE_C:
-	  siirto(kuutio, 'd', 3);
+	case SDL_SCANCODE_X:
+	  siirto(kuutio, 'd', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
@@ -529,7 +534,7 @@ int main(int argc, char** argv) {
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_W:
-	  siirto(kuutio, 'b', 3);
+	  siirto(kuutio, 'b', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
