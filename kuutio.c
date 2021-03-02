@@ -441,17 +441,80 @@ int main(int argc, char** argv) {
       case SDL_QUIT:
 	goto ULOS;
       case SDL_KEYDOWN:
-	switch(tapaht.key.keysym.sym) {
-	case 'r':
-	case 'l':
-	case 'u':
-	case 'd':
-	case 'b':
-	case 'f':
-	  siirto(kuutio, tapaht.key.keysym.sym, 1);
+	switch(tapaht.key.keysym.scancode) {
+	case SDL_SCANCODE_I:
+	  siirto(kuutio, 'u', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_L:
+	  siirto(kuutio, 'r', 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_J:
+	  siirto(kuutio, 'l', 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_COMMA:
+	  siirto(kuutio, 'd', 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_K:
+	  siirto(kuutio, 'f', 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_O:
+	  siirto(kuutio, 'b', 1);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_E:
+	  siirto(kuutio, 'u', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_F:
+	  siirto(kuutio, 'r', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_S:
+	  siirto(kuutio, 'l', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_C:
+	  siirto(kuutio, 'd', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_D:
+	  siirto(kuutio, 'f', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	case SDL_SCANCODE_W:
+	  siirto(kuutio, 'b', 3);
+	  for(int i=0; i<6; i++)
+	    suora_sivu_kuvaksi(kuva, kuutio, i);
+	  kuva->paivita = 1;
+	  break;
+	default:
 	  break;
 	}
 	break;
