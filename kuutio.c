@@ -200,16 +200,41 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       break;
     } //switch
     
-    /*y-pyöräytys, joka on sama kaikilla*/
+    /*2. y-pyöräytys, joka ymmärtääkseni pitäisi olla sama kaikilla,
+      mutta ei näytä olevan, tämä on saatu kokeilemalla
+      "koodi toimii, mutta en tiedä, miksi"*/
+    switch(sivu) {
+    case _u:
+    case _l:
+    case _f:
     for(int i=0; i<kuva->pit; i++) {
       x = ktit[i].x*cosy + ktit[i].z*siny;
       y = ktit[i].y;
       kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
       kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0);
     }
+    break;
+    case _r:
+    case _b:
+      for(int i=0; i<kuva->pit; i++) {
+	x = ktit[i].x*cosy + ktit[i].z*siny;
+	y = ktit[i].y;
+	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0)+res1;
+	kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0);
+      }
+      break;
+    case _d:
+      for(int i=0; i<kuva->pit; i++) {
+	x = ktit[i].x*cosy + ktit[i].z*siny;
+	y = ktit[i].y;
+	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
+	kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0) + res1;
+      }
+      break;
+    }
   }
 }
-  
+
 void piirra_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
   koord* ktit = kuva->koordtit[sivu];
   char* pohja = kuva->pohjat[sivu];
@@ -442,7 +467,7 @@ int main(int argc, char** argv) {
 	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio->rotY -= xEro*PI/(2*kuva->res1);
+	  kuutio->rotY += xEro*PI/(2*kuva->res1);
 	  kuutio->rotX += yEro*PI/(2*kuva->res1);
 	  if(kuutio->rotY < -PI)
 	    kuutio->rotY += 2*PI;
@@ -455,7 +480,8 @@ int main(int argc, char** argv) {
 
 	  /*näkyvyys*/
 	  kuutio->nakuvat = 0;
-	  if(kuutio->rotX > 0)
+	  if((kuutio->rotX > 0 && fabs(kuutio->rotY) < PI/2) || \
+	     (kuutio->rotX < 0 && fabs(kuutio->rotY) > PI/2))
 	    kuutio->nakuvat |= 0x01; //yläosa
 	  else
 	    kuutio->nakuvat |= 0x10; //pohja
