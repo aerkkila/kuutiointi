@@ -293,13 +293,21 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
       sivu2 = kuutio->sivut[jarj.i[j+1]];
       kaista1 = kaistat.i[j];
       kaista2 = kaistat.i[j+1];
-      for(int i=0; i<N; i++)
-	sivu1[N*kaista1+i] = sivu2[N*kaista2+i];
+      if( (j<2 && puoli == 'l') || (j>=2 && puoli == 'r') )
+	for(int i=0; i<N; i++)
+	  sivu1[N*kaista1+i] = sivu2[N*kaista2 + N-1-i];
+      else
+	for(int i=0; i<N; i++)
+	  sivu1[N*kaista1+i] = sivu2[N*kaista2+i];
     }
     /*viimeinen*/
     sivu1 = kuutio->sivut[jarj.i[3]];
-    for(int i=0; i<N; i++)
-      sivu1[N*kaistat.i[3]+i] = apu[i];
+    if(puoli == 'r')
+      for(int i=0; i<N; i++)
+	sivu1[N*kaistat.i[3]+i] = apu[N-1-i];
+    else
+      for(int i=0; i<N; i++)
+	sivu1[N*kaistat.i[3]+i] = apu[i];
     break;
 
   case 'd':
