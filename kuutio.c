@@ -108,10 +108,10 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
   int pit = kuva->res1*kuva->res1;
   int res1 = kuva->res1;
   koordf ktit[pit];
-  xsij0 = -res1/2.0; ysij0 = res1/2.0; zsij0 = res1/2.0; //keskipiste ylänurkkaan
+  xsij0 = -res1/2.0; ysij0 = -res1/2.0; zsij0 = res1/2.0; //keskipiste ylänurkkaan
   /*y-on aina negatiivinen kuvassa oikeasti*/
 
-  /*alkupyöräytykset*/
+  /*alkupyöräytykset: tällä pääsee nykytilanteeseen*/
   for(int sivu=0; sivu<6; sivu++) {
     switch(sivu) {
     case _u:
@@ -137,26 +137,48 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
     sinx = sinf(xrot0+xrot);
     cosy = cosf(yrot0+yrot);
     siny = sinf(yrot0+yrot);
-    /*x-pyöräytys*/
-    for(int i=0; i<res1; i++) {
-      for(int j=0; j<res1; j++) {
-	ktit[i*res1+j].x = (i+xsij0)*1.0;
-	ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
-	ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
+    switch(sivu) {
+    case _u:
+    case _d:
+    case _f:
+      /*x-pyöräytys*/
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = (i+xsij0)*1.0;
+	  ktit[i*res1+j].y = (j+ysij0)*cosx - zsij0*sinx;
+	  ktit[i*res1+j].z = (j+ysij0)*sinx + zsij0*cosx;
+	}
       }
-    }
-    /*y-pyöräytys*/
-    for(int i=0; i<pit; i++) {
-      x = ktit[i].x*cosy + ktit[i].z*siny;
-      y = ktit[i].y;
-      //z = -ktit[i].x*siny+ktit[i].z*cosy;
-      //z jätetään pois, koska projisoidaan xy-tasoon;
-      kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-      kuva->koordtit[sivu][i].y = -(short)(y-kuva->sij0-ysij0);
-    }
-  }
+      /*y-pyöräytys*/
+      for(int i=0; i<pit; i++) {
+	x = ktit[i].x*cosy + ktit[i].z*siny;
+	y = ktit[i].y;
+	//z = -ktit[i].x*siny+ktit[i].z*cosy;
+	//z jätetään pois, koska projisoidaan xy-tasoon;
+	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
+	kuva->koordtit[sivu][i].y = (short)(y+kuva->sij0-ysij0);
+      }
+      break;
+    default:
+      /*y-pyöräytys*/
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = (i+xsij0)*cosy + zsij0*siny;
+	  ktit[i*res1+j].y = (j+ysij0)*1.0;
+	  ktit[i*res1+j].z = -siny*(i+xsij0) + zsij0*cosy;
+	}
+      }
+      /*x-pyöräytys*/
+      for(int i=0; i<pit; i++) {
+	x = ktit[i].x;
+	y = ktit[i].y*cosx - ktit[i].z*sinx;
+	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
+	kuva->koordtit[sivu][i].y = (short)(y+kuva->sij0-ysij0);
+      }
+    }//switch
+  }//for
 }
-
+  
 void piirra_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
   koord* ktit = kuva->koordtit[sivu];
   char* pohja = kuva->pohjat[sivu];
@@ -385,11 +407,11 @@ int main(int argc, char** argv) {
       case SDL_MOUSEMOTION:;
 	/*pyöritetään, raahauksesta hiirellä*/
 	if(hiiri_painettu) {
-	  float xEro = tapaht.motion.x - xVanha;
-	  float yEro = tapaht.motion.y - yVanha;;
+	  float xEro = tapaht.motion.x - xVanha; //vasemmalle negatiivinen
+	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio->rotY += xEro*PI/(2*kuva->res1);
+	  kuutio->rotY -= xEro*PI/(2*kuva->res1);
 	  kuutio->rotX += yEro*PI/(2*kuva->res1);
 	  if(kuutio->rotY < -PI)
 	    kuutio->rotY += 2*PI;
