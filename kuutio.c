@@ -97,86 +97,117 @@ kuva_t* kaanna_sivua_tasolla(kuva_t* kuva, kuutio_t* kuutio, float kulma) {
 }
 #endif
 
+typedef struct {
+  float x;
+  float y;
+  float z;
+} koordf;
+
+/*y-pyöräytys, joka tehdään toisena*/
+inline void __attribute__((always_inline)) y_puorautus(kuva_t* kuva,	\
+						       char sivu,	\
+						       koordf* ktit,	\
+						       float xsij0, float ysij0, \
+						       float cosx, float cosy) {
+  
+  
+}
+
 void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
-  float xrot0, yrot0, xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
-  typedef struct {
-    float x;
-    float y;
-    float z;
-  } koordf;
+  float xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
   float x,y;
   int pit = kuva->res1*kuva->res1;
   int res1 = kuva->res1;
+  int res2 = res1/2;
   koordf ktit[pit];
-  xsij0 = -res1/2.0; ysij0 = -res1/2.0; zsij0 = res1/2.0; //keskipiste ylänurkkaan
-  /*y-on aina negatiivinen kuvassa oikeasti*/
+  
+  /*1. pyöräytys erikseen kullekin sivulle, 2. on sama kaikilla*/
+  cosx = cosf(xrot);
+  sinx = sinf(xrot);
+  cosy = cosf(yrot);
+  siny = sinf(yrot);
 
-  /*alkupyöräytykset: tällä pääsee nykytilanteeseen*/
   for(int sivu=0; sivu<6; sivu++) {
-    switch(sivu) {
+    switch(sivu){
     case _u:
-      xrot0 = -PI/2; yrot0 = 0;
-      break;
-    case _d:
-      xrot0 = PI/2; yrot0 = 0;
-      break;
-    case _f:
-      xrot0 = 0; yrot0 = 0;
-      break;
-    case _b:
-      xrot0 = 0; yrot0 = PI;
-      break;
-    case _r:
-      xrot0 = 0; yrot0 = PI/2;
-      break;
-    case _l:
-      xrot0 = 0, yrot0 = -PI/2;
-      break;
-    }
-    cosx = cosf(xrot0+xrot);
-    sinx = sinf(xrot0+xrot);
-    cosy = cosf(yrot0+yrot);
-    siny = sinf(yrot0+yrot);
-    switch(sivu) {
-    case _u:
-    case _d:
-    case _f:
-      /*x-pyöräytys*/
+      /*yläpinta*/
+      ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
+      /*x-pyöräytys, j-liikuttaa z-suunnassa*/
       for(int i=0; i<res1; i++) {
 	for(int j=0; j<res1; j++) {
 	  ktit[i*res1+j].x = (i+xsij0)*1.0;
-	  ktit[i*res1+j].y = (j+ysij0)*cosx - zsij0*sinx;
-	  ktit[i*res1+j].z = (j+ysij0)*sinx + zsij0*cosx;
+	  ktit[i*res1+j].y = ysij0*cosx - (j+zsij0)*sinx;
+	  ktit[i*res1+j].z = ysij0*sinx + (j+zsij0)*cosx;
 	}
-      }
-      /*y-pyöräytys*/
-      for(int i=0; i<pit; i++) {
-	x = ktit[i].x*cosy + ktit[i].z*siny;
-	y = ktit[i].y;
-	//z = -ktit[i].x*siny+ktit[i].z*cosy;
-	//z jätetään pois, koska projisoidaan xy-tasoon;
-	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-	kuva->koordtit[sivu][i].y = (short)(y+kuva->sij0-ysij0);
       }
       break;
-    default:
-      /*y-pyöräytys*/
+    case _d:
+      /*alapinta*/
+      ysij0 = -res2; xsij0 = -res2; zsij0 = res2;
+      /*x-pyöräytys, j-liikuttaa -z-suunnassa*/
       for(int i=0; i<res1; i++) {
 	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = (i+xsij0)*cosy + zsij0*siny;
-	  ktit[i*res1+j].y = (j+ysij0)*1.0;
-	  ktit[i*res1+j].z = -siny*(i+xsij0) + zsij0*cosy;
+	  ktit[i*res1+j].x = (i+xsij0)*1.0;
+	  ktit[i*res1+j].y = ysij0*cosx - (-j+zsij0)*sinx;
+	  ktit[i*res1+j].z = ysij0*sinx + (-j+zsij0)*cosx;
 	}
       }
-      /*x-pyöräytys*/
-      for(int i=0; i<pit; i++) {
-	x = ktit[i].x;
-	y = ktit[i].y*cosx - ktit[i].z*sinx;
-	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-	kuva->koordtit[sivu][i].y = (short)(y+kuva->sij0-ysij0);
+      break;
+    case _r:
+      /*oikea*/
+      ysij0 = res2; xsij0 = res2; zsij0 = res2;
+      /*x-pyöräytys, i-liikuttaa -z-suunnassa, j = -y*/
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = xsij0 * 1.0;
+	  ktit[i*res1+j].y = (-j+ysij0)*cosx - (-i+zsij0)*sinx;
+	  ktit[i*res1+j].z = (-j+ysij0)*sinx + (-i+zsij0)*cosx;
+	}
       }
-    }//switch
-  }//for
+      break;
+    case _l:
+      /*vasen: j = -y, i = z*/
+      ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = xsij0 * 1.0;
+	  ktit[i*res1+j].y = (-j+ysij0)*cosx - (i+zsij0)*sinx;
+	  ktit[i*res1+j].z = (-j+ysij0)*sinx + (i+zsij0)*cosx;
+	}
+      }
+      break;
+    case _f:
+      /*etuosa: j=-y, i=x*/
+      ysij0 = res2; xsij0 = -res2; zsij0 = res2;
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = (i+xsij0)*1.0;
+	  ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
+	  ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
+	}
+      }
+      break;
+    case _b:
+      /*takapinta: j=-y, i=-x*/
+      ysij0 = res2; xsij0 = res2; zsij0 = -res2;
+      for(int i=0; i<res1; i++) {
+	for(int j=0; j<res1; j++) {
+	  ktit[i*res1+j].x = (-i+xsij0)*1.0;
+	  ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
+	  ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
+	}
+      }
+      break;
+    } //switch
+    
+    /*y-pyöräytys, joka on sama kaikilla*/
+    for(int i=0; i<kuva->pit; i++) {
+      x = ktit[i].x*cosy + ktit[i].z*siny;
+      y = ktit[i].y;
+      kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
+      kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0);
+    }
+  }
 }
   
 void piirra_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
