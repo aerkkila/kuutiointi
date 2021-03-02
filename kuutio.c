@@ -10,6 +10,29 @@
   ylä, etu, oikea, vasen, pohja, taka;
   esim 0x03 tarkoittaa näkyvien olevan ylä, etu ja oikea*/
 
+inline void __attribute__((always_inline)) hae_nakuvuus(kuutio_t* kuutio) {
+  kuutio->nakuvat = 0;
+  if((kuutio->rotX > 0 && fabs(kuutio->rotY) < PI/2) ||		\
+     (kuutio->rotX < 0 && fabs(kuutio->rotY) > PI/2))
+    kuutio->nakuvat |= 0x01; //yläosa
+  else
+    kuutio->nakuvat |= 0x10; //pohja
+  if(kuutio->rotY < 0)
+    kuutio->nakuvat |= 0x04; //oikea
+  else
+    kuutio->nakuvat |= 0x08; //vasen
+  char tmpx = 0;
+  char tmpy = 0;
+  if(fabs(kuutio->rotX) > PI/2)
+    tmpx = 1;
+  if(fabs(kuutio->rotY) > PI/2)
+    tmpy = 1;
+  if(tmpx ^ tmpy)
+    kuutio->nakuvat |= 0x20; //takapinta
+  else
+    kuutio->nakuvat |= 0x02; //etupinta
+}
+
 kuutio_t* luo_kuutio(const unsigned char N) {
   const char sivuja = 6;
   vari varit[] = {VARI(255,255,255),  //valkoinen, ylä
@@ -23,9 +46,9 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   kuutio_t* kuutio = malloc(sizeof(kuutio_t));
   kuutio->sivuja = sivuja;
   kuutio->N = N;
-  kuutio->rotX = -PI/4*0;
-  kuutio->rotY = PI/4*0;
-  kuutio->nakuvat = 0x03;
+  kuutio->rotX = PI/6;
+  kuutio->rotY = -PI/6;
+  hae_nakuvuus(kuutio);
   kuutio->sivut = malloc(sivuja*sizeof(char*));
   kuutio->varit = malloc(sizeof(varit));
   
@@ -72,46 +95,11 @@ kuva_t* suora_sivu_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
   return kuva;
 }
 
-/*tässä olisi parempi hakea pyöräytysmatriisilla vain ääriviivat
-  ja toimi niitten välillä for-silmukoilla
-  tämä olisi tehokkaampaa ja jokainen piste värjättäisiin*/
-#if 0
-kuva_t* kaanna_sivua_tasolla(kuva_t* kuva, kuutio_t* kuutio, float kulma) {
-  int xRes = kuva->xRes, yRes = kuva->yRes, res1 = kuva->res1;
-  float sin = sinf(kulma);
-  float cos = cosf(kulma);
-  int xSiirt = (int)(res1*sinf(kuutio->rotY));
-  int x, y;
-  for(int i=0; i<kuva->res1; i++) {
-    for(int j=0; j<kuva->res1; j++) {
-      x = (int)(cos*i-sin*j)+xSiirt;
-      y = (int)(sin*i+cos*j);
-      if(x<0 || y<0 || x>=xRes || y>=yRes)
-	continue;
-      kuva->pohja2[x*yRes+y] = kuva->pohja1[i*res1+j];
-      if(x<xRes-1)
-	kuva->pohja2[x*yRes+y+1] = kuva->pohja1[i*res1+j]; //vältetään mustat pisteet
-    }
-  }
-  return kuva;
-}
-#endif
-
 typedef struct {
   float x;
   float y;
   float z;
 } koordf;
-
-/*y-pyöräytys, joka tehdään toisena*/
-inline void __attribute__((always_inline)) y_puorautus(kuva_t* kuva,	\
-						       char sivu,	\
-						       koordf* ktit,	\
-						       float xsij0, float ysij0, \
-						       float cosx, float cosy) {
-  
-  
-}
 
 void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
   float xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
@@ -275,7 +263,7 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
   char N = kuutio->N;
   struct i4 {int i[4];} jarj;
   struct i4 kaistat;
-  int a,b;
+  int a,b; //kaistat kahdelta eri puolelta katsottuna
   int kaista1,kaista2;
   char apu[N*N];
   char *sivu1, *sivu2;
@@ -346,9 +334,41 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
       sivu1[N*i+kaistat.i[3]] = apu[i];
     break;
 
+  case 'f':
   case 'b':
+    a = N-1;
+    b = N-1 - a;
+    if(puoli == 'f') {
+      kaistat = (struct i4){{a,a,b,b}};
+      jarj = (struct i4){{_u, _l, _d, _r}};
+    } else {
+      kaistat = (struct i4){{b,a,a,b}};
+      jarj = (struct i4){{_u, _r, _d, _l}};
+    }
+    sivu1 = kuutio->sivut[jarj.i[0]];
+    /*1. sivu talteen*/
+    for(int i=0; i<N; i++)
+      apu[i] = sivu1[N*i + kaistat.i[0]];
+    /*siirretään, tässä vuorottelee, mennäänkö i- vai j-suunnassa*/
+    for(int j=0; j<3; j++) {
+      sivu1 = kuutio->sivut[jarj.i[j]];
+      sivu2 = kuutio->sivut[jarj.i[j+1]];
+      kaista1 = kaistat.i[j];
+      kaista2 = kaistat.i[j+1];
+      if(j % 2 == 0) //u tai d alussa
+	for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
+	  sivu1[N*i + kaista1] = sivu2[N*kaista2 + i];
+      else
+	for(int i=0; i<N; i++) //1: j-suunta, 2:i-suunta
+	  sivu1[N*kaista1 + i] = sivu2[N*i + kaista2];
+    }
+    /*viimeinen*/
+    sivu1 = kuutio->sivut[jarj.i[3]];
+    for(int i=0; i<N; i++)
+      sivu1[N*kaistat.i[3]+i] = apu[i];
+    break;
   default:
-    return;
+    break;
   }
   
   /*käännetään käännetty sivu*/
@@ -540,28 +560,8 @@ int main(int argc, char** argv) {
 	    kuutio->rotX += 2*PI;
 	  else if (kuutio->rotX > PI)
 	    kuutio->rotX -= 2*PI;
-
-	  /*näkyvyys*/
-	  kuutio->nakuvat = 0;
-	  if((kuutio->rotX > 0 && fabs(kuutio->rotY) < PI/2) || \
-	     (kuutio->rotX < 0 && fabs(kuutio->rotY) > PI/2))
-	    kuutio->nakuvat |= 0x01; //yläosa
-	  else
-	    kuutio->nakuvat |= 0x10; //pohja
-	  if(kuutio->rotY < 0)
-	    kuutio->nakuvat |= 0x04; //oikea
-	  else
-	    kuutio->nakuvat |= 0x08; //vasen
-	  char tmpx = 0;
-	  char tmpy = 0;
-	  if(fabs(kuutio->rotX) > PI/2)
-	    tmpx = 1;
-	  if(fabs(kuutio->rotY) > PI/2)
-	    tmpy = 1;
-	  if(tmpx ^ tmpy)
-	    kuutio->nakuvat |= 0x20; //takapinta
-	  else
-	    kuutio->nakuvat |= 0x02; //etupinta
+	  
+	  hae_nakuvuus(kuutio);
 	  tee_koordtit(kuva, kuutio->rotX, kuutio->rotY);
 	  kuva->paivita = 1;
 	}
