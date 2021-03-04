@@ -5,9 +5,9 @@ typedef enum {
   _u = 0,
   _f,
   _r,
-  _l,
   _d,
-  _b
+  _b,
+  _l
 } sivu_e;
 
 typedef struct{ char v[3]; } vari;
@@ -26,7 +26,7 @@ typedef struct {
   vari* varit;
   char sivuja;
   char N; //NxNxN-kuutio
-  char nakuvat; //UFRLDB
+  char nakuvat;
 } kuutio_t;
 
 typedef struct {
