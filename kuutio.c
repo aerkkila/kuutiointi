@@ -707,6 +707,9 @@ int main(int argc, char** argv) {
   for(int i=0; i<6; i++)
     free(kuva->pohjat[i]);
   free(kuva->pohjat);
+  for(int i=0; i<6; i++)
+    free(kuva->koordtit[i]);
+  free(kuva->koordtit);
   SDL_DestroyRenderer(kuva->rend);
   SDL_DestroyWindow(kuva->ikkuna);
   free(kuva);
