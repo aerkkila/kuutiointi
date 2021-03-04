@@ -101,9 +101,11 @@ typedef struct {
   float z;
 } koordf;
 
-void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
+void tee_koordtit(kuva_t* kuva, kuutio_t* kuutio) {
   float xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
   float x,y;
+  float xrot = kuutio->rotX, yrot = kuutio->rotY;
+  char nakuvat = kuutio->nakuvat;
   int pit = kuva->res1*kuva->res1;
   int res1 = kuva->res1;
   int res2 = res1/2;
@@ -118,7 +120,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
   for(int sivu=0; sivu<6; sivu++) {
     switch(sivu){
     case _u:
-      /*yläpinta*/
+      if(!(nakuvat & 0x01))
+	continue;
       ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
       /*x-pyöräytys, j-liikuttaa z-suunnassa*/
       for(int i=0; i<res1; i++) {
@@ -130,7 +133,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       }
       break;
     case _d:
-      /*alapinta*/
+      if(!(nakuvat & 0x10))
+	continue;
       ysij0 = -res2; xsij0 = -res2; zsij0 = res2;
       /*x-pyöräytys, j-liikuttaa -z-suunnassa*/
       for(int i=0; i<res1; i++) {
@@ -142,7 +146,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       }
       break;
     case _r:
-      /*oikea*/
+      if(!(nakuvat & 0x04))
+	continue;
       ysij0 = res2; xsij0 = res2; zsij0 = res2;
       /*x-pyöräytys, i-liikuttaa -z-suunnassa, j = -y*/
       for(int i=0; i<res1; i++) {
@@ -154,7 +159,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       }
       break;
     case _l:
-      /*vasen: j = -y, i = z*/
+      if(!(nakuvat & 0x08))
+	continue;
       ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
       for(int i=0; i<res1; i++) {
 	for(int j=0; j<res1; j++) {
@@ -165,7 +171,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       }
       break;
     case _f:
-      /*etuosa: j=-y, i=x*/
+      if(!(nakuvat & 0x02))
+	continue;
       ysij0 = res2; xsij0 = -res2; zsij0 = res2;
       for(int i=0; i<res1; i++) {
 	for(int j=0; j<res1; j++) {
@@ -176,7 +183,8 @@ void tee_koordtit(kuva_t* kuva, float xrot, float yrot) {
       }
       break;
     case _b:
-      /*takapinta: j=-y, i=-x*/
+      if(!(nakuvat & 0x20))
+	continue;
       ysij0 = res2; xsij0 = res2; zsij0 = -res2;
       for(int i=0; i<res1; i++) {
 	for(int j=0; j<res1; j++) {
@@ -471,7 +479,7 @@ int main(int argc, char** argv) {
   kuva->koordtit = malloc(6*sizeof(koord*));
   for(int i=0; i<6; i++)
     kuva->koordtit[i] = malloc(kuva->pit*sizeof(koord));
-  tee_koordtit(kuva, kuutio->rotX, kuutio->rotY);
+  tee_koordtit(kuva, kuutio);
 
 
   SDL_Event tapaht;
@@ -584,7 +592,7 @@ int main(int argc, char** argv) {
 	    kuutio->rotX -= 2*PI;
 	  
 	  hae_nakuvuus(kuutio);
-	  tee_koordtit(kuva, kuutio->rotX, kuutio->rotY);
+	  tee_koordtit(kuva, kuutio);
 	  kuva->paivita = 1;
 	}
 	break;
