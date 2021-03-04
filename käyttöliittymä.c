@@ -453,7 +453,7 @@ int kaunnista(kaikki_s *kaikki) {
 		if(pid2 > 0)
 		  _exit(0);
 		else if(!pid2) {
-		  ;
+		  system("./kuutio");
 		  exit(0);
 		}
 	      }

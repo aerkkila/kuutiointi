@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "kuutio.h"
 
 #define PI 3.14159265358979
@@ -75,7 +76,6 @@ void* tuhoa_kuutio(kuutio_t* kuutio) {
 }
 
 kuva_t* suora_sivu_kuvaksi(kuva_t* kuva, kuutio_t* kuutio, const int sivu) {
-  //int raon_suhde = 10;
   char* pohja = kuva->pohjat[sivu];
   int N = kuutio->N;
   int resol = kuva->res1;
@@ -265,31 +265,32 @@ void paivita(kuutio_t* kuutio, kuva_t* kuva) {
   SDL_RenderPresent(kuva->rend);
 }
 
-void siirto(kuutio_t* kuutio, char puoli, char maara) {
+void siirto(kuutio_t* kuutio, char puoli, char siirtokaista, char maara) {
   if(maara == 0)
     return;
   char N = kuutio->N;
+  if(siirtokaista < 1 || siirtokaista > N)
+    return;
   struct i4 {int i[4];} jarj;
   struct i4 kaistat;
   int a,b; //kaistat kahdelta eri puolelta katsottuna
   int kaista1,kaista2;
   char apu[N*N];
   char *sivu1, *sivu2;
+
+  a = N-siirtokaista;
+  b = (N-1)-a;  
   
   /*toiminta jaetaan kääntöakselin perusteella*/
   switch(puoli) {
   case 'r':
   case 'l':
     if(puoli == 'r') {
-      a = N-1;
-      b = (N-1)-a;
       kaistat = (struct i4){{a,a,a,b}};
       jarj = (struct i4){{_u, _f, _d, _b}};
     } else {
-      a = 0;
-      b = (N-1)-a;
       jarj = (struct i4){{_u, _b, _d, _f}};
-      kaistat = (struct i4){{a,b,a,a}};
+      kaistat = (struct i4){{b,a,b,b}};
     }
     sivu1 = kuutio->sivut[jarj.i[0]];
     /*1. sivu talteen*/
@@ -321,15 +322,11 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
   case 'd':
   case 'u':
     if(puoli == 'd') {
-      a = N-1;
-      b = (N-1)-a;
       kaistat = (struct i4){{a,a,a,a}};
       jarj = (struct i4){{_f, _l, _b, _r}};
     } else {
-      a = 0;
-      b = (N-1)-a;
       jarj = (struct i4){{_f, _r, _b, _l}};
-      kaistat = (struct i4){{a,a,a,a}};
+      kaistat = (struct i4){{b,b,b,b}};
     }
     sivu1 = kuutio->sivut[jarj.i[0]];
     /*1. sivu talteen*/
@@ -352,8 +349,6 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
 
   case 'f':
   case 'b':
-    a = N-1;
-    b = N-1 - a;
     if(puoli == 'f') {
       kaistat = (struct i4){{a,a,b,b}};
       jarj = (struct i4){{_u, _l, _d, _r}};
@@ -400,27 +395,45 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
   default:
     break;
   }
+
+  /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
+  if(siirtokaista > 1 && siirtokaista < N) {
+    siirto(kuutio, puoli, siirtokaista, maara-1);
+    return;
+  }
   
   /*käännetään käännetty sivu*/
   int sivuInd;
   switch(puoli) {
   case 'r':
     sivuInd = _r;
+    if(siirtokaista == N)
+      sivuInd = _l;
     break;
   case 'l':
     sivuInd = _l;
+    if(siirtokaista == N)
+      sivuInd = _r;
     break;
   case 'u':
     sivuInd = _u;
+    if(siirtokaista == N)
+      sivuInd = _d;
     break;
   case 'd':
     sivuInd = _d;
+    if(siirtokaista == N)
+      sivuInd = _u;
     break;
   case 'b':
     sivuInd = _b;
+    if(siirtokaista == N)
+      sivuInd = _f;
     break;
   case 'f':
     sivuInd = _f;
+    if(siirtokaista == N)
+      sivuInd = _b;
     break;
   default:
     return;
@@ -430,13 +443,42 @@ void siirto(kuutio_t* kuutio, char puoli, char maara) {
   for(int i=0; i<N*N; i++)
     apu[i] = sivu[i];
 
+  if(siirtokaista == N)
+    maara = (maara+2) % 4;
+
   /*nyt käännetään: */
 #define arvo(sivu,j,i) sivu[i*N+j]
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       arvo(sivu,j,i) = arvo(apu,N-1-i,j);
 #undef arvo
-  siirto(kuutio, puoli, maara-1);
+  siirto(kuutio, puoli, siirtokaista, maara-1);
+}
+
+void kaanto(kuutio_t* kuutio, char akseli, char maara) {
+  if(!maara)
+    return;
+  if(maara < 0)
+    maara += 4;
+  char sivu;
+  switch(akseli) {
+  case 'x':
+    sivu = 'r';
+    break;
+  case 'y':
+    sivu = 'u';
+    break;
+  case 'z':
+    sivu = 'f';
+    break;
+  default:
+    return;
+  }
+  for(char i=1; i<=kuutio->N; i++)
+    siirto(kuutio, sivu, i, 1);
+  
+  kaanto(kuutio, akseli, maara-1);
+  return;
 }
 
 int main(int argc, char** argv) {
@@ -482,9 +524,11 @@ int main(int argc, char** argv) {
   tee_koordtit(kuva, kuutio);
 
 
+#define SIIRTO(x,y,z) siirto(x,y,siirtokaista,z) //en jaksanut muuttaa kaikkia
   SDL_Event tapaht;
   int xVanha, yVanha;
   char hiiri_painettu = 0;
+  char siirtokaista = 1;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -493,78 +537,123 @@ int main(int argc, char** argv) {
       case SDL_KEYDOWN:
 	switch(tapaht.key.keysym.scancode) {
 	case SDL_SCANCODE_I:
-	  siirto(kuutio, 'u', 1);
+	  SIIRTO(kuutio, 'u', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_L:
-	  siirto(kuutio, 'r', 1);
+	  SIIRTO(kuutio, 'r', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_J:
-	  siirto(kuutio, 'r', 3);
+	  SIIRTO(kuutio, 'r', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_PERIOD:
-	  siirto(kuutio, 'd', 3);
+	  SIIRTO(kuutio, 'd', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_K:
-	  siirto(kuutio, 'f', 1);
+	  SIIRTO(kuutio, 'f', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_O:
-	  siirto(kuutio, 'b', 3);
+	  SIIRTO(kuutio, 'b', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_E:
-	  siirto(kuutio, 'u', 3);
+	  SIIRTO(kuutio, 'u', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_F:
-	  siirto(kuutio, 'l', 1);
+	  SIIRTO(kuutio, 'l', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_S:
-	  siirto(kuutio, 'l', 3);
+	  SIIRTO(kuutio, 'l', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_X:
-	  siirto(kuutio, 'd', 1);
+	  SIIRTO(kuutio, 'd', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_D:
-	  siirto(kuutio, 'f', 3);
+	  SIIRTO(kuutio, 'f', 3);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	case SDL_SCANCODE_W:
-	  siirto(kuutio, 'b', 1);
+	  SIIRTO(kuutio, 'b', 1);
 	  for(int i=0; i<6; i++)
 	    suora_sivu_kuvaksi(kuva, kuutio, i);
 	  kuva->paivita = 1;
 	  break;
 	default:
+	  switch(tapaht.key.keysym.sym) {
+	  case SDLK_RSHIFT:
+	  case SDLK_LSHIFT:
+	    siirtokaista++;
+	    break;
+	    /*käytetään kääntämisten määrässä siirtokaistaa*/
+	  case SDLK_SPACE:
+	    kaanto(kuutio, 'y', siirtokaista);
+	    for(int i=0; i<6; i++)
+	      suora_sivu_kuvaksi(kuva, kuutio, i);
+	    kuva->paivita = 1;
+	    break;
+	  case SDLK_RETURN:
+	    kaanto(kuutio, 'x', siirtokaista);
+	    for(int i=0; i<6; i++)
+	      suora_sivu_kuvaksi(kuva, kuutio, i);
+	    kuva->paivita = 1;
+	    break;
+	  case SDLK_BACKSPACE:
+	    kaanto(kuutio, 'z', siirtokaista);
+	    for(int i=0; i<6; i++)
+	      suora_sivu_kuvaksi(kuva, kuutio, i);
+	    kuva->paivita = 1;
+	    break;
+	  default:
+	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
+	      siirtokaista += tapaht.key.keysym.sym - '1';
+	    else if(SDLK_KP_1 < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
+	      siirtokaista += tapaht.key.keysym.sym - SDLK_KP_1;
+	    break;
+	  }
+	  break;
+	}
+	break;
+      case SDL_KEYUP:
+	switch(tapaht.key.keysym.sym) {
+	case SDLK_RSHIFT:
+	case SDLK_LSHIFT:
+	  siirtokaista = 1;
+	  break;
+	default:
+	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
+	    siirtokaista = 1;
+	  else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
+	    siirtokaista = 1;
 	  break;
 	}
 	break;
