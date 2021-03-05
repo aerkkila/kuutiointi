@@ -550,6 +550,12 @@ int main(int argc, char** argv) {
     kuva->koordtit[i] = malloc(kuva->pit*sizeof(koord));
   tee_koordtit();
 
+#ifdef __KUUTION_KOMMUNIKOINTI__
+  shmRak_s *ipc = liity_muistiin();
+  if(!ipc)
+    return 1;
+#endif
+
 #define siirtoInl1(puoli, maara) siirtoInl(puoli, siirtokaista, maara)
   
   SDL_Event tapaht;
@@ -623,7 +629,7 @@ int main(int argc, char** argv) {
 	    break;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
-	    lue_siirrot();
+	    lue_siirrot(ipc);
 	    break;
 #endif
 	  default:
