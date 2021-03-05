@@ -1,5 +1,6 @@
 #ifndef __kuutio__
 #define __kuutio__
+#include <SDL.h>
 
 typedef enum {
   _u = 0,
@@ -41,5 +42,8 @@ typedef struct {
   int pit;
   char paivita;
 } kuva_t;
+
+void siirto(int puoli, char kaista, char maara);
+kuva_t* suora_sivu_kuvaksi(int puoli);
 
 #endif

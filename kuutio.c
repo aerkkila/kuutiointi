@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include "kuutio.h"
+#include "kuution_kommunikointi.h"
 
 #define PI 3.14159265358979
 
@@ -612,23 +613,19 @@ int main(int argc, char** argv) {
 	    break;
 	    /*käytetään kääntämisten määrässä siirtokaistaa*/
 	  case SDLK_SPACE:
-	    kaanto('y', siirtokaista);
-	    for(int i=0; i<6; i++)
-	      suora_sivu_kuvaksi(i);
-	    kuva->paivita = 1;
+	    kaantoInl('y', siirtokaista);
 	    break;
 	  case SDLK_RETURN:
-	    kaanto('x', siirtokaista);
-	    for(int i=0; i<6; i++)
-	      suora_sivu_kuvaksi(i);
-	    kuva->paivita = 1;
+	    kaantoInl('x', siirtokaista);
 	    break;
 	  case SDLK_BACKSPACE:
-	    kaanto('z', siirtokaista);
-	    for(int i=0; i<6; i++)
-	      suora_sivu_kuvaksi(i);
-	    kuva->paivita = 1;
+	    kaantoInl('z', siirtokaista);
 	    break;
+#ifdef __KUUTION_KOMMUNIKOINTI__
+	  case SDLK_F1:
+	    lue_siirrot();
+	    break;
+#endif
 	  default:
 	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	      siirtokaista += tapaht.key.keysym.sym - '1';
