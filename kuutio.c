@@ -58,7 +58,7 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   varit[_r] = VARI(255,0  ,0  ); //punainen
   varit[_d] = VARI(255,255,0  ); //keltainen
   varit[_b] = VARI(0,  0,  255); //sininen
-  varit[_l] = VARI(255,100,0  ); //oranssi
+  varit[_l] = VARI(220,120,0  ); //oranssi
   
   kuutio = malloc(sizeof(kuutio_t));
   kuutio->sivuja = sivuja;
@@ -593,6 +593,9 @@ int main(int argc, char** argv) {
       switch(tapaht.type) {
       case SDL_QUIT:
 	goto ULOS;
+      case SDL_WINDOWEVENT:
+	kuva->paivita = 1;
+	break;
       case SDL_KEYDOWN:
 	switch(tapaht.key.keysym.scancode) {
 	case SDL_SCANCODE_I:
@@ -631,11 +634,32 @@ int main(int argc, char** argv) {
 	case SDL_SCANCODE_W:
 	  siirtoInl1(_b, 1);
 	  break;
+	case SDL_SCANCODE_U:
+	  for(int kaista=2; kaista<N; kaista++)
+	    siirtoInl(_r, kaista, 1);
+	  break;
+	case SDL_SCANCODE_R:
+	  for(int kaista=2; kaista<N; kaista++)
+	    siirtoInl(_l, kaista, 1);
+	  break;
+	  /*käytetään kääntämisten määrässä siirtokaistaa*/
 	case SDL_SCANCODE_H:
-	  kaantoInl('y', 1);
+	  kaantoInl('y', (3*siirtokaista) % 4);
 	  break;
 	case SDL_SCANCODE_G:
-	  kaantoInl('y', 3);
+	  kaantoInl('y', (1*siirtokaista) % 4);
+	  break;
+	case SDL_SCANCODE_N:
+	  kaantoInl('x', (1*siirtokaista) % 4);
+	  break;
+	case SDL_SCANCODE_V:
+	  kaantoInl('x', (3*siirtokaista) % 4);
+	  break;
+	case SDL_SCANCODE_COMMA:
+	  kaantoInl('z', (1*siirtokaista) % 4);
+	  break;
+	case SDL_SCANCODE_C:
+	  kaantoInl('z', (3*siirtokaista) % 4);
 	  break;
 	default:
 	  switch(tapaht.key.keysym.sym) {
@@ -643,22 +667,20 @@ int main(int argc, char** argv) {
 	  case SDLK_LSHIFT:
 	    siirtokaista++;
 	    break;
-	    /*käytetään kääntämisten määrässä siirtokaistaa*/
-	  case SDLK_SPACE:
-	    kaantoInl('y', siirtokaista);
-	    break;
-	  case SDLK_RETURN:
-	    kaantoInl('x', siirtokaista);
-	    break;
-	  case SDLK_BACKSPACE:
-	    kaantoInl('z', siirtokaista);
-	    break;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
 	    ipc->viesti = ipcTarkastelu;
 	    viimeViesti = ipcTarkastelu;
 	    break;
+	  case SDLK_SPACE:
+	    if(viimeViesti == ipcAloita) {
+	      ipc->viesti = ipcLopeta;
+	      viimeViesti = ipcLopeta;
+	    } else {
+	      ipc->viesti = ipcAloita;
+	      viimeViesti = ipcAloita;
+	    }
 #endif
 	  default:
 	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
