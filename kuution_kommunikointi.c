@@ -2,32 +2,13 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
 #include "kuutio.h"
 #include "cfg.h"
 
-const char shmTied[] = "shmTied.txt";
 extern kuutio_t* kuutio;
 extern kuva_t* kuva;
-
-shmRak_s* liity_muistiin() {
-  int avain = ftok(shmTied, PROJ_ID);
-  if(avain < 0) {
-    perror("Virhe, ftok");
-    return NULL;
-  }
-  int shmid = shmget(avain, SHM_KOKO, IPC_CREAT|IPC_EXCL);
-  if(shmid < 0) {
-    perror("Virhe, shmget");
-    return NULL;
-  }
-  shmRak_s *r = shmat(shmid, NULL, 0);
-  if(r < 0) {
-    perror("Virhe, shmat");
-    return NULL;
-  }
-  return r;
-}
 
 inline int __attribute__((always_inline)) puoleksi(char c) {
   if('A' <= c && c <= 'Z')

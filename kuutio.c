@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include "kuutio.h"
+#include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
 
 #define PI 3.14159265358979

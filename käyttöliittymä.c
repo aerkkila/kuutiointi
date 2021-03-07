@@ -12,7 +12,7 @@
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "ääni.h"
-#include "kuutio.h"
+#include "muistin_jako.h"
 #include <math.h>
 #include <lista_math.h>
 
@@ -65,6 +65,7 @@ void vaihda_fonttikoko(tekstiolio_s* olio, int y);
   }
 
 extern float skaala;
+shmRak_s* ipc;
 
 int kaunnista(kaikki_s *kaikki) {
   SDL_Event tapaht;
@@ -457,6 +458,9 @@ int kaunnista(kaikki_s *kaikki) {
 		  exit(0);
 		}
 	      }
+	      shmRak_s* ipc = liity_muistiin();
+	      if(ipc)
+		;//liput |= ipc_auki; //tarkista, onko kuutio auki
 	    }
 	    break;
 	  case lisatd:;
