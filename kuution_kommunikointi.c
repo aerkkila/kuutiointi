@@ -9,6 +9,7 @@
 
 extern kuutio_t* kuutio;
 extern kuva_t* kuva;
+extern int viimeViesti;
 
 inline int __attribute__((always_inline)) puoleksi(char c) {
   if('A' <= c && c <= 'Z')
@@ -50,7 +51,8 @@ void lue_siirrot(shmRak_s* ipc) {
   float aikaraja = 1.0;
   float nukkumaaika = 0.01e6; //µs
   float aika = 0;
-  ipc->viesti = anna_sekoitus;
+  ipc->viesti = ipcAnna_sekoitus;
+  viimeViesti = ipcAnna_sekoitus;
   /*ipc->viesti asetetaan nollaksi, kun valmista*/
   while(ipc->viesti && aika < aikaraja) {
     usleep(nukkumaaika);

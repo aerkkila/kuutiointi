@@ -25,9 +25,10 @@ typedef struct {
   float rotX; //0:ssa katse on suoraan edestä
   float rotY;
   vari* varit;
-  char sivuja;
+  char sivuja; // aina 6
   char N; //NxNxN-kuutio
   char nakuvat;
+  char ratkaistu;
 } kuutio_t;
 
 typedef struct {

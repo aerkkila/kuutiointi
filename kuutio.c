@@ -22,6 +22,10 @@ const char vastavu = 0x20;
 
 kuutio_t* kuutio;
 kuva_t* kuva;
+#ifdef __KUUTION_KOMMUNIKOINTI__
+int viimeViesti;
+shmRak_s *ipc;
+#endif
 
 inline void __attribute__((always_inline)) hae_nakuvuus() {
   kuutio->nakuvat = 0;
@@ -64,6 +68,7 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   hae_nakuvuus();
   kuutio->sivut = malloc(sivuja*sizeof(char*));
   kuutio->varit = malloc(sizeof(varit));
+  kuutio->ratkaistu = 1;
   
   for(int i=0; i<sivuja; i++) {
     kuutio->varit[i] = varit[i];
@@ -495,6 +500,16 @@ void kaanto(char akseli, char maara) {
   return;
 }
 
+inline char onkoRatkaistu() {
+  for(int sivu=0; sivu<6; sivu++) {
+    char laji = kuutio->sivut[sivu][0];
+    for(int i=1; i<kuutio->N*kuutio->N; i++)
+      if(kuutio->sivut[sivu][i] != laji)
+	return 0;
+  }
+  return 1;
+}
+
 inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
   kaanto(akseli, maara);
   for(int i=0; i<6; i++)
@@ -507,6 +522,16 @@ inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, cha
   for(int i=0; i<6; i++)
     suora_sivu_kuvaksi(i);
   kuva->paivita = 1;
+  kuutio->ratkaistu = onkoRatkaistu();
+#ifdef __KUUTION_KOMMUNIKOINTI__
+  if(viimeViesti == ipcTarkastelu) {
+    ipc->viesti = ipcAloita;
+    viimeViesti = ipcAloita;
+  } else if(viimeViesti == ipcAloita && kuutio->ratkaistu) {
+    ipc->viesti = ipcLopeta;
+    viimeViesti = ipcLopeta;
+  }
+#endif
 }
 
 int main(int argc, char** argv) {
@@ -552,7 +577,7 @@ int main(int argc, char** argv) {
   tee_koordtit();
 
 #ifdef __KUUTION_KOMMUNIKOINTI__
-  shmRak_s *ipc = liity_muistiin();
+  ipc = liity_muistiin();
   if(!ipc)
     return 1;
 #endif
@@ -631,6 +656,8 @@ int main(int argc, char** argv) {
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
+	    ipc->viesti = ipcTarkastelu;
+	    viimeViesti = ipcTarkastelu;
 	    break;
 #endif
 	  default:

@@ -129,7 +129,7 @@ int kaunnista(kaikki_s *kaikki) {
 	  switch(tapaht.key.keysym.sym)
 	    {
 	    case SDLK_SPACE:
-	      /*pysäytä*/
+	    LOPETA:
 	      if(tila == juoksee) {
 		tila = seis;
 		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec);
@@ -320,6 +320,7 @@ int kaunnista(kaikki_s *kaikki) {
 	    case SDLK_SPACE:
 	      switch(nostotoimi) {
 	      case aloita:
+	      ALOITA:
 		if(tila != tarkastelee)
 		  sakko = ei;
 		gettimeofday(&alku, NULL);
@@ -330,6 +331,7 @@ int kaunnista(kaikki_s *kaikki) {
 		  alku.tv_sec -= 2;
 		break;
 	      case tarkastelu:
+	      TARKASTELU:
 		sakko = ei;
 		gettimeofday(&alku, NULL);
 		dalku = alku.tv_sec + alku.tv_usec/1.0e6;
@@ -689,14 +691,24 @@ int kaunnista(kaikki_s *kaikki) {
 	  break;
 	} //switch(tapaht.type)
     } //while(SDL_PollEvent(&tapaht))
-    if(!ipc)
+    if(!ipc || !(ipc->viesti))
       goto JUOKSU_YMS;
+
+    /*SDL-tapahtumat päättyivät
+      seuraavaksi tarkistetaan mahdollisen kuution tapahtumat*/ 
     switch(ipc->viesti) {
-    case anna_sekoitus:
+    case ipcAnna_sekoitus:
       laita_sekoitus(ipc, kaikki->sekoitukset->str);
       break;
-    default:
-      break;
+    case ipcTarkastelu:
+      ipc->viesti = 0;
+      goto TARKASTELU;
+    case ipcAloita:
+      ipc->viesti = 0;
+      goto ALOITA;
+    case ipcLopeta:
+      ipc->viesti = 0;
+      goto LOPETA;
     }
 
   JUOKSU_YMS:

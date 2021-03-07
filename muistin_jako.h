@@ -5,9 +5,10 @@
 #define SHM_KOKO 2048
 
 enum viesti_e {
-  anna_sekoitus = 1,
-  tarkastelee,
-  ratkaisee
+  ipcAnna_sekoitus = 1,
+  ipcTarkastelu,
+  ipcAloita,
+  ipcLopeta
 };
 
 typedef struct {
