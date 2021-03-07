@@ -58,6 +58,7 @@ void lue_siirrot(shmRak_s* ipc) {
   }
   if(ipc->viesti) {
     ipc->viesti = 0;
+    printf("Ei luettu siirtoja");
     return;
   }
   int i=0;

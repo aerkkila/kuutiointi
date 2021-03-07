@@ -5,8 +5,7 @@
 #define SHM_KOKO 2048
 
 enum viesti_e {
-  valmis,
-  anna_sekoitus,
+  anna_sekoitus = 1,
   tarkastelee,
   ratkaisee
 };
@@ -16,6 +15,6 @@ typedef struct {
   char data[SHM_KOKO];
 } shmRak_s;
 
-shmRak_s* liity_muistiin(void);
+shmRak_s* liity_muistiin();
 
 #endif

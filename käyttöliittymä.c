@@ -35,6 +35,7 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki);
 char* sekoitus(char* s);
 void laita_eri_sekunnit(kaikki_s* kaikki, char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
+inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek);
 
 #define SEKTUS (kaikki->sekoitukset)
 #define TIEDOT (kaikki->tiedot)
@@ -103,6 +104,7 @@ int kaunnista(kaikki_s *kaikki) {
 			"Tuloslistan alkukohta",\
 			"Avattava tiedosto"};
   char kontrol = 0;
+  ipc = NULL;
   nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
   alue_e alue = muu;
   sakko_e sakko;
@@ -458,7 +460,7 @@ int kaunnista(kaikki_s *kaikki) {
 		  exit(0);
 		}
 	      }
-	      shmRak_s* ipc = liity_muistiin();
+	      ipc = liity_muistiin();
 	      if(ipc)
 		;//liput |= ipc_auki; //tarkista, onko kuutio auki
 	    }
@@ -687,6 +689,17 @@ int kaunnista(kaikki_s *kaikki) {
 	  break;
 	} //switch(tapaht.type)
     } //while(SDL_PollEvent(&tapaht))
+    if(!ipc)
+      goto JUOKSU_YMS;
+    switch(ipc->viesti) {
+    case anna_sekoitus:
+      laita_sekoitus(ipc, kaikki->sekoitukset->str);
+      break;
+    default:
+      break;
+    }
+
+  JUOKSU_YMS:
     if(tila == juoksee) {
       gettimeofday(&nyt, NULL);
       sek = (int)( (nyt.tv_sec + nyt.tv_usec/1.0e6) - (alku.tv_sec + alku.tv_usec/1.0e6) );
@@ -847,4 +860,9 @@ inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio,
   if(!olio->font)
     fprintf(stderr, "Virhe: Ei avattu fonttia uudesti: %s\n", TTF_GetError());
   return;
+}
+
+inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek) {
+  strcpy(ipc->data, sek);
+  ipc->viesti = 0;
 }
