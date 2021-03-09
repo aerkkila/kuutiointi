@@ -594,7 +594,14 @@ int main(int argc, char** argv) {
       case SDL_QUIT:
 	goto ULOS;
       case SDL_WINDOWEVENT:
-	kuva->paivita = 1;
+	switch(tapaht.window.event) {
+	case SDL_WINDOWEVENT_RESIZED:;
+	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
+	  int koko0 = (kuva->xRes < kuva->yRes)? kuva->xRes: kuva->yRes;
+	  SDL_RenderSetScale(kuva->rend, koko1*1.0/koko0, koko1*1.0/koko0);
+	  kuva->paivita = 1;
+	  break;
+	}
 	break;
       case SDL_KEYDOWN:
 	switch(tapaht.key.keysym.scancode) {
