@@ -832,7 +832,7 @@ char* sekoitus(char* s) {
     /*haetaan oikea paksuus
       paksind on indeksi sallittujen paksuuksien joukossa*/
     char loutuneet = -1;
-    paks = 0;
+    paks = 1;
     while(1) {
       char loutui = 1;
       for(int j=0; j<paksKieltoja[puolisko]; j++)
@@ -845,26 +845,34 @@ char* sekoitus(char* s) {
 	  break;
       paks++;
     }
-    if(paks) pinta += 6; //esim R --> r jne.
+    if(paks > 1) pinta += 6; //esim R --> r jne.
 
     /*lisätään uudet kiellot*/
     paksKiellot[puolisko][paksKieltoja[puolisko]] = paks;
-    if(++paksKieltoja[puolisko] >= paksuus) {
-      if(puoliskokielto) {
-	akselikielto = 1;
-	kieltoakseli = akseli;
-      } else {
-	puoliskokielto = 1;
-	sallittuPuolisko = (puolisko+1) % 2;
-      }
+    paksKieltoja[puolisko]++;
+    /*Parillisilla kuutioilla ei sallita esim N/2u ja N/2d peräkkäin*/
+    if(N % 2 == 0 && paks == paksuus) {
+      int toinen = (puolisko+1) % 2;
+      paksKiellot[toinen][paksKieltoja[toinen]] = paksuus;
+      paksKieltoja[toinen]++;
     }
+    for(int j=0; j<2; j++)
+      if(paksKieltoja[j] >= paksuus) {
+	if(puoliskokielto) {
+	  akselikielto = 1;
+	  kieltoakseli = akseli;
+	} else {
+	  puoliskokielto = 1;
+	  sallittuPuolisko = (j+1) % 2;
+	}
+      }
     
     /*tulostus*/
     if(N > 5 && paks)
       if(i==0) {
-	sprintf(s, "%hhu%c%c", paks+1, pinnat[pinta], suunnat[rand() % 3]);
+	sprintf(s, "%hhu%c%c", paks, pinnat[pinta], suunnat[rand() % 3]);
       } else {
-	sprintf(s, "%s %hhu%c%c", s, paks+1, pinnat[pinta], suunnat[rand() % 3]);
+	sprintf(s, "%s %hhu%c%c", s, paks, pinnat[pinta], suunnat[rand() % 3]);
       }
     else
       if(i==0) {
