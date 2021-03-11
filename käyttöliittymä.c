@@ -73,7 +73,7 @@ int kaunnista(kaikki_s *kaikki) {
   struct timeval alku, nyt;
   short min, sek, csek;
   double dalku, dnyt;
-  char tmp[200];
+  char tmp[1000];
   int avgind[6];
   int apuind;
   tekstiolio_s* o;
@@ -789,48 +789,93 @@ alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
   return muu;
 }
 
+char N = 4;
 char* sekoitus(char* s) {
-  const short pit = 21;
-  enum {
-    rl = 0,
-    ud,
-    fb,
-    ei
-  } kielto = ei;
-  unsigned char luku, pinta, viimepinta, suunta;
-  char pinnat[] = "RLUDFB";
-  char suunnat[] = " '2";
+  short pit;
+  if(N == 2)
+    pit = 9;
+  else
+    pit = (N-2)*20;
+  char paksuus = N/2;
+  const char pinnat[] = "RLUDFBrludfb";
+  const char suunnat[] = " '2";
+  char akseli, viimeakseli=10, paks;
+  int pinta, puolisko;
+  char akselikielto=0, kieltoakseli=0;
+  char puoliskokielto=0, sallittuPuolisko=0;
+  int paksKieltoja[2];
+  paksKieltoja[0] = 0;
+  paksKieltoja[1] = 0;
+  char *paksKiellot[2];
+  paksKiellot[0] = malloc(paksuus);
+  paksKiellot[1] = malloc(paksuus);
 
-  /*ensimmäinen*/
-  luku = rand() % 18;
-  pinta = luku % 6;
-  suunta = suunnat[luku % 3];
-  sprintf(s, "%c%c", pinnat[pinta], suunta);
-  viimepinta = pinta;
-
-  /*loput*/
   for (int i=0; i<pit; i++) {
-    if (kielto == ei) {
-      luku = rand() % 15;
-      pinta = luku % 5;
-      if (pinta >= viimepinta) pinta++;
-      suunta = suunnat[luku % 3];
-      sprintf(s, "%s %c%c", s, pinnat[pinta], suunta);
-      
-      /*haetaan mahdollinen kielto*/
-      kielto = (pinta/2 == viimepinta/2)? pinta/2 : ei;
-      viimepinta = pinta;
-    } else {
-      luku = rand() % 12;
-      pinta = luku % 4;
-      if (pinta >= kielto*2) pinta+=2;
-      suunta = suunnat[luku % 3];
-      sprintf(s, "%s %c%c", s, pinnat[pinta], suunta);
-
-      kielto = ei;
-      viimepinta = pinta;
+    /*akseli*/
+    akseli = rand() % (3-akselikielto); //akselikielto on 1 tai 0
+    if (akselikielto && akseli >= kieltoakseli) akseli++;
+    if(akseli != viimeakseli) {
+      puoliskokielto = 0;
+      akselikielto = 0;
+      for(int i1=0; i1<2; i1++)
+	paksKieltoja[i1] = 0;
     }
+    viimeakseli = akseli;
+    
+    /*puolisko*/
+    puolisko = (puoliskokielto)? sallittuPuolisko : rand() % 2;
+    pinta = akseli*2 + puolisko;
+    
+    /*paksuus*/
+    //esim N=3 --> % N/2=1 --> aina 0
+    char paksind = rand() % (paksuus - paksKieltoja[puolisko]);
+    /*haetaan oikea paksuus
+      paksind on indeksi sallittujen paksuuksien joukossa*/
+    char loutuneet = -1;
+    paks = 0;
+    while(1) {
+      char loutui = 1;
+      for(int j=0; j<paksKieltoja[puolisko]; j++)
+	if(paksKiellot[puolisko][j] == paks) {
+	  loutui = 0;
+	  break;
+	}
+      if(loutui) //kys paksuus oli sallittu
+	if(++loutuneet == paksind)
+	  break;
+      paks++;
+    }
+    if(paks) pinta += 6; //esim R --> r jne.
+
+    /*lisätään uudet kiellot*/
+    paksKiellot[puolisko][paksKieltoja[puolisko]] = paks;
+    if(++paksKieltoja[puolisko] >= paksuus) {
+      if(puoliskokielto) {
+	akselikielto = 1;
+	kieltoakseli = akseli;
+      } else {
+	puoliskokielto = 1;
+	sallittuPuolisko = (puolisko+1) % 2;
+      }
+    }
+    
+    /*tulostus*/
+    if(N > 5 && paks)
+      if(i==0) {
+	sprintf(s, "%hhu%c%c", paks+1, pinnat[pinta], suunnat[rand() % 3]);
+      } else {
+	sprintf(s, "%s %hhu%c%c", s, paks+1, pinnat[pinta], suunnat[rand() % 3]);
+      }
+    else
+      if(i==0) {
+	sprintf(s, "%c%c", pinnat[pinta], suunnat[rand() % 3]);
+      } else {
+	sprintf(s, "%s %c%c", s, pinnat[pinta], suunnat[rand() % 3]);
+      }
   }
+
+  free(paksKiellot[0]);
+  free(paksKiellot[1]);
   return s;
 }
 
