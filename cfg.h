@@ -2,78 +2,89 @@
 #define __CFG__
 #include <SDL.h>
 
-char ohjelman_nimi[] = "Kajastin";
-int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
-Uint32 viive = 3;
-char ulosnimi[] = "tulokset.txt";
-char uloskansio[] = "/home/antterkk/kajastin/";
+extern char* ohjelman_nimi;
+extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
+extern Uint32 viive;
+extern char* ulosnimi;
+extern char* uloskansio;
 
-char url_valittu[] = "/home/antterkk/kajastin/kuva_valittu.bmp";
-char url_eivalittu[] = "/home/antterkk/kajastin/kuva_valittu_ei.bmp";
-char tietoalkustr[] = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|nauhoituslaitteet|ääniajurit";
+extern SDL_Renderer* rend;
+extern SDL_Window* ikkuna;
 
-int kellokoko = 200;
-char kellofonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";
-char kellottflaji = 1;
-SDL_Rect kellosij = (SDL_Rect){0, 100, 1000, 300};
-SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
-			  (SDL_Color){0, 255, 0, 255},		\
-			  (SDL_Color){255, 0, 0, 255},		\
-			  (SDL_Color){200, 80, 100, 255}};
+extern tekstiolio_s kellool;
+extern tekstiolio_s tulosol;
+extern tekstiolio_s jarjol1;
+extern tekstiolio_s jarjol2;
+extern tekstiolio_s tiedotol;
+extern tekstiolio_s tlukuolio;
+extern tekstiolio_s lisaol;
+extern tekstiolio_s sektusol;
+extern tekstiolio_s muutol;
+extern tekstiolio_s tkstalol;
+extern vnta_s vntaol;
 
-int tuloskoko = 19;
-char tulosfonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";
-char tulosttflaji = 2;
-SDL_Color tulosvari = {100, 200, 150, 255};
-SDL_Rect tulossij = (SDL_Rect){820, 30, 200, 550};
+extern char* url_valittu;
+extern char* url_eivalittu;
+extern char* tietoalkustr;
+extern char* muut_a_str;
 
-int jarjkoko = 19;
-char jarjfonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";
-char jarjttflaji = 2;
-SDL_Color jarjvari1 = {140, 150, 170, 255};
-SDL_Color jarjvari2 = {170, 100, 110, 255};
-SDL_Rect jarjsij = (SDL_Rect){0, 30, 200, 550};
-float jarjsuhde = 0.70;
+extern int kellokoko;
+extern char* kellofonttied;
+extern char kellottflaji;
+extern SDL_Rect kellosij;
+extern SDL_Color* kellovarit;
 
-int tiedotkoko = 20;
-char tiedotfonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf";
-char tiedotttflaji = 0;
-SDL_Color tiedotvari = {150, 255, 150, 255};
-SDL_Rect tiedotsij = (SDL_Rect){900, 30, 500, 500};
+extern int tuloskoko;
+extern char* tulosfonttied;
+extern char tulosttflaji;
+extern SDL_Color tulosvari;
+extern SDL_Rect tulossij;
 
-SDL_Rect tluvutsij = (SDL_Rect){900, 30, 500, 500};
+extern int jarjkoko;
+extern char* jarjfonttied;
+extern char jarjttflaji;
+extern SDL_Color jarjvari1;
+extern SDL_Color jarjvari2;
+extern SDL_Rect jarjsij;
+extern float jarjsuhde;
 
-int lisakoko = 19;
-char lisafonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";
-char lisattflaji = 2;
-SDL_Color lisavari = {255, 255, 255, 255};
-SDL_Rect lisasij = (SDL_Rect){920, 230, 800, 500};
+extern int tiedotkoko;
+extern char* tiedotfonttied;
+extern char tiedotttflaji;
+extern SDL_Color tiedotvari;
+extern SDL_Rect tiedotsij;
 
-int sektuskoko = 14;
-char sektusfonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf";
-char sektusttflaji = 0;
-SDL_Color sektusvari = {255, 255, 255, 255};
-SDL_Rect sektussij = (SDL_Rect){0, 390, 1500, 200};
+extern SDL_Rect tluvutsij;
+extern int lisakoko;
+extern char* lisafonttied;
+extern char lisattflaji;
+extern SDL_Color lisavari;
+extern SDL_Rect lisasij;
 
-int muutkoko = 14;
-char muutfonttied[] = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf";
-char muutttflaji = 2;
-SDL_Color muutvari = {230, 210, 200};
-SDL_Rect muutsij = {60, 35, 800, 75};
+extern int sektuskoko;
+extern char* sektusfonttied;
+extern char sektusttflaji;
+extern SDL_Color sektusvari;
+extern SDL_Rect sektussij;
 
-int tkstalkoko = 16;
-char tkstalfonttied[] = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf";
-char tkstalttflaji = 2;
-SDL_Color tkstalvari = {230, 230, 230};
-SDL_Rect tkstalsij = {75, 10, 800, 75};
+extern int muutkoko;
+extern char* muutfonttied;
+extern char muutttflaji;
+extern SDL_Color muutvari;
+extern SDL_Rect muutsij;
 
-int vntakoko = 12;
-char vntateksti[] = "Tarkasteluaika";
-char vntafonttied[] = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf";
-char vntattflaji = 2;
-char vntavalittu = 1;
-SDL_Color vntavari = {255, 255, 255, 255};
-SDL_Rect vntasij = (SDL_Rect){60, 10, 800, 90};
+extern int tkstalkoko;
+extern char* tkstalfonttied;
+extern char tkstalttflaji;
+extern SDL_Color tkstalvari;
+extern SDL_Rect tkstalsij;
+
+extern int vntakoko;
+extern char* vntateksti;
+extern char* vntafonttied;
+extern char vntattflaji;
+extern char vntavalittu;
+extern SDL_Color vntavari;
+extern SDL_Rect vntasij;
 
 #endif

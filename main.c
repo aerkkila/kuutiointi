@@ -21,7 +21,6 @@ int kaunnista(kaikki_s *kaikki);
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "fi_FI.utf8");
   chdir(uloskansio);
-  kaikki_s kaikki;
   int r = 0;
   
   /*grafiikan alustaminen*/
@@ -36,12 +35,12 @@ int main(int argc, char** argv) {
     r = 1;
     goto EI_TTF;
   }
-  kaikki.ikkuna = SDL_CreateWindow\
+  SDL_Window* ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
-  kaikki.rend = SDL_CreateRenderer(kaikki.ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
+  SDL_Renderer* rend = SDL_CreateRenderer(kaikki.ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
 
   /*kello-olio*/
-  tekstiolio_s kelloolio;
+  tekstiolio_s kellool;
   kelloolio.teksti = malloc(90);
   strcpy(kelloolio.teksti, "");
   kelloolio.ttflaji = kellottflaji;
@@ -61,7 +60,7 @@ int main(int argc, char** argv) {
   kaikki.kvarit = kellovarit;
 
   /*tulosolio*/
-  tekstiolio_s tulosolio;
+  tekstiolio_s tulosol;
   tulosolio.ttflaji = tulosttflaji;
   tulosolio.font = TTF_OpenFont(tulosfonttied, tuloskoko);
   tulosolio.fonttikoko = tuloskoko;
@@ -80,7 +79,7 @@ int main(int argc, char** argv) {
   kaikki.tulos_o = &tulosolio;
 
   /*jarjolio1*/
-  tekstiolio_s jarjolio1;
+  tekstiolio_s jarjol1;
   jarjolio1.ttflaji = jarjttflaji;
   jarjolio1.font = TTF_OpenFont(jarjfonttied, jarjkoko);
   jarjolio1.fonttikoko = jarjkoko;
@@ -101,7 +100,7 @@ int main(int argc, char** argv) {
   kaikki.jarj1_o = &jarjolio1;
 
   /*jarjolio2*/
-  tekstiolio_s jarjolio2;
+  tekstiolio_s jarjol2;
   jarjolio2.ttflaji = jarjttflaji;
   jarjolio2.font = jarjolio1.font;
   SDL_Rect jarjsij2 = jarjsij;
@@ -116,7 +115,7 @@ int main(int argc, char** argv) {
   kaikki.jarj2_o = &jarjolio2;
 
   /*tiedotolio*/
-  tekstiolio_s tiedotolio;
+  tekstiolio_s tiedotol;
   tiedotolio.ttflaji = tiedotttflaji;
   tiedotolio.font = TTF_OpenFont(tiedotfonttied, tiedotkoko);
   tiedotolio.fonttikoko = tiedotkoko;
@@ -146,7 +145,7 @@ int main(int argc, char** argv) {
   kaikki.tluvut_o = &tlukuolio;
 
   /*lisätiedot*/
-  tekstiolio_s lisaolio;
+  tekstiolio_s lisaol;
   lisaolio.ttflaji = lisattflaji;
   lisaolio.font = TTF_OpenFont(lisafonttied, lisakoko);
   lisaolio.fonttikoko = lisakoko;
@@ -165,7 +164,7 @@ int main(int argc, char** argv) {
   kaikki.lisa_o = &lisaolio;
 
   /*sekoitusolio*/
-  tekstiolio_s sektusolio;
+  tekstiolio_s sektusol;
   sektusolio.ttflaji = sektusttflaji;
   sektusolio.font = TTF_OpenFont(sektusfonttied, sektuskoko);
   sektusolio.fonttikoko = sektuskoko;
@@ -184,7 +183,7 @@ int main(int argc, char** argv) {
   kaikki.sektus_o = &sektusolio;
 
   /*muutolio*/
-  tekstiolio_s muutolio;
+  tekstiolio_s muutol;
   muutolio.ttflaji = muutttflaji;
   muutolio.font = TTF_OpenFont(muutfonttied, muutkoko);
   muutolio.fonttikoko = muutkoko;
@@ -202,7 +201,7 @@ int main(int argc, char** argv) {
   kaikki.muut_o = &muutolio;
 
   /*tekstialueolio*/
-  tekstiolio_s tkstalolio;
+  tekstiolio_s tkstalol;
   tkstalolio.teksti = calloc(300, 1);
   tkstalolio.ttflaji = tkstalttflaji;
   tkstalolio.font = TTF_OpenFont(tkstalfonttied, tkstalkoko);
@@ -221,7 +220,7 @@ int main(int argc, char** argv) {
   kaikki.tkstal_o = &tkstalolio;
 
   /*valintaolion teksti*/
-  vnta_s vntaolio;
+  vnta_s vntaol;
   vntaolio.valittu = vntavalittu;
   tekstiolio_s vto;
   vto.ttflaji = 2;
