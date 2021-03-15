@@ -35,6 +35,8 @@ char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek);
+inline char __attribute__((always_inline)) rullaustapahtuma_alusta(tekstiolio_s*, SDL_Event);
+inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -71,7 +73,6 @@ int kaunnista() {
   char tmp[1000];
   int avgind[6];
   int apuind;
-  tekstiolio_s* o;
   enum hiirilaji {
     perus,
     teksti,
@@ -538,53 +539,28 @@ int kaunnista() {
 	  } else {
 	    switch(alue) {
 	    case tuloksetal:
-	      if((tulosol.alku == 0 && tapaht.wheel.y > 0) ||	\
-		 (tulosol.rullaus == 0 && tapaht.wheel.y < 0))
-		break;
-	      tulosol.rullaus += tapaht.wheel.y;
-	      laitot |= tuloslai;
+	      if(rullaustapahtuma_lopusta(&tulosol, tapaht))
+		laitot |= tuloslai;
 	      break;
 	    case sektusal:
-	      if((sektusol.alku == 0 && tapaht.wheel.y > 0) ||	\
-		 (sektusol.rullaus == 0 && tapaht.wheel.y < 0))
-		break;
-	      sektusol.rullaus += tapaht.wheel.y;
-	      laitot |= sektuslai;
+	      if(rullaustapahtuma_lopusta(&sektusol, tapaht))
+		laitot |= sektuslai;
 	      break;
-	    case jarjestus1al:; //laitetaan alusta, joten rullaus ≤ 0
-	      o = &jarjol1;
-	      int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	      if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
-		 (o->rullaus == 0 && tapaht.wheel.y > 0))
-		break;
-	      o->rullaus += tapaht.wheel.y;
-	      laitot |= jarjlai;
+	    case jarjestus1al: //laitetaan alusta, joten rullaus ≤ 0
+	      if(rullaustapahtuma_alusta(&jarjol1, tapaht))
+		laitot |= jarjlai;
 	      break;
-	    case jarjestus2al:;
-	      o = &jarjol2;
-	      if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
-		 (o->rullaus == 0 && tapaht.wheel.y < 0))
-		break;
-	      o->rullaus += tapaht.wheel.y;
-	      laitot |= jarjlai;
+	    case jarjestus2al:
+	      if(rullaustapahtuma_lopusta(&jarjol2, tapaht))
+		laitot |= jarjlai;
 	      break;
 	    case lisatdal:
-	      o = &lisaol;
-	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	      if((o->alku + riveja == _ylaske(lisatd) && tapaht.wheel.y < 0) || \
-		 (o->rullaus == 0 && tapaht.wheel.y > 0))
-		break;
-	      o->rullaus += tapaht.wheel.y;
-	      laitot |= lisatdlai;
+	      if(rullaustapahtuma_alusta(&lisaol, tapaht))
+		laitot |= lisatdlai;
 	      break;
 	    case muutal:
-	      o = &muutol;
-	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	      if((o->alku + riveja == _ylaske(_yalkuun(muut_a)) && tapaht.wheel.y < 0) || \
-		 (o->rullaus == 0 && tapaht.wheel.y > 0))
-		break;
-	      o->rullaus += tapaht.wheel.y;
-	      laitot |= muutlai;
+	      if(rullaustapahtuma_alusta(&muutol, tapaht))
+		laitot |= muutlai;
 	      break;
 	    default:
 	      break;
@@ -914,4 +890,21 @@ inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio,
 inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek) {
   strcpy(ipc->data, sek);
   ipc->viesti = 0;
+}
+
+char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
+  int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+  if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) ||	\
+     (o->rullaus == 0 && tapaht.wheel.y > 0))
+    return 0;
+  o->rullaus += tapaht.wheel.y;
+  return 1;
+}
+
+char rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
+  if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
+     (o->rullaus == 0 && tapaht.wheel.y < 0))
+    return 0;
+  o->rullaus += tapaht.wheel.y;
+  return 1;
 }
