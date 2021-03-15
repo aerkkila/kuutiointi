@@ -9,7 +9,6 @@
 #include <time.h>
 #include "cfg.h"
 #include "tulokset.h"
-#include "ääni.h"
 
 int kaunnista();
 

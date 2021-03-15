@@ -10,7 +10,6 @@
 #include <sys/wait.h>
 #include "grafiikka.h"
 #include "tulokset.h"
-#include "ääni.h"
 #include "muistin_jako.h"
 #include "cfg.h"
 #include <math.h>

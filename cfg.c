@@ -11,7 +11,7 @@ unsigned char NxN = 3;
 char url_valittu[] = "/home/antterkk/kajastin/kuva_valittu.bmp";
 char url_eivalittu[] = "/home/antterkk/kajastin/kuva_valittu_ei.bmp";
 char tietoalkustr[] = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|nauhoituslaitteet|ääniajurit";
+char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
 
 int kellokoko = 200;
 char kellofonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";
