@@ -2,13 +2,22 @@
 #define __grafiikka__
 
 #include <listat.h>
-#include "rakenteet.h"
+#include "cfg.h"
 
-inline laitot_s __attribute__((always_inline)) kaikki_laitot() {
-  return (laitot_s){1, 1, 1, 1, 1, 1, 1, 1, 1};
-}
+extern unsigned short laitot;
+extern const unsigned short kellolai;
+extern const unsigned short vntalai;
+extern const unsigned short sektuslai;
+extern const unsigned short tuloslai;
+extern const unsigned short jarjlai;
+extern const unsigned short tiedtlai;
+extern const unsigned short lisatdlai;
+extern const unsigned short muutlai;
+extern const unsigned short tkstallai;
+extern const unsigned short muuta_tulos;
+extern const unsigned short kaikki_laitot;
 
-void piirra(kaikki_s*);
+void piirra();
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
 int laita_tekstilista(strlista*, int, tekstiolio_s*, SDL_Renderer*);
 int laita_pari_oikealle(tekstiolio_s* ov, int vali,		\

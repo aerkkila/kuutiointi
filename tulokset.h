@@ -2,7 +2,7 @@
 #define __TULOKSET__
 
 #include <listat.h>
-#include "rakenteet.h"
+#include "cfg.h"
 
 avgtulos avgn(flista* l, int n, int pois);
 int* eri_sekunnit(flista* jarj, int* ia, int iapit);
@@ -16,7 +16,7 @@ void lisaa_listoille(tkset_s* t, char* kello, time_t hetki);
 void poista_listoilta(tkset_s*, int);
 float lue_kellosta(char* s);
 char tallenna(tkset_s* t, char* tiednimi);
-char lue_tiedosto(kaikki_s* k, char* tiednimi);
+char lue_tiedosto(char* tiednimi);
 void tee_jarjlista(tkset_s* t);
 char* float_kelloksi(char* kello, float f);
 void muuta_sakko(tkset_s* t, char* teksti, int ind);

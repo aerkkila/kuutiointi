@@ -7,13 +7,11 @@
 #include <SDL_ttf.h>
 #include <listat.h>
 #include <time.h>
-#include "rakenteet.h"
 #include "cfg.h"
-#include "grafiikka.h"
 #include "tulokset.h"
 #include "ääni.h"
 
-int kaunnista(kaikki_s *kaikki);
+int kaunnista();
 
 /*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
@@ -35,193 +33,171 @@ int main(int argc, char** argv) {
     r = 1;
     goto EI_TTF;
   }
-  SDL_Window* ikkuna = SDL_CreateWindow\
+  ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
-  SDL_Renderer* rend = SDL_CreateRenderer(kaikki.ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
+  rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
 
   /*kello-olio*/
-  tekstiolio_s kellool;
-  kelloolio.teksti = malloc(90);
-  strcpy(kelloolio.teksti, "");
-  kelloolio.ttflaji = kellottflaji;
-  kelloolio.font = TTF_OpenFont(kellofonttied, kellokoko);
-  kelloolio.fonttikoko = kellokoko;
-  kelloolio.fonttied = kellofonttied;
-  if(!kelloolio.font) {
+  kellool.teksti = malloc(90);
+  strcpy(kellool.teksti, "");
+  kellool.ttflaji = kellottflaji;
+  kellool.font = TTF_OpenFont(kellofonttied, kellokoko);
+  kellool.fonttikoko = kellokoko;
+  kellool.fonttied = kellofonttied;
+  if(!kellool.font) {
     fprintf(stderr, "Virhe: Ei avattu kellofonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  kelloolio.sij = &kellosij;
+  kellool.sij = &kellosij;
   SDL_Rect kelloapu = (SDL_Rect){0, 0, 0, 0};
-  kelloolio.toteutuma = &kelloapu;
-  kelloolio.vari = kellovarit[0];
-  kaikki.kello_o = &kelloolio;
-  kaikki.kvarit = kellovarit;
+  kellool.toteutuma = &kelloapu;
+  kellool.vari = kellovarit[0];
 
   /*tulosolio*/
-  tekstiolio_s tulosol;
-  tulosolio.ttflaji = tulosttflaji;
-  tulosolio.font = TTF_OpenFont(tulosfonttied, tuloskoko);
-  tulosolio.fonttikoko = tuloskoko;
-  tulosolio.fonttied = tulosfonttied;
-  if(!tulosolio.font) {
+  tulosol.ttflaji = tulosttflaji;
+  tulosol.font = TTF_OpenFont(tulosfonttied, tuloskoko);
+  tulosol.fonttikoko = tuloskoko;
+  tulosol.fonttied = tulosfonttied;
+  if(!tulosol.font) {
     fprintf(stderr, "Virhe: Ei avattu tulosfonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  tulosolio.sij = &tulossij;
+  tulosol.sij = &tulossij;
   SDL_Rect tulosapu = (SDL_Rect){0, 0, 0, 0};
-  tulosolio.toteutuma = &tulosapu;
-  tulosolio.vari = tulosvari;
-  tulosolio.rullaus = 0;
-  tulosolio.numerointi = 1;
-  kaikki.tulos_o = &tulosolio;
+  tulosol.toteutuma = &tulosapu;
+  tulosol.vari = tulosvari;
+  tulosol.rullaus = 0;
+  tulosol.numerointi = 1;
 
   /*jarjolio1*/
-  tekstiolio_s jarjol1;
-  jarjolio1.ttflaji = jarjttflaji;
-  jarjolio1.font = TTF_OpenFont(jarjfonttied, jarjkoko);
-  jarjolio1.fonttikoko = jarjkoko;
-  jarjolio1.fonttied = jarjfonttied;
-  if(!jarjolio1.font) {
+  jarjol1.ttflaji = jarjttflaji;
+  jarjol1.font = TTF_OpenFont(jarjfonttied, jarjkoko);
+  jarjol1.fonttikoko = jarjkoko;
+  jarjol1.fonttied = jarjfonttied;
+  if(!jarjol1.font) {
     fprintf(stderr, "Virhe: Ei avattu äärifonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
   SDL_Rect jarjsij1 = jarjsij;
-  jarjolio1.sij = &jarjsij1;
-  jarjolio1.sij->h *= jarjsuhde;
+  jarjol1.sij = &jarjsij1;
+  jarjol1.sij->h *= jarjsuhde;
   SDL_Rect jarjapu1 = (SDL_Rect){0, 0, 0, 0};
-  jarjolio1.toteutuma = &jarjapu1;
-  jarjolio1.vari = jarjvari1;
-  jarjolio1.rullaus = 0;
-  jarjolio1.numerointi = 0;
-  kaikki.jarj1_o = &jarjolio1;
+  jarjol1.toteutuma = &jarjapu1;
+  jarjol1.vari = jarjvari1;
+  jarjol1.rullaus = 0;
+  jarjol1.numerointi = 0;
 
   /*jarjolio2*/
-  tekstiolio_s jarjol2;
-  jarjolio2.ttflaji = jarjttflaji;
-  jarjolio2.font = jarjolio1.font;
+  jarjol2.ttflaji = jarjttflaji;
+  jarjol2.font = jarjol1.font;
   SDL_Rect jarjsij2 = jarjsij;
-  jarjolio2.sij = &jarjsij2;
-  jarjolio2.sij->h *= (1-jarjsuhde);
-  jarjolio2.sij->y += jarjolio1.sij->h;
+  jarjol2.sij = &jarjsij2;
+  jarjol2.sij->h *= (1-jarjsuhde);
+  jarjol2.sij->y += jarjol1.sij->h;
   SDL_Rect jarjapu2 = (SDL_Rect){0, 0, 0, 0};
-  jarjolio2.toteutuma = &jarjapu2;
-  jarjolio2.vari = jarjvari2;
-  jarjolio2.rullaus = 0;
-  jarjolio2.numerointi = 0;
-  kaikki.jarj2_o = &jarjolio2;
+  jarjol2.toteutuma = &jarjapu2;
+  jarjol2.vari = jarjvari2;
+  jarjol2.rullaus = 0;
+  jarjol2.numerointi = 0;
 
   /*tiedotolio*/
-  tekstiolio_s tiedotol;
-  tiedotolio.ttflaji = tiedotttflaji;
-  tiedotolio.font = TTF_OpenFont(tiedotfonttied, tiedotkoko);
-  tiedotolio.fonttikoko = tiedotkoko;
-  if(!tiedotolio.font) {
+  tiedotol.ttflaji = tiedotttflaji;
+  tiedotol.font = TTF_OpenFont(tiedotfonttied, tiedotkoko);
+  tiedotol.fonttikoko = tiedotkoko;
+  if(!tiedotol.font) {
     fprintf(stderr, "Virhe: Ei avattu tiedotfonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  tiedotolio.sij = &tiedotsij;
+  tiedotol.sij = &tiedotsij;
   SDL_Rect tiedotapu = (SDL_Rect){0, 0, 0, 0};
-  tiedotolio.toteutuma = &tiedotapu;
-  tiedotolio.vari = tiedotvari;
-  tiedotolio.rullaus = 0;
-  tiedotolio.numerointi = 0;
-  kaikki.tiedot_o = &tiedotolio;
+  tiedotol.toteutuma = &tiedotapu;
+  tiedotol.vari = tiedotvari;
+  tiedotol.rullaus = 0;
+  tiedotol.numerointi = 0;
 
-  /*tlukuolio on pitkälti sama kuin tiedotolio*/
-  tekstiolio_s tlukuolio;
-  tlukuolio.ttflaji = tiedotttflaji;
-  tlukuolio.font = tiedotolio.font;
-  tlukuolio.sij = &tluvutsij;
+  /*tluvutolio on pitkälti sama kuin tiedotolio*/
+  tluvutol.ttflaji = tiedotttflaji;
+  tluvutol.font = tiedotol.font;
+  tluvutol.sij = &tluvutsij;
   SDL_Rect tlukuapu = (SDL_Rect){0, 0, 0, 0};
-  tlukuolio.toteutuma = &tlukuapu;
-  tlukuolio.vari = tiedotvari;
-  tlukuolio.rullaus = 0;
-  tlukuolio.numerointi = 0;
-  kaikki.tluvut_o = &tlukuolio;
+  tluvutol.toteutuma = &tlukuapu;
+  tluvutol.vari = tiedotvari;
+  tluvutol.rullaus = 0;
+  tluvutol.numerointi = 0;
 
   /*lisätiedot*/
-  tekstiolio_s lisaol;
-  lisaolio.ttflaji = lisattflaji;
-  lisaolio.font = TTF_OpenFont(lisafonttied, lisakoko);
-  lisaolio.fonttikoko = lisakoko;
-  lisaolio.fonttied = lisafonttied;
-  if(!lisaolio.font) {
+  lisaol.ttflaji = lisattflaji;
+  lisaol.font = TTF_OpenFont(lisafonttied, lisakoko);
+  lisaol.fonttikoko = lisakoko;
+  lisaol.fonttied = lisafonttied;
+  if(!lisaol.font) {
     fprintf(stderr, "Virhe: Ei avattu lisafonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  lisaolio.sij = &lisasij;
+  lisaol.sij = &lisasij;
   SDL_Rect lisaapu = (SDL_Rect){0, 0, 0, 0};
-  lisaolio.toteutuma = &lisaapu;
-  lisaolio.vari = lisavari;
-  lisaolio.rullaus = 0;
-  lisaolio.numerointi = 0;
-  kaikki.lisa_o = &lisaolio;
+  lisaol.toteutuma = &lisaapu;
+  lisaol.vari = lisavari;
+  lisaol.rullaus = 0;
+  lisaol.numerointi = 0;
 
   /*sekoitusolio*/
-  tekstiolio_s sektusol;
-  sektusolio.ttflaji = sektusttflaji;
-  sektusolio.font = TTF_OpenFont(sektusfonttied, sektuskoko);
-  sektusolio.fonttikoko = sektuskoko;
-  sektusolio.fonttied = sektusfonttied;
-  if(!sektusolio.font) {
+  sektusol.ttflaji = sektusttflaji;
+  sektusol.font = TTF_OpenFont(sektusfonttied, sektuskoko);
+  sektusol.fonttikoko = sektuskoko;
+  sektusol.fonttied = sektusfonttied;
+  if(!sektusol.font) {
     fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  sektusolio.sij = &sektussij;
+  sektusol.sij = &sektussij;
   SDL_Rect sektusapu = (SDL_Rect){0, 0, 0, 0};
-  sektusolio.toteutuma = &sektusapu;
-  sektusolio.vari = sektusvari;
-  sektusolio.rullaus = 0;
-  sektusolio.numerointi = 1;
-  kaikki.sektus_o = &sektusolio;
+  sektusol.toteutuma = &sektusapu;
+  sektusol.vari = sektusvari;
+  sektusol.rullaus = 0;
+  sektusol.numerointi = 1;
 
   /*muutolio*/
-  tekstiolio_s muutol;
-  muutolio.ttflaji = muutttflaji;
-  muutolio.font = TTF_OpenFont(muutfonttied, muutkoko);
-  muutolio.fonttikoko = muutkoko;
-  if(!muutolio.font) {
+  muutol.ttflaji = muutttflaji;
+  muutol.font = TTF_OpenFont(muutfonttied, muutkoko);
+  muutol.fonttikoko = muutkoko;
+  if(!muutol.font) {
     fprintf(stderr, "Virhe: Ei avattu muutfonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  muutolio.sij = &muutsij;
+  muutol.sij = &muutsij;
   SDL_Rect muut_toteutuma = (SDL_Rect){0, 0, 0, 0};
-  muutolio.toteutuma = &muut_toteutuma;
-  muutolio.vari = muutvari;
-  muutolio.rullaus = 0;
-  muutolio.numerointi = 0;
-  kaikki.muut_o = &muutolio;
+  muutol.toteutuma = &muut_toteutuma;
+  muutol.vari = muutvari;
+  muutol.rullaus = 0;
+  muutol.numerointi = 0;
 
   /*tekstialueolio*/
-  tekstiolio_s tkstalol;
-  tkstalolio.teksti = calloc(300, 1);
-  tkstalolio.ttflaji = tkstalttflaji;
-  tkstalolio.font = TTF_OpenFont(tkstalfonttied, tkstalkoko);
-  tkstalolio.fonttikoko = tkstalkoko;
-  if(!tkstalolio.font) {
+  tkstalol.teksti = calloc(300, 1);
+  tkstalol.ttflaji = tkstalttflaji;
+  tkstalol.font = TTF_OpenFont(tkstalfonttied, tkstalkoko);
+  tkstalol.fonttikoko = tkstalkoko;
+  if(!tkstalol.font) {
     fprintf(stderr, "Virhe: Ei avattu sekoitusfonttia: %s\n", TTF_GetError());
     r = 1;
     goto EI_FONTTI;
   }
-  tkstalolio.sij = &tkstalsij;
+  tkstalol.sij = &tkstalsij;
   SDL_Rect tkstalapu = (SDL_Rect){0, 0, 0, 0};
-  tkstalolio.toteutuma = &tkstalapu;
-  tkstalolio.vari = tkstalvari;
-  tkstalolio.rullaus = 0;
-  tkstalolio.numerointi = 1;
-  kaikki.tkstal_o = &tkstalolio;
+  tkstalol.toteutuma = &tkstalapu;
+  tkstalol.vari = tkstalvari;
+  tkstalol.rullaus = 0;
+  tkstalol.numerointi = 1;
 
   /*valintaolion teksti*/
-  vnta_s vntaol;
-  vntaolio.valittu = vntavalittu;
+  vntaol.valittu = vntavalittu;
   tekstiolio_s vto;
   vto.ttflaji = 2;
   vto.font = TTF_OpenFont(vntafonttied, vntakoko);
@@ -246,7 +222,7 @@ int main(int argc, char** argv) {
   vto.vari = vntavari;
   vto.rullaus = 0;
   vto.numerointi = 0;
-  vntaolio.teksti = &vto;
+  vntaol.teksti = vto;
   
   /*valintaolion kuvat*/
   kuvarakenne kuvat;
@@ -255,13 +231,13 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_valittu);
     goto EI_KUVAA;
   }
-  kuvat.valittu = SDL_CreateTextureFromSurface(kaikki.rend, kuva);
+  kuvat.valittu = SDL_CreateTextureFromSurface(rend, kuva);
   SDL_FreeSurface(kuva);
   if(!(kuva = SDL_LoadBMP(url_eivalittu))) {
     fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_eivalittu);
     goto EI_KUVAA;
   }
-  kuvat.ei_valittu = SDL_CreateTextureFromSurface(kaikki.rend, kuva);
+  kuvat.ei_valittu = SDL_CreateTextureFromSurface(rend, kuva);
   SDL_FreeSurface(kuva);
   SDL_Rect kuvaalue;
   kuvaalue.x = vntasij.x;
@@ -269,74 +245,66 @@ int main(int argc, char** argv) {
   kuvaalue.w = d;
   kuvaalue.h = d;
   kuvat.sij = &kuvaalue;
-  vntaolio.kuvat = &kuvat;
-  kaikki.vnta_o = &vntaolio;
+  vntaol.kuvat = &kuvat;
   
-  tkset_s tkset;
-  kaikki.tkset = &(tkset);
-  kaikki.tkset->strtulos = NULL;
-  kaikki.tkset->ftulos = NULL;
-  kaikki.tkset->tuloshetki = NULL;
-  kaikki.tkset->sijarj = _strlisaa_kopioiden(NULL, "");
-  kaikki.tkset->fjarj = _flisaa(NULL, -INFINITY);
-  kaikki.tkset->strjarj = _strlisaa_kopioiden(NULL, "");
+  tkset.strtulos = NULL;
+  tkset.ftulos = NULL;
+  tkset.tuloshetki = NULL;
+  tkset.sijarj = _strlisaa_kopioiden(NULL, "");
+  tkset.fjarj = _flisaa(NULL, -INFINITY);
+  tkset.strjarj = _strlisaa_kopioiden(NULL, "");
 
   /*kiinnittämättömät*/
-  laitot_s laitot = kaikki_laitot();
-  kaikki.laitot = &laitot;
-  kaikki.viive = viive;
-  kaikki.tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));
-  kaikki.sekoitukset = NULL;
-  kaikki.tiedot = NULL;
-  kaikki.lisatd = NULL;
-  kaikki.muut_a = _yalkuun(_strlistaksi(muut_a_str, "|"));
-  kaikki.muut_b = NULL;
-  kaikki.muut_b = _strlisaa_kopioiden(kaikki.muut_b, ulosnimi);
-  kaikki.ulosnimi = kaikki.muut_b->str;
-  kaikki.uloskansio = uloskansio;
+  tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));
+  sektus = NULL;
+  tiedot = NULL;
+  lisatd = NULL;
+  muut_a = _yalkuun(_strlistaksi(muut_a_str, "|"));
+  muut_b = _strlisaa_kopioiden(muut_b, ulosnimi0);
+  ulosnimi = muut_b->str;
 
   time_t t;
   srand((unsigned) time(&t));
-  strcpy(kaikki.kello_o->teksti, " ");
+  strcpy(kellool.teksti, " ");
 
-  SDL_RenderClear(kaikki.rend);
-  SDL_SetRenderDrawColor(kaikki.rend, 0, 0, 0, 255);
+  SDL_RenderClear(rend);
+  SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 
   /*luetaan tiedosto tarvittaessa*/
   if(argc > 1)
-    if(lue_tiedosto(&kaikki, argv[1]))
+    if(lue_tiedosto(argv[1]))
       return 1;
   
-  r = kaunnista(&kaikki);
+  r = kaunnista();
 
-  SDL_DestroyTexture(kaikki.vnta_o->kuvat->valittu);
-  SDL_DestroyTexture(kaikki.vnta_o->kuvat->ei_valittu);
-  _strpoista_kaikki(_yalkuun(kaikki.tkset->strtulos));
-  _yrma(_yalkuun(kaikki.tkset->ftulos));
-  _yrma(_yalkuun(kaikki.tkset->tuloshetki));
-  _yrma(_yalkuun(kaikki.tkset->fjarj));
-  _strpoista_kaikki(_yalkuun(kaikki.tkset->strjarj));
-  _strpoista_kaikki(_yalkuun(kaikki.tkset->sijarj));
-  _strpoista_kaikki(_yalkuun(kaikki.tietoalut));
-  _strpoista_kaikki(_yalkuun(kaikki.sekoitukset));
-  _strpoista_kaikki(_yalkuun(kaikki.tiedot));
-  _strpoista_kaikki(_yalkuun(kaikki.muut_a));
-  _strpoista_kaikki(_yalkuun(kaikki.muut_b));
-  free(kelloolio.teksti);
-  free(tkstalolio.teksti);
+  SDL_DestroyTexture(vntaol.kuvat->valittu);
+  SDL_DestroyTexture(vntaol.kuvat->ei_valittu);
+  _strpoista_kaikki(_yalkuun(tkset.strtulos));
+  _yrma(_yalkuun(tkset.ftulos));
+  _yrma(_yalkuun(tkset.tuloshetki));
+  _yrma(_yalkuun(tkset.fjarj));
+  _strpoista_kaikki(_yalkuun(tkset.strjarj));
+  _strpoista_kaikki(_yalkuun(tkset.sijarj));
+  _strpoista_kaikki(_yalkuun(tietoalut));
+  _strpoista_kaikki(_yalkuun(sektus));
+  _strpoista_kaikki(_yalkuun(tiedot));
+  _strpoista_kaikki(_yalkuun(muut_a));
+  _strpoista_kaikki(_yalkuun(muut_b));
+  free(kellool.teksti);
+  free(tkstalol.teksti);
  EI_KUVAA:
-  TTF_CloseFont(kelloolio.font);
-  TTF_CloseFont(tulosolio.font);
-  TTF_CloseFont(jarjolio1.font);
-  TTF_CloseFont(tiedotolio.font);
-  TTF_CloseFont(sektusolio.font);
-  TTF_CloseFont(tkstalolio.font);
+  TTF_CloseFont(kellool.font);
+  TTF_CloseFont(tulosol.font);
+  TTF_CloseFont(jarjol1.font);
+  TTF_CloseFont(tiedotol.font);
+  TTF_CloseFont(sektusol.font);
+  TTF_CloseFont(tkstalol.font);
   TTF_CloseFont(vto.font);
-  TTF_CloseFont(lisaolio.font);
-  TTF_CloseFont(muutolio.font);
+  TTF_CloseFont(lisaol.font);
+  TTF_CloseFont(muutol.font);
  EI_FONTTI:
-  SDL_DestroyRenderer(kaikki.rend);
-  SDL_DestroyWindow(kaikki.ikkuna);
+  SDL_DestroyRenderer(rend);
+  SDL_DestroyWindow(ikkuna);
   TTF_Quit();
  EI_TTF:
   SDL_Quit();

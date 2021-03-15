@@ -1,11 +1,12 @@
 #include <SDL.h>
 #include "cfg.h"
 
-char ohjelman_nimi[] = "Kajastin";
+const char ohjelman_nimi[] = "Kajastin";
 int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
 Uint32 viive = 3;
-char ulosnimi[] = "tulokset.txt";
-char uloskansio[] = "/home/antterkk/kajastin/";
+const char ulosnimi0[] = "tulokset.txt";
+const char uloskansio[] = "/home/antterkk/kajastin/";
+unsigned char NxN = 3;
 
 char url_valittu[] = "/home/antterkk/kajastin/kuva_valittu.bmp";
 char url_eivalittu[] = "/home/antterkk/kajastin/kuva_valittu_ei.bmp";
@@ -74,3 +75,26 @@ char vntattflaji = 2;
 char vntavalittu = 1;
 SDL_Color vntavari = {255, 255, 255, 255};
 SDL_Rect vntasij = (SDL_Rect){60, 10, 800, 90};
+
+/*nämä asetetaan pääfunktiossa tai myöhemmin*/
+tekstiolio_s kellool;
+tekstiolio_s tulosol;
+tekstiolio_s jarjol1;
+tekstiolio_s jarjol2;
+tekstiolio_s tiedotol;
+tekstiolio_s tluvutol;
+tekstiolio_s lisaol;
+tekstiolio_s sektusol;
+tekstiolio_s muutol;
+tekstiolio_s tkstalol;
+vnta_s vntaol;
+tkset_s tkset;
+SDL_Renderer* rend;
+SDL_Window* ikkuna;
+strlista* muut_b;
+strlista* muut_a;
+strlista* sektus;
+strlista* tietoalut;
+strlista* tiedot;
+strlista* lisatd;
+char* ulosnimi;

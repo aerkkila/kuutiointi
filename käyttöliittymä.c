@@ -8,67 +8,63 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include "rakenteet.h"
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "ääni.h"
 #include "muistin_jako.h"
+#include "cfg.h"
 #include <math.h>
 #include <lista_math.h>
 
 typedef enum {
-  kello,
-  tulokset,
-  jarjestus1,
-  jarjestus2,
-  tiedot,
-  sektus,
-  tarkasteluaikanappi,
+  kelloal,
+  tuloksetal,
+  jarjestus1al,
+  jarjestus2al,
+  tiedotal,
+  sektusal,
+  tarkasteluaikanappial,
   tietoalue,
-  lisatd,
-  muut,
-  muu
+  lisatdal,
+  muutal,
+  muual
 } alue_e;
 
 char piste_alueella(int x, int y, SDL_Rect* alue);
-alue_e hae_alue(int x, int y, kaikki_s *kaikki);
+alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
-void laita_eri_sekunnit(kaikki_s* kaikki, char* tmp);
+void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek);
 
-#define SEKTUS (kaikki->sekoitukset)
-#define TIEDOT (kaikki->tiedot)
-#define KELLO (kaikki->kello_o->teksti)
-#define TEKSTI (kaikki->tkstal_o->teksti)
-#define LAITOT (*(kaikki->laitot))
-#define STRTULOS (kaikki->tkset->strtulos)
-#define FTULOS (kaikki->tkset->ftulos)
-#define HETKI (kaikki->tkset->tuloshetki)
-#define SJARJ (kaikki->tkset->strjarj)
-#define SIJARJ (kaikki->tkset->sijarj)
-#define LISATD (kaikki->lisatd)
-#define MUUTA_TULOS LAITOT.sektus=1; LAITOT.tulos=1; LAITOT.jarj=1; LAITOT.tiedot=1; LAITOT.lisatd=1
-#define LISTARIVI(nimi) (kaikki->nimi->alku +			\
-			 (tapaht.button.y - kaikki->nimi->toteutuma->y) / \
-			 TTF_FontLineSkip(kaikki->nimi->font))
-#define TEE_TIEDOT TIEDOT = tee_tiedot(TIEDOT, kaikki->tkset, avgind);
+#define KELLO (kellool.teksti)
+#define TEKSTI (tkstalol.teksti)
+#define STRTULOS (tkset.strtulos)
+#define FTULOS (tkset.ftulos)
+#define HETKI (tkset.tuloshetki)
+#define SJARJ (tkset.strjarj)
+#define SIJARJ (tkset.sijarj)
+#define MUUTA_TULOS laitot |= muuta_tulos;
+#define LISTARIVI(nimi) (nimi.alku +				 \
+			 (tapaht.button.y - nimi.toteutuma->y) / \
+			 TTF_FontLineSkip(nimi.font))
+#define TEE_TIEDOT tiedot = tee_tiedot(tiedot, &tkset, avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
-    SDL_SetTextInputRect(kaikki->kello_o->sij);		   \
+    SDL_SetTextInputRect(kellool.sij);			   \
     tila = kirjoitustila;				   \
     kirjoituslaji = laji;				   \
     nostotoimi = ei_mitaan;				   \
     strcpy(KELLO, "");					   \
-    LAITOT.kello=1;					   \
+    laitot |= kellolai;					   \
     strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
-    LAITOT.tkstal = 1;					   \
+    laitot |= tkstallai;					   \
   }
 
 extern float skaala;
 shmRak_s* ipc;
 
-int kaunnista(kaikki_s *kaikki) {
+int kaunnista() {
   SDL_Event tapaht;
   struct timeval alku, nyt;
   short min, sek, csek;
@@ -94,19 +90,21 @@ int kaunnista(kaikki_s *kaikki) {
     kirjoitustila
   } tila = seis;
   enum {
-    aika,
-    ulosnimi,
-    tulosalku,
-    avaa_tiedosto
-  } kirjoituslaji = aika;
+    aikaKirj,
+    ulosnimiKirj,
+    tulosalkuKirj,
+    avaa_tiedostoKirj,
+    kuutionKokoKirj
+  } kirjoituslaji = aikaKirj;
   char* tekstialue[] = {"Ajan syöttö",\
 		       "Ulosnimen vaihto",\
 			"Tuloslistan alkukohta",\
-			"Avattava tiedosto"};
+			"Avattava tiedosto",\
+			"Kuution koko (NxNxN)"};
   char kontrol = 0;
   ipc = NULL;
-  nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
-  alue_e alue = muu;
+  nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+  alue_e alue = muual;
   sakko_e sakko;
   SDL_Cursor* kursori;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -116,13 +114,13 @@ int kaunnista(kaikki_s *kaikki) {
 
   TEE_TIEDOT;
   SDL_StopTextInput();
-  SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
+  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type)
 	{
 	case SDL_QUIT:
-	  _strpoista_kaikki(_yalkuun(LISATD));
+	  _strpoista_kaikki(_yalkuun(lisatd));
 	  SDL_FreeCursor(kursori);
 	  return 0;
 	case SDL_KEYDOWN:
@@ -132,8 +130,8 @@ int kaunnista(kaikki_s *kaikki) {
 	    LOPETA:
 	      if(tila == juoksee) {
 		tila = seis;
-		lisaa_listoille(kaikki->tkset, KELLO, nyt.tv_sec);
-		SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
+		lisaa_listoille(&tkset, KELLO, nyt.tv_sec);
+		sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		TEE_TIEDOT;
 		MUUTA_TULOS;
 	      }
@@ -144,29 +142,29 @@ int kaunnista(kaikki_s *kaikki) {
 	      break;
 	    case SDLK_o:
 	      if(tila == seis)
-		KIRJOITUSLAJIKSI(avaa_tiedosto);
+		KIRJOITUSLAJIKSI(avaa_tiedostoKirj);
 	      break;
 	    case SDLK_s:
 	      if(tila != seis)
 		break;
 	      if(kontrol) {
-		sprintf(tmp, "%s/%s", kaikki->uloskansio, kaikki->ulosnimi);
-		if(tallenna(kaikki->tkset, tmp))
-		  sprintf(TEKSTI, "Tallennettiin \"%s\"", kaikki->ulosnimi);
+		sprintf(tmp, "%s/%s", uloskansio, ulosnimi);
+		if(tallenna(&tkset, tmp))
+		  sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
 		else
-		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", kaikki->ulosnimi);
-		LAITOT.tkstal = 1;
+		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", ulosnimi);
+		laitot |= tkstallai;
 	      } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
-	        KIRJOITUSLAJIKSI(ulosnimi);
+	        KIRJOITUSLAJIKSI(ulosnimiKirj);
 	      }
 	      break;
 	    case SDLK_BACKSPACE:
 	      if(tila == seis && STRTULOS) {
-		SEKTUS = _strpoista1(SEKTUS, -1);
+		sektus = _strpoista1(sektus, -1);
 		int ind = _ylaske(_yalkuun(FTULOS))-1;
-		poista_listoilta(kaikki->tkset, ind);
-		if(kaikki->tkset->strtulos)
-		  strcpy(KELLO, kaikki->tkset->strtulos->str);
+		poista_listoilta(&tkset, ind);
+		if(tkset.strtulos)
+		  strcpy(KELLO, tkset.strtulos->str);
 		TEE_TIEDOT;
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
@@ -177,101 +175,106 @@ int kaunnista(kaikki_s *kaikki) {
 		  KELLO[strlen(KELLO)-1] = '\0';
 		}
 	      }
-	      LAITOT.kello = 1;
+	      laitot |= kellolai;
 	      break;
 	    case SDLK_RETURN:
 	    case SDLK_KP_ENTER:
-	      SDL_RenderClear(kaikki->rend);
-	      LAITOT = kaikki_laitot();
+	      SDL_RenderClear(rend);
+	      laitot = kaikki_laitot;
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
 	        tila = seis;
-	        nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
+	        nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
 		switch((int)kirjoituslaji) {
-		case aika:
+		case aikaKirj:
 		  /*tällä voi kysyä SDL-version*/
 		  if(!strcmp("SDL -v", KELLO)) {
 		    SDL_version v;
 		    SDL_VERSION(&v);
 		    sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
-		    LAITOT.kello = 1;
+		    laitot |= kellolai;
 		    break;
 		  }
 		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		  while((apucp = strstr(KELLO, ".")))
 		    *apucp = ',';
-		  lisaa_listoille(kaikki->tkset, KELLO, time(NULL));
+		  lisaa_listoille(&tkset, KELLO, time(NULL));
 		  TEE_TIEDOT;
-		  SEKTUS = _strlisaa_kopioiden(SEKTUS, sekoitus(tmp));
+		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		  MUUTA_TULOS;
 		  break;
-		case ulosnimi:
+		case ulosnimiKirj:
 		  /*vaihdetaan ulosnimi ja kelloon taas aika*/
-		  kaikki->muut_b = _strlisaa_kopioiden(kaikki->muut_b, KELLO);
+		  muut_b = _strlisaa_kopioiden(muut_b, KELLO);
 		  strcpy(TEKSTI, "");
-		  _strpoista1(kaikki->muut_b->edel, 1);
-		  kaikki->ulosnimi = kaikki->muut_b->str;
+		  _strpoista1(muut_b->edel, 1);
+		  ulosnimi = muut_b->str;
 		  break;
-		case tulosalku:
+		case tulosalkuKirj:
 		  sscanf(KELLO, "%i", &apuind);
 		  if(apuind <= _ylaske_taakse(STRTULOS)) {
-		    kaikki->tulos_o->rullaus += kaikki->tulos_o->alku - (apuind-1);
+		    tulosol.rullaus += tulosol.alku - (apuind-1);
 		    strcpy(TEKSTI, "");
 		  } else {
 		    strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
 		  }
+		case kuutionKokoKirj:
+		  sscanf(KELLO, "%hhu", &NxN);
+		  strcpy(TEKSTI, "");
+		  sektus = _strpoista1(sektus, -1);
+		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		  break;
-		case avaa_tiedosto:
-		  lue_tiedosto(kaikki, KELLO);
+		case avaa_tiedostoKirj:
+		  lue_tiedosto(KELLO);
 		  TEE_TIEDOT;
-		  LAITOT = kaikki_laitot();
+		  laitot = kaikki_laitot;
 		  break;
 		}
 		/*koskee kaikkia kirjoituslajeja*/
-		if(kaikki->tkset->ftulos)
-		  float_kelloksi(KELLO, kaikki->tkset->ftulos->f);
+		if(tkset.ftulos)
+		  float_kelloksi(KELLO, tkset.ftulos->f);
 		break;
 	      }
 	    case SDLK_END:
 	      switch(alue) {
 	      default:
-	      case tulokset:
-		kaikki->tulos_o->rullaus = 0;
-		LAITOT.tulos = 1;
+	      case tuloksetal:
+		tulosol.rullaus = 0;
+		laitot |= tuloslai;
 		break;
-	      case jarjestus1:;
-		int mahtuu = kaikki->jarj1_o->sij->h / TTF_FontLineSkip(kaikki->jarj1_o->font);
-		kaikki->jarj1_o->rullaus = -(_ylaske(SIJARJ)-1 - mahtuu);
-		LAITOT.jarj = 1;
+	      case jarjestus1al:;
+		int mahtuu = jarjol1.sij->h / TTF_FontLineSkip(jarjol1.font);
+		jarjol1.rullaus = -(_ylaske(SIJARJ)-1 - mahtuu);
+		laitot |= jarjlai;
 		break;
-	      case jarjestus2:
-		kaikki->jarj2_o->rullaus = 0;
-		LAITOT.jarj = 1;
+	      case jarjestus2al:
+		jarjol2.rullaus = 0;
+		laitot |= jarjlai;
 		break;
-	      case sektus:
-		kaikki->sektus_o->rullaus = 0;
-		LAITOT.sektus = 1;
+	      case sektusal:
+		sektusol.rullaus = 0;
+		laitot |= sektuslai;
 		break;
 	      }
 	      break;
 	    case SDLK_HOME:
 	      switch(alue) {
 	      default:
-	      case tulokset:
-		kaikki->tulos_o->rullaus += kaikki->tulos_o->alku;
-		LAITOT.tulos = 1;
+	      case tuloksetal:
+		tulosol.rullaus += tulosol.alku;
+		laitot |= tuloslai;
 		break;
-	      case jarjestus1:
-		kaikki->jarj1_o->rullaus = 0;
-		LAITOT.jarj = 1;
+	      case jarjestus1al:
+		jarjol1.rullaus = 0;
+		laitot |= jarjlai;
 		break;
-	      case jarjestus2:
-		kaikki->jarj2_o->rullaus += kaikki->jarj2_o->alku;
-		LAITOT.jarj = 1;
+	      case jarjestus2al:
+		jarjol2.rullaus += jarjol2.alku;
+		laitot |= jarjlai;
 		break;
-	      case sektus:
-		kaikki->sektus_o->rullaus += kaikki->sektus_o->alku;
-		LAITOT.sektus = 1;
+	      case sektusal:
+		sektusol.rullaus += sektusol.alku;
+		laitot |= sektuslai;
 		break;
 	      }
 	      break;
@@ -280,36 +283,36 @@ int kaunnista(kaikki_s *kaikki) {
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
 		tila = seis;
-		nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
-		if(kaikki->tkset->strtulos)
-		  strcpy(KELLO, kaikki->tkset->strtulos->str);
+		nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+		if(tkset.strtulos)
+		  strcpy(KELLO, tkset.strtulos->str);
 		TEKSTI[0] = '\0';
-		LAITOT.tkstal = 1;
-		LAITOT.kello = 1;
+		laitot |= tkstallai;
+		laitot |= kellolai;
 	      }
 	      break;
 	    case SDLK_PLUS:
 	    case SDLK_KP_PLUS:
 	      if(kontrol) {
-		SDL_RenderClear(kaikki->rend);
+		SDL_RenderClear(rend);
 		skaala *= 1.1;
-		SDL_RenderSetScale(kaikki->rend, skaala, skaala);
-		LAITOT = kaikki_laitot();
+		SDL_RenderSetScale(rend, skaala, skaala);
+		laitot = kaikki_laitot;
 	      } else if(tila != kirjoitustila) {
 		int tmpind = _ylaske(_yalkuun(STRTULOS)) - 1;
-		muuta_sakko(kaikki->tkset, KELLO, tmpind);
+		muuta_sakko(&tkset, KELLO, tmpind);
 		TEE_TIEDOT;
-		LAITOT.kello=1;
+		laitot |= kellolai;
 		MUUTA_TULOS;
 	      }
 	      break;
 	    case SDLK_MINUS:
 	    case SDLK_KP_MINUS:
 	      if(kontrol) {
-		SDL_RenderClear(kaikki->rend);
+		SDL_RenderClear(rend);
 		skaala /= 1.1;
-		SDL_RenderSetScale(kaikki->rend, skaala, skaala);
-		LAITOT = kaikki_laitot();
+		SDL_RenderSetScale(rend, skaala, skaala);
+		laitot = kaikki_laitot;
 	      }
 	      break;
 	    }
@@ -326,7 +329,7 @@ int kaunnista(kaikki_s *kaikki) {
 		gettimeofday(&alku, NULL);
 	        nostotoimi = ei_mitaan;
 	        tila = juoksee;
-		kaikki->kello_o->vari = kaikki->kvarit[0];
+		kellool.vari = kellovarit[0];
 		if(sakko==plus)
 		  alku.tv_sec -= 2;
 		break;
@@ -337,11 +340,11 @@ int kaunnista(kaikki_s *kaikki) {
 		dalku = alku.tv_sec + alku.tv_usec/1.0e6;
 		nostotoimi = aloita;
 		tila = tarkastelee;
-		kaikki->kello_o->vari = kaikki->kvarit[1];
+		kellool.vari = kellovarit[1];
 		break;
 	      case ei_mitaan:
 		if(tila != kirjoitustila) //pysäytetty juuri äsken
-		  nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
+		  nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
 		    break;
 	      }
 	    case SDLK_LCTRL:
@@ -349,75 +352,79 @@ int kaunnista(kaikki_s *kaikki) {
 	      kontrol = 0;
 	      if(tila == kirjoitustila)
 		strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-	      LAITOT.tkstal = 1;
+	      laitot |= tkstallai;
 	      break;
 	    }
 	  break;
 	case SDL_MOUSEBUTTONDOWN:
 	  switch(alue) {
-	  case kello:
+	  case kelloal:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT)
 	      if(tila == seis)
-		KIRJOITUSLAJIKSI(aika);
+		KIRJOITUSLAJIKSI(aikaKirj);
 	    break;
 	  case tietoalue:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 	       tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      char rivi = ((tapaht.button.y - kaikki->tluvut_o->toteutuma->y) / \
-			   TTF_FontLineSkip(kaikki->tluvut_o->font));
-	      int sarake = ((tapaht.button.x - kaikki->tluvut_o->toteutuma->x) / \
-			    (kaikki->tluvut_o->toteutuma->w / 6));
+	      char rivi = ((tapaht.button.y - tluvutol.toteutuma->y) / \
+			   TTF_FontLineSkip(tluvutol.font));
+	      int sarake = ((tapaht.button.x - tluvutol.toteutuma->x) / \
+			    (tluvutol.toteutuma->w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
-	      LISATD = _strpoista_kaikki(_yalkuun(LISATD));
-	      strlista* sektus = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : SEKTUS;
+	      lisatd = _strpoista_kaikki(_yalkuun(lisatd));
+	      strlista* sektus = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
 	      switch (rivi) {
 	      case 0:
 	      case 1:
-	        LISATD = _strpoista_kaikki(LISATD);
-		LISATD = tee_lisatiedot(kaikki->tkset, sektus, avgind[sarake]-4, 5);
+	        lisatd = _strpoista_kaikki(lisatd);
+		lisatd = tee_lisatiedot(&tkset, sektus, avgind[sarake]-4, 5);
 		break;
 	      case 2:
 	      case 3:
-	        LISATD = _strpoista_kaikki(LISATD);
-		LISATD = tee_lisatiedot(kaikki->tkset, sektus, avgind[sarake+3]-11, 12);
+	        lisatd = _strpoista_kaikki(lisatd);
+		lisatd = tee_lisatiedot(&tkset, sektus, avgind[sarake+3]-11, 12);
 		break;
 	      case 4:
-	        LISATD = _strpoista_kaikki(LISATD);
+	        lisatd = _strpoista_kaikki(lisatd);
 		break;
 	      }
 	      if(tapaht.button.button == SDL_BUTTON_RIGHT) {
 		int pit = 0;
-		strlista* apu = LISATD;
+		strlista* apu = lisatd;
 		while(apu) {
 		  pit += strlen(apu->str)+1;
 		  apu = apu->seur;
 		}
 		char tmp_oikea[pit+1];
-		_strstulostaf(tmp_oikea, "%s\n", LISATD);
+		_strstulostaf(tmp_oikea, "%s\n", lisatd);
 		SDL_SetClipboardText(tmp_oikea);
-		LISATD = _strpoista_kaikki(LISATD);
+		lisatd = _strpoista_kaikki(lisatd);
 	      } else {
-		LAITOT.lisatd=1;
+		laitot |= lisatdlai;
 	      }
 	    }
 	    break;
-	  case tulokset:
+	  case tuloksetal:
 	    if(tapaht.button.button == SDL_BUTTON_MIDDLE)
 	      if(tila == seis)
-		KIRJOITUSLAJIKSI(tulosalku);
+		KIRJOITUSLAJIKSI(tulosalkuKirj);
 	    break;
-	  case muut:;
-	    int rivi = LISTARIVI(muut_o);
-	    if(rivi == _ylaske(kaikki->muut_a))
+	  case sektusal:
+	    if(tapaht.button.button == SDL_BUTTON_RIGHT)
+	      KIRJOITUSLAJIKSI(kuutionKokoKirj);
+	    break;
+	  case muutal:;
+	    int rivi = LISTARIVI(muutol);
+	    if(rivi == _ylaske(muut_a))
 	      rivi--;
-	    char* tmpstr = ((strlista*)(_ynouda(kaikki->muut_a, rivi)))->str;
+	    char* tmpstr = ((strlista*)(_ynouda(muut_a, rivi)))->str;
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
-	      KIRJOITUSLAJIKSI(ulosnimi);
+	      KIRJOITUSLAJIKSI(ulosnimiKirj);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
-	      laita_eri_sekunnit(kaikki, tmp);
+	      laita_eri_sekunnit(tmp);
 	    } else if(!strcmp(tmpstr, "kuvaaja")) {
 	      FILE *f = fopen(".kuvaaja.bin", "wb");
-	      flista* tmpfl = _yalkuun(kaikki->tkset->ftulos);
+	      flista* tmpfl = _yalkuun(tkset.ftulos);
 	      while(tmpfl) {
 		fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
 		tmpfl = tmpfl->seur;
@@ -440,14 +447,6 @@ int kaunnista(kaikki_s *kaikki) {
 		  exit(0);
 		}   
 	      }
-	    } else if(!strcmp(tmpstr, "nauhoituslaitteet")) {
-	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
-	      kaikki->lisatd = _yalkuun(nauhoituslaitteet(kaikki->lisatd));
-	      LAITOT.lisatd=1;
-	    } else if(!strcmp(tmpstr, "ääniajurit")) {
-	      kaikki->lisatd = _strpoista_kaikki(_yalkuun(kaikki->lisatd));
-	      kaikki->lisatd = _yalkuun(aaniajurit(kaikki->lisatd));
-	      LAITOT.lisatd=1;
 	    } else if(!strcmp(tmpstr, "kuutio")) {
 	      /*avataan kuutio taustaprosessina*/
 	      int pid1 = fork();
@@ -458,7 +457,8 @@ int kaunnista(kaikki_s *kaikki) {
 		if(pid2 > 0)
 		  _exit(0);
 		else if(!pid2) {
-		  system("./kuutio");
+		  sprintf(tmp, "./kuutio %hhu", NxN);
+		  system(tmp);
 		  exit(0);
 		}
 	      }
@@ -467,140 +467,125 @@ int kaunnista(kaikki_s *kaikki) {
 		;//liput |= ipc_auki; //tarkista, onko kuutio auki
 	    }
 	    break;
-	  case lisatd:;
-	    rivi = LISTARIVI(lisa_o);
-	    if(rivi == _ylaske(kaikki->lisatd))
-	      rivi--;
-	    strlista *apul = _yalkuun(kaikki->lisatd);
-	    tmpstr = ((strlista*)(_ynouda(apul, rivi)))->str;
-	    if(strstr(((strlista*)(_yloppuun(kaikki->lisatd)))->str, "Ääniajuri nyt: ")) {
-	      if(rivi < _ylaske(apul)-1)
-		SDL_AudioInit(tmpstr);
-	    }
-	    if(strstr(((strlista*)(_yloppuun(kaikki->lisatd)))->str, "Nauhoituslaitteita ")) {
-	      avaa_aani((rivi==_ylaske(apul)-1)? NULL: tmpstr, TEKSTI);
-	      LAITOT.tkstal = 1;
-	    }
-	    break;
 	  default:
 	    break;
 	  }
 	  break;
 	case SDL_MOUSEBUTTONUP:
-	  if(alue == tarkasteluaikanappi) {
+	  if(alue == tarkasteluaikanappial) {
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      kaikki->vnta_o->valittu = (kaikki->vnta_o->valittu+1) % 2;
-	      nostotoimi = (kaikki->vnta_o->valittu)? tarkastelu : aloita;
-	      LAITOT.valinta=1;
+	      vntaol.valittu = (vntaol.valittu+1) % 2;
+	      nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+	      laitot |= vntalai;
 	    }
-	  } else if(alue == tulokset) {
-	    int tmpind = LISTARIVI(tulos_o);
-	    if(tmpind == _ylaske_taakse(kaikki->tkset->strtulos))
+	  } else if(alue == tuloksetal) {
+	    int tmpind = LISTARIVI(tulosol);
+	    if(tmpind == _ylaske_taakse(tkset.strtulos))
 	      tmpind--;
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
 		/*poistetaan (ctrl + hiiri1)*/
-		poista_listoilta(kaikki->tkset, tmpind);
-		_strpoista1(_ynouda(_yalkuun(SEKTUS), tmpind), 1);
+		poista_listoilta(&tkset, tmpind);
+		_strpoista1(_ynouda(_yalkuun(sektus), tmpind), 1);
 		TEE_TIEDOT;
-		alue = hae_alue(tapaht.button.x, tapaht.button.y, kaikki);
+		alue = hae_alue(tapaht.button.x, tapaht.button.y);
 	      } else {
 		/*kopioidaan leikepöydälle (hiiri1)*/
 	        char* tmpstr = ((strlista*)_ynoudaf(STRTULOS, tmpind, 0))->str;
 		time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
-		char* tmpsekt = ((strlista*)_ynoudaf(SEKTUS, tmpind, 0))->str;
+		char* tmpsekt = ((strlista*)_ynoudaf(sektus, tmpind, 0))->str;
 		sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsekt);
 		SDL_SetClipboardText(tmp);
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
-	      muuta_sakko(kaikki->tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
+	      muuta_sakko(&tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
 	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;
-	    LAITOT.kello=1;
+	    laitot |= kellolai;
 	  }
 	  break;
 	case SDL_MOUSEWHEEL:
 	  if(kontrol) {
 	    switch(alue) {
-	    case kello:
-	      vaihda_fonttikoko(kaikki->kello_o, tapaht.wheel.y*4);
-	      LAITOT.kello = 1;
+	    case kelloal:
+	      vaihda_fonttikoko(&kellool, tapaht.wheel.y*4);
+	      laitot |= kellolai;
 	      break;
-	    case tulokset:
-	      vaihda_fonttikoko(kaikki->tulos_o, tapaht.wheel.y);
-	      LAITOT.tulos = 1;
+	    case tuloksetal:
+	      vaihda_fonttikoko(&tulosol, tapaht.wheel.y);
+	      laitot |= tuloslai;
 	      break;
-	    case sektus:
-	      vaihda_fonttikoko(kaikki->sektus_o, tapaht.wheel.y);
-	      LAITOT.sektus = 1;
+	    case sektusal:
+	      vaihda_fonttikoko(&sektusol, tapaht.wheel.y);
+	      laitot |= sektuslai;
 	      break;
-	    case jarjestus1:
-	    case jarjestus2:
-	      vaihda_fonttikoko(kaikki->jarj1_o, tapaht.wheel.y);
-	      kaikki->jarj2_o->font = kaikki->jarj1_o->font;
-	      LAITOT.jarj = 1;
+	    case jarjestus1al:
+	    case jarjestus2al:
+	      vaihda_fonttikoko(&jarjol1, tapaht.wheel.y);
+	      jarjol2.font = jarjol1.font;
+	      laitot |= jarjlai;
 	      break;
-	    case lisatd:
-	      vaihda_fonttikoko(kaikki->lisa_o, tapaht.wheel.y);
-	      LAITOT.lisatd = 1;
+	    case lisatdal:
+	      vaihda_fonttikoko(&lisaol, tapaht.wheel.y);
+	      laitot |= lisatdlai;
 	      break;
 	    default:
 	      break;
 	    }
 	  } else {
 	    switch(alue) {
-	    case tulokset:
-	      if((kaikki->tulos_o->alku == 0 && tapaht.wheel.y > 0) ||	\
-		 (kaikki->tulos_o->rullaus == 0 && tapaht.wheel.y < 0))
+	    case tuloksetal:
+	      if((tulosol.alku == 0 && tapaht.wheel.y > 0) ||	\
+		 (tulosol.rullaus == 0 && tapaht.wheel.y < 0))
 		break;
-	      kaikki->tulos_o->rullaus += tapaht.wheel.y;
-	      LAITOT.tulos=1;
+	      tulosol.rullaus += tapaht.wheel.y;
+	      laitot |= tuloslai;
 	      break;
-	    case sektus:
-	      if((kaikki->sektus_o->alku == 0 && tapaht.wheel.y > 0) ||	\
-		 (kaikki->sektus_o->rullaus == 0 && tapaht.wheel.y < 0))
+	    case sektusal:
+	      if((sektusol.alku == 0 && tapaht.wheel.y > 0) ||	\
+		 (sektusol.rullaus == 0 && tapaht.wheel.y < 0))
 		break;
-	      kaikki->sektus_o->rullaus += tapaht.wheel.y;
-	      LAITOT.sektus=1;
+	      sektusol.rullaus += tapaht.wheel.y;
+	      laitot |= sektuslai;
 	      break;
-	    case jarjestus1:; //laitetaan alusta, joten rullaus ≤ 0
-	      o = kaikki->jarj1_o;
+	    case jarjestus1al:; //laitetaan alusta, joten rullaus ≤ 0
+	      o = &jarjol1;
 	      int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
 	      if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) || \
 		 (o->rullaus == 0 && tapaht.wheel.y > 0))
 		break;
 	      o->rullaus += tapaht.wheel.y;
-	      LAITOT.jarj = 1;
+	      laitot |= jarjlai;
 	      break;
-	    case jarjestus2:;
-	      o = kaikki->jarj2_o;
+	    case jarjestus2al:;
+	      o = &jarjol2;
 	      if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
 		 (o->rullaus == 0 && tapaht.wheel.y < 0))
 		break;
 	      o->rullaus += tapaht.wheel.y;
-	      LAITOT.jarj = 1;
+	      laitot |= jarjlai;
 	      break;
-	    case lisatd:
-	      o = kaikki->lisa_o;
+	    case lisatdal:
+	      o = &lisaol;
 	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	      if((o->alku + riveja == _ylaske(kaikki->lisatd) && tapaht.wheel.y < 0) || \
+	      if((o->alku + riveja == _ylaske(lisatd) && tapaht.wheel.y < 0) || \
 		 (o->rullaus == 0 && tapaht.wheel.y > 0))
 		break;
 	      o->rullaus += tapaht.wheel.y;
-	      LAITOT.lisatd = 1;
+	      laitot |= lisatdlai;
 	      break;
-	    case muut:
-	      o = kaikki->muut_o;
+	    case muutal:
+	      o = &muutol;
 	      riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
-	      if((o->alku + riveja == _ylaske(_yalkuun(kaikki->muut_a)) && tapaht.wheel.y < 0) || \
+	      if((o->alku + riveja == _ylaske(_yalkuun(muut_a)) && tapaht.wheel.y < 0) || \
 		 (o->rullaus == 0 && tapaht.wheel.y > 0))
 		break;
 	      o->rullaus += tapaht.wheel.y;
-	      LAITOT.muut = 1;
+	      laitot |= muutlai;
 	      break;
 	    default:
 	      break;
@@ -609,11 +594,11 @@ int kaunnista(kaikki_s *kaikki) {
 	  }
 	case SDL_MOUSEMOTION:;
 	  alue_e vanha = alue;
-	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y, kaikki);
+	  alue = hae_alue(tapaht.motion.x, tapaht.motion.y);
 	  switch(alue) {
-	  case kello:
-	  case lisatd:
-	  case sektus:
+	  case kelloal:
+	  case lisatdal:
+	  case sektusal:
 	    if(hlaji != teksti) {
 	      SDL_FreeCursor(kursori);
 	      kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
@@ -621,11 +606,11 @@ int kaunnista(kaikki_s *kaikki) {
 	      hlaji = teksti;
 	    }
 	    break;
-	  case jarjestus1:
-	  case jarjestus2:;
-	    tekstiolio_s* o = kaikki->jarj1_o;
-	    if(alue == jarjestus2)
-	      o = kaikki->jarj2_o;
+	  case jarjestus1al:
+	  case jarjestus2al:;
+	    tekstiolio_s* o = &jarjol1;
+	    if(alue == jarjestus2al)
+	      o = &jarjol2;
 	    apuind = (o->alku + (tapaht.button.y - o->toteutuma->y) /	\
 		      TTF_FontLineSkip(o->font));
 	    if(apuind+1 < _ylaske(SIJARJ)) {
@@ -633,22 +618,22 @@ int kaunnista(kaikki_s *kaikki) {
 	      apuind--;
 	      goto LAITA_AIKA_NAKUVIIN;
 	    }
-	    LAITOT.tkstal = 1;
+	    laitot |= tkstallai;
 	    break;
-	  case tulokset:;
+	  case tuloksetal:;
 	    /*laitetaan aika näkyviin*/
-	    apuind = LISTARIVI(tulos_o);
-	    if(apuind < _ylaske_taakse(kaikki->tkset->tuloshetki)) {
+	    apuind = LISTARIVI(tulosol);
+	    if(apuind < _ylaske_taakse(tkset.tuloshetki)) {
 	    LAITA_AIKA_NAKUVIIN:;
 	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
 	      struct tm *aika = localtime(&aika_t);
 	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
-	      LAITOT.tkstal = 1;
+	      laitot |= tkstallai;
 	    }
 	    /*ei break-komentoa*/
-	  case muut:
+	  case muutal:
 	  case tietoalue:
-	  case tarkasteluaikanappi:
+	  case tarkasteluaikanappial:
 	    if(hlaji != kasi) {
 	      SDL_FreeCursor(kursori);
 	      kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
@@ -656,8 +641,8 @@ int kaunnista(kaikki_s *kaikki) {
 	      hlaji = kasi;
 	    }
 	    break;
-	  case tiedot:
-	  case muu:
+	  case tiedotal:
+	  case muual:
 	    if(hlaji != perus) {
 	      SDL_FreeCursor(kursori);
 	      kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -666,10 +651,10 @@ int kaunnista(kaikki_s *kaikki) {
 	    }
 	    break;
 	  }
-	  if( (vanha == tulokset && alue != tulokset) ||		\
-	      (vanha == jarjestus1 && alue != jarjestus1) ||		\
-	      (vanha == jarjestus2 && alue != jarjestus2) ) { //poistuttiin tuloksista
-	    LAITOT.tkstal = 1;
+	  if( (vanha == tuloksetal && alue != tuloksetal) ||		\
+	      (vanha == jarjestus1al && alue != jarjestus1al) ||		\
+	      (vanha == jarjestus2al && alue != jarjestus2al) ) { //poistuttiin tuloksista
+	    laitot |= tkstallai;
 	    if(tila != kirjoitustila)
 	      strcpy(TEKSTI, "");
 	    else
@@ -679,13 +664,13 @@ int kaunnista(kaikki_s *kaikki) {
 	  break;
 	case SDL_TEXTINPUT:
 	  strcat(KELLO, tapaht.text.text);
-	  LAITOT.kello=1;
+	  laitot |= kellolai;
 	  break;
 	case SDL_WINDOWEVENT:
 	  switch(tapaht.window.event) {
 	  case SDL_WINDOWEVENT_RESIZED:
-	    SDL_RenderClear(kaikki->rend);
-	    LAITOT = kaikki_laitot();
+	    SDL_RenderClear(rend);
+	    laitot = kaikki_laitot;
 	    break;
 	  }
 	  break;
@@ -698,7 +683,7 @@ int kaunnista(kaikki_s *kaikki) {
       seuraavaksi tarkistetaan mahdollisen kuution tapahtumat*/ 
     switch(ipc->viesti) {
     case ipcAnna_sekoitus:
-      laita_sekoitus(ipc, kaikki->sekoitukset->str);
+      laita_sekoitus(ipc, sektus->str);
       break;
     case ipcTarkastelu:
       ipc->viesti = 0;
@@ -727,7 +712,7 @@ int kaunnista(kaikki_s *kaikki) {
 		(sakko==dnf)? "Ø(" : "",				\
 		min, sek/10, sek%10, csek/10, csek%10,			\
 		(sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
-      LAITOT.kello=1;
+      laitot |= kellolai;
     } else if (tila == tarkastelee) {
       gettimeofday(&nyt, NULL);
       dnyt = nyt.tv_sec + nyt.tv_usec/1.0e6;
@@ -737,17 +722,18 @@ int kaunnista(kaikki_s *kaikki) {
       } else if(aika > -2) {
 	sprintf(KELLO, " +2");
 	sakko = plus;
-	kaikki->kello_o->vari = kaikki->kvarit[2];
+	kellool.vari = kellovarit[2];
       } else {
 	sprintf(KELLO, "DNF");
 	sakko = dnf;
-	kaikki->kello_o->vari = kaikki->kvarit[3];
+	kellool.vari = kellovarit[3];
       }
-      LAITOT.kello=1;
+      laitot |= kellolai;
     }
     
-    piirra(kaikki);
-    SDL_Delay(kaikki->viive);
+    if(laitot)
+      piirra();
+    SDL_Delay(viive);
   } //while(1)
 }
 
@@ -763,40 +749,39 @@ char piste_alueella(int x, int y, SDL_Rect* alue) {
   return 1;
 }
 
-alue_e hae_alue(int x, int y, kaikki_s *kaikki) {
-  if(piste_alueella(x, y, kaikki->kello_o->toteutuma))
-    return kello;
-  if(piste_alueella(x, y, kaikki->tulos_o->toteutuma))
-    return tulokset;
-  if(piste_alueella(x, y, kaikki->jarj1_o->toteutuma))
-    return jarjestus1;
-  if(piste_alueella(x, y, kaikki->jarj2_o->toteutuma))
-    return jarjestus2;
-  if(piste_alueella(x, y, kaikki->tiedot_o->toteutuma))
-    return tiedot;
-  if(piste_alueella(x, y, kaikki->sektus_o->toteutuma))
-    return sektus;
-  if(piste_alueella(x, y, kaikki->vnta_o->kuvat->sij))
-    return tarkasteluaikanappi;
-  if(piste_alueella(x, y, kaikki->muut_o->toteutuma))
-    return muut;
-  if(piste_alueella(x, y, kaikki->lisa_o->toteutuma))
-    return lisatd;
-  if(piste_alueella(x, y, kaikki->tluvut_o->toteutuma)) {
-    if(((x - kaikki->tluvut_o->toteutuma->x) / (kaikki->tluvut_o->toteutuma->w / 6)) % 2)
+alue_e hae_alue(int x, int y) {
+  if(piste_alueella(x, y, kellool.toteutuma))
+    return kelloal;
+  if(piste_alueella(x, y, tulosol.toteutuma))
+    return tuloksetal;
+  if(piste_alueella(x, y, jarjol1.toteutuma))
+    return jarjestus1al;
+  if(piste_alueella(x, y, jarjol2.toteutuma))
+    return jarjestus2al;
+  if(piste_alueella(x, y, tiedotol.toteutuma))
+    return tiedotal;
+  if(piste_alueella(x, y, sektusol.toteutuma))
+    return sektusal;
+  if(piste_alueella(x, y, vntaol.kuvat->sij))
+    return tarkasteluaikanappial;
+  if(piste_alueella(x, y, muutol.toteutuma))
+    return muutal;
+  if(piste_alueella(x, y, lisaol.toteutuma))
+    return lisatdal;
+  if(piste_alueella(x, y, tluvutol.toteutuma)) {
+    if(((x - tluvutol.toteutuma->x) / (tluvutol.toteutuma->w / 6)) % 2)
       return tietoalue;
   }
-  return muu;
+  return muual;
 }
 
-char N = 4;
 char* sekoitus(char* s) {
   short pit;
-  if(N == 2)
+  if(NxN == 2)
     pit = 9;
   else
-    pit = (N-2)*20;
-  char paksuus = N/2;
+    pit = (NxN-2)*20;
+  char paksuus = NxN/2;
   const char pinnat[] = "RLUDFBrludfb";
   const char suunnat[] = " '2";
   char akseli, viimeakseli=10, paks;
@@ -851,7 +836,7 @@ char* sekoitus(char* s) {
     paksKiellot[puolisko][paksKieltoja[puolisko]] = paks;
     paksKieltoja[puolisko]++;
     /*Parillisilla kuutioilla ei sallita esim N/2u ja N/2d peräkkäin*/
-    if(N % 2 == 0 && paks == paksuus) {
+    if(NxN % 2 == 0 && paks == paksuus) {
       int toinen = (puolisko+1) % 2;
       paksKiellot[toinen][paksKieltoja[toinen]] = paksuus;
       paksKieltoja[toinen]++;
@@ -868,7 +853,7 @@ char* sekoitus(char* s) {
       }
     
     /*tulostus*/
-    if(N > 5 && paks)
+    if(NxN > 5 && paks)
       if(i==0) {
 	sprintf(s, "%hhu%c%c", paks, pinnat[pinta], suunnat[rand() % 3]);
       } else {
@@ -887,14 +872,14 @@ char* sekoitus(char* s) {
   return s;
 }
 
-inline void __attribute__((always_inline)) laita_eri_sekunnit(kaikki_s* k, char* tmps) {
-  int *ia = eri_sekunnit(k->tkset->fjarj->seur, NULL, 0);
+inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
+  int *ia = eri_sekunnit(tkset.fjarj->seur, NULL, 0);
   int tmp=0;
-  int hyv = _ylaske(k->tkset->fjarj->seur);
-  int yht = _ylaske(_yalkuun(k->tkset->ftulos));
+  int hyv = _ylaske(tkset.fjarj->seur);
+  int yht = _ylaske(_yalkuun(tkset.ftulos));
   int dnf = yht - hyv;
-  k->lisatd = _strpoista_kaikki(_yalkuun(k->lisatd));
-  k->lisatd = _strlisaa_kopioiden(k->lisatd, "aika  määrä");
+  lisatd = _strpoista_kaikki(_yalkuun(lisatd));
+  lisatd = _strlisaa_kopioiden(lisatd, "aika  määrä");
   float osuus;
   float kertuma = 0;
   while(ia[tmp] != -1) {
@@ -902,18 +887,18 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(kaikki_s* k, char*
     kertuma += osuus;
     sprintf(tmps, "%i    %i    %.3f    %.3f",		\
 	    ia[tmp], ia[tmp+1], osuus, kertuma);
-    k->lisatd = _strlisaa_kopioiden(k->lisatd, tmps);
+    lisatd = _strlisaa_kopioiden(lisatd, tmps);
     tmp+=2;
   }
   if(dnf) {
     osuus = dnf/(float)yht;
     kertuma += osuus;
     sprintf(tmps, "DNF  %i    %.3f    %.3f", dnf, osuus, kertuma);
-    k->lisatd = _strlisaa_kopioiden(k->lisatd, tmps);
+    lisatd = _strlisaa_kopioiden(lisatd, tmps);
   }
   free(ia);
-  k->lisatd = _yalkuun(k->lisatd);
-  k->laitot->lisatd = 1;
+  lisatd = _yalkuun(lisatd);
+  laitot |= lisatdlai;
   return;
 }
 

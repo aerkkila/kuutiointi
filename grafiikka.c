@@ -2,93 +2,103 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <listat.h>
-#include "rakenteet.h"
+#include "cfg.h"
 #include "grafiikka.h"
 
-#define PYYHI(olio) SDL_RenderFillRect(k->rend, k->olio->toteutuma)
-#define KELLO (k->kello_o->teksti)
-#define LAITOT (*(k->laitot))
+#define PYYHI(olio) SDL_RenderFillRect(rend, olio.toteutuma)
+#define KELLO (kellool.teksti)
+
+unsigned short laitot = 0x01ff;
+const unsigned short kellolai  = 0x0001;
+const unsigned short sektuslai = 0x0002;
+const unsigned short tuloslai  = 0x0004;
+const unsigned short jarjlai   = 0x0008;
+const unsigned short tiedtlai  = 0x0010;
+const unsigned short lisatdlai = 0x0020;
+const unsigned short muutlai   = 0x0040;
+const unsigned short tkstallai = 0x0080;
+const unsigned short vntalai   = 0x0100;
+const unsigned short muuta_tulos = 0x3e; //sektuslai | tuloslai | jarjlai | tiedtlai | lisatdlai;
+const unsigned short kaikki_laitot = 0x01ff;
 
 float skaala = 1.0;
 
-void piirra(kaikki_s* k) {
+void piirra() {
   /*pyyhitään vanhat*/
-  if(LAITOT.kello)
-    PYYHI(kello_o);
-  if(LAITOT.valinta) {
-    SDL_RenderFillRect(k->rend, k->vnta_o->kuvat->sij);
-    PYYHI(vnta_o->teksti);
+  if(laitot & kellolai)
+    PYYHI(kellool);
+  if(laitot & vntalai) {
+    SDL_RenderFillRect(rend, vntaol.kuvat->sij);
+    PYYHI(vntaol.teksti);
   }
-  if(LAITOT.sektus)
-    PYYHI(sektus_o);
-  if(LAITOT.tulos)
-    PYYHI(tulos_o);
-  if(LAITOT.jarj) {
-    PYYHI(jarj1_o);
-    PYYHI(jarj2_o);
+  if(laitot & sektuslai)
+    PYYHI(sektusol);
+  if(laitot & tuloslai)
+    PYYHI(tulosol);
+  if(laitot & jarjlai) {
+    PYYHI(jarjol1);
+    PYYHI(jarjol2);
   }
-  if(LAITOT.tiedot) {
-    PYYHI(tiedot_o);
-    PYYHI(tluvut_o);
+  if(laitot & tiedtlai) {
+    PYYHI(tiedotol);
+    PYYHI(tluvutol);
   }
-  if(LAITOT.lisatd)
-    PYYHI(lisa_o);
-  if(LAITOT.muut)
-    PYYHI(muut_o);
-  if(LAITOT.tkstal)
-    PYYHI(tkstal_o);
+  if(laitot & lisatdlai)
+    PYYHI(lisaol);
+  if(laitot & muutlai)
+    PYYHI(muutol);
+  if(laitot & tkstallai)
+    PYYHI(tkstalol);
 
   /*laitetaan uudet*/
-  if(LAITOT.kello) {
+  if(laitot & kellolai) {
     if(KELLO[0])
-      laita_teksti_ttf(k->kello_o, k->rend);
-    LAITOT.kello = 0;
+      laita_teksti_ttf(&kellool, rend);
+    laitot &= ~kellolai;
   }
-  if(LAITOT.valinta) {
-    laita_valinta(k->vnta_o, k->rend);
-    LAITOT.valinta = 0;
+  if(laitot & vntalai) {
+    laita_valinta(&vntaol, rend);
+    laitot &= ~vntalai;
   }
-  if(LAITOT.muut) {
-    laita_vierekkain(k->muut_a, k->muut_b, 0, k->muut_o, k->rend);
-    LAITOT.muut = 0;
+  if(laitot & muutlai) {
+    laita_vierekkain(muut_a, muut_b, 0, &muutol, rend);
+    laitot &= ~muutlai;
   }
-  if(LAITOT.sektus) {
-    laita_tekstilista(_yalkuun(k->sekoitukset), 1, k->sektus_o, k->rend);
-    LAITOT.sektus = 0;
+  if(laitot & sektuslai) {
+    laita_tekstilista(_yalkuun(sektus), 1, &sektusol, rend);
+    laitot &= ~sektuslai;
   }
-  if(LAITOT.tulos) {
-    laita_oikealle(k->kello_o, 10, _yalkuun(k->tkset->strtulos), 1, k->tulos_o, k->rend);
-    LAITOT.tulos = 0;
+  if(laitot & tuloslai) {
+    laita_oikealle(&kellool, 10, _yalkuun(tkset.strtulos), 1, &tulosol, rend);
+    laitot &= ~tuloslai;
   }
-  if(LAITOT.tkstal) {
-    laita_teksti_ttf_vasemmalle(k->tulos_o, 10, k->tkstal_o, k->rend);
-    LAITOT.tkstal = 0;
+  if(laitot & tkstallai) {
+    laita_teksti_ttf_vasemmalle(&tulosol, 10, &tkstalol, rend);
+    laitot &= ~tkstallai;
   }
-  if(LAITOT.jarj) {
-    strlista* a = _ynouda(_yalkuun(k->tkset->sijarj), 1);
-    strlista* b = _ynouda(_yalkuun(k->tkset->strjarj), 1);
-    int n = laita_pari_oikealle(k->tulos_o, 20,		\
-				a, b, 0,		\
-				k->jarj1_o, k->rend);
+  if(laitot & jarjlai) {
+    strlista* a = _ynouda(_yalkuun(tkset.sijarj), 1);
+    strlista* b = _ynouda(_yalkuun(tkset.strjarj), 1);
+    int n = laita_pari_oikealle(&tulosol, 20, a, b, 0, &jarjol1, rend);
     a = _ynouda(a, n);
     b = _ynouda(b, n);
-    laita_pari_oikealle(k->tulos_o, 20, a, b, 1, k->jarj2_o, k->rend);
-    k->jarj2_o->alku += n; //listaa ei ollut annettu alusta asti
-    if(k->jarj1_o->toteutuma->w < k->jarj2_o->toteutuma->w)
-      k->jarj1_o->toteutuma->w = k->jarj2_o->toteutuma->w;
-    LAITOT.jarj = 0;
+    laita_pari_oikealle(&tulosol, 20, a, b, 1, &jarjol2, rend);
+    jarjol2.alku += n; //listaa ei ollut annettu alusta asti
+    if(jarjol1.toteutuma->w < jarjol2.toteutuma->w)
+      jarjol1.toteutuma->w = jarjol2.toteutuma->w;
+    laitot &= ~jarjlai;
   }
-  if(LAITOT.tiedot) {
+  if(laitot & tiedtlai) {
     /*tässä muuttujien nimet ovat aivan epäloogiset*/
-    laita_oikealle(k->jarj1_o, 25, k->tietoalut, 1, k->tiedot_o, k->rend);
-    laita_oikealle(k->tiedot_o, 0, _yalkuun(k->tiedot), 1, k->tluvut_o, k->rend);
-    LAITOT.tiedot = 0;
+    laita_oikealle(&jarjol1, 25, tietoalut, 1, &tiedotol, rend);
+    laita_oikealle(&tiedotol, 0, _yalkuun(tiedot), 1, &tluvutol, rend);
+    laitot &= ~tiedtlai;
   }
-  if(LAITOT.lisatd) {
-    laita_oikealle(k->jarj1_o, 20, _yalkuun(k->lisatd), 0, k->lisa_o, k->rend);
-    LAITOT.lisatd = 0;
+  if(laitot & lisatdlai) {
+    laita_oikealle(&jarjol1, 20, _yalkuun(lisatd), 0, &lisaol, rend);
+    laitot &= ~lisatdlai;
   }
-  SDL_RenderPresent(k->rend);
+  SDL_RenderPresent(rend);
 }
 
 void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
@@ -211,7 +221,7 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
     SDL_RenderCopy(rend, o->kuvat->valittu, NULL, o->kuvat->sij);
   else
     SDL_RenderCopy(rend, o->kuvat->ei_valittu, NULL, o->kuvat->sij);
-  laita_teksti_ttf(o->teksti, rend);
+  laita_teksti_ttf(&(o->teksti), rend);
   return;
 }
 

@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "cfg.h"
 #include "tulokset.h"
-#include "rakenteet.h"
 
 avgtulos avgn(flista* l, int n, int pois) {
   avgtulos r;
@@ -315,7 +315,7 @@ char tallenna(tkset_s* t, char* tiednimi) {
   return 1;
 }
 
-char lue_tiedosto(kaikki_s* k, char* tiednimi) {
+char lue_tiedosto(char* tiednimi) {
   FILE *f = fopen(tiednimi, "r");
   if(!f) {
     fprintf(stderr, "Virhe, ei tiedostoa \"%s\"\n", tiednimi);
@@ -325,8 +325,7 @@ char lue_tiedosto(kaikki_s* k, char* tiednimi) {
   float faika;
   int i;
   char c;
-  tkset_s* t = k->tkset;
-  char* kello = k->kello_o->teksti;
+  char* kello = kellool.teksti;
   
   while(1) {
     while((c=fgetc(f)) < 0x21) //välien yli
@@ -341,12 +340,12 @@ char lue_tiedosto(kaikki_s* k, char* tiednimi) {
       fprintf(stderr, "Virhe, tiedostosta \"%s\" ei luettu arvoa\n", tiednimi);
       goto LUETTU;
     }
-    t->ftulos = _flisaa(t->ftulos, faika);
-    t->tuloshetki = _ilisaa(t->tuloshetki, i);
-    t->strtulos = _strlisaa_kopioiden(t->strtulos, float_kelloksi(kello, faika));
+    tkset.ftulos = _flisaa(tkset.ftulos, faika);
+    tkset.tuloshetki = _ilisaa(tkset.tuloshetki, i);
+    tkset.strtulos = _strlisaa_kopioiden(tkset.strtulos, float_kelloksi(kello, faika));
   }
  LUETTU:
-  tee_jarjlista(t);
+  tee_jarjlista(&tkset);
   fclose(f);
   return 0;
 }

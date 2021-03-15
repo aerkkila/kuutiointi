@@ -1,6 +1,6 @@
 all: kajastin kuutio
 
-tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c ääni.c muistin_jako.c
+tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c ääni.c muistin_jako.c cfg.c
 kuutiotied=kuutio.c kuution_kommunikointi.c muistin_jako.c
 incdir=-I/usr/include/SDL2 -I/home/antterkk/c
 libdir=-L/home/antterkk/c
