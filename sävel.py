@@ -2,7 +2,7 @@
 
 import sounddevice as sd
 import numpy as np
-import time
+import time, sys, select
 
 taajuus = 16000; #oltava vähintään 2*f1
 Dt = 0.06; #vähintään 1/f0: 0,025, jos f0 = 40 Hz
@@ -18,6 +18,8 @@ sd.default.channels = (1,1);
 def kuuntele_savelia():
     toisto = 0;
     while 1:
+        if select.select([sys.stdin,],[],[],0.0)[0]:
+            break;
         data = sd.rec(Ns, blocking=1)[:,0];
         aika0 = time.time();
         #Spektri:
