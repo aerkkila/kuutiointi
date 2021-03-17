@@ -2,7 +2,8 @@
 
 import sounddevice as sd
 import numpy as np
-import time, sys, select
+import sys, select
+import sysv_ipc as ipc
 
 taajuus = 16000; #oltava vähintään 2*f1
 Dt = 0.06; #vähintään 1/f0: 0,025, jos f0 = 40 Hz
@@ -12,7 +13,12 @@ Ns = int(taajuus*Dt) #32000; 0,03 -> 960
 sd.default.samplerate = taajuus;
 sd.default.channels = (1,1);
 
-#Yksittäisiäi virhesäveliä voi tulla ympäristön metelistä.
+### muistiin liittyminen ###
+avain = ipc.ftok("/tmp", 44);
+shm = ipc.SharedMemory(avain, 0, 0);
+shm.attach(0,0);
+
+#Yksittäisiä virhesäveliä voi tulla ympäristön metelistä.
 #Siksi vaaditaan asian toistamista kahdesti
 #Sen jälkeen pitää tulla välissä tyhjää, jotta taas otetaan vastaan
 def kuuntele_savelia():
@@ -21,7 +27,6 @@ def kuuntele_savelia():
         if select.select([sys.stdin,],[],[],0.0)[0]:
             break;
         data = sd.rec(Ns, blocking=1)[:,0];
-        aika0 = time.time();
         #Spektri:
         #tarvitaan vain varianssi ja spektrin maksimi,
         #joten laatikkoikkuna kelpaa ja aiheuttaa vähiten laskentakuormaa
@@ -75,10 +80,13 @@ def kuuntele_savelia():
             toisto += 1;
             if(toisto == 2):
                 print(savel, savelsuhde);
+                shm.write(np.float32(savel));
             if(toisto == 1 and suhde > 250):
                 toisto = 2;
                 print(savel, savelsuhde);
+                shm.write(np.float32(savel));
         else:
             toisto = 0;
 
 kuuntele_savelia();
+shm.detach();

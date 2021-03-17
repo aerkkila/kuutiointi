@@ -3,10 +3,13 @@
 #include <sys/shm.h>
 #include "muistin_jako.h"
 
+const int projId = 55;
+const char shmTied[] = "/tmp";
+const int savelId = 44;
+
 shmRak_s* liity_muistiin() {
   static char luotu = 0;
-  const char shmTied[] = "shmTied.txt";
-  int avain = ftok(shmTied, PROJ_ID);
+  int avain = ftok(shmTied, projId);
   if(avain < 0) {
     perror("Virhe, ftok");
     return NULL;

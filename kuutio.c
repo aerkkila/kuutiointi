@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "kuutio.h"
 #include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
+#include "python_savel.h"
 
 #define PI 3.14159265358979
 
@@ -25,6 +28,7 @@ kuva_t* kuva;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
+volatile float* savelPtr;
 #endif
 
 inline void __attribute__((always_inline)) hae_nakuvuus() {
@@ -689,6 +693,29 @@ int main(int argc, char** argv) {
 	      viimeViesti = ipcAloita;
 	    }
 #endif
+#ifdef __PYTHON_SAVEL__
+	  case SDLK_F2:; //käynnistää sävelkuuntelijan
+	    pid_t pid1, pid2;
+	    if((pid1 = fork()) < 0) {
+	      perror("Haarukkavirhe pid1");
+	      break;
+	    } else if(!pid1) {
+	      if((pid2 = fork()) < 0) {
+		perror("Haarukkavirhe pid2");
+		exit(1);
+	      } else if (pid2) {
+		_exit(0);
+	      } else {
+		if(system("./sävel.py") < 0)
+		  perror("sävel.py");
+		exit(0);
+	      }
+	    } else
+	      waitpid(pid1, NULL, 0);
+	    savelPtr = savelmuistiin();
+	    *savelPtr = -1.0;
+	    break;
+#endif
 	  default:
 	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	      siirtokaista += tapaht.key.keysym.sym - '1';
@@ -745,12 +772,29 @@ int main(int argc, char** argv) {
 	hiiri_painettu = 0;
 	break;
       }
+    } //while poll_event
+#ifdef __PYTHON_SAVEL__
+    if(savelPtr) {
+      register float savel = *savelPtr;
+      if(savel > 0) {
+	int puoliask = savel_ero(savel);
+	printf("%i\n", puoliask);
+	*savelPtr = -1.0;
+      }
     }
+#endif
     paivita(kuutio, kuva);
     SDL_Delay(0.02);
   }
   
  ULOS:
+#ifdef __PYTHON_SAVEL__
+  if(savelPtr) {
+    if(system("pkill sävel.py") < 0)
+      printf("Sävel-ohjelmaa ei suljettu\n");
+    savelPtr = NULL;
+  }
+#endif
   for(int i=0; i<6; i++)
     free(kuva->pohjat[i]);
   free(kuva->pohjat);
