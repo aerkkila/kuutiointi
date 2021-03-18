@@ -495,9 +495,12 @@ int kaunnista() {
 		time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
-		char* tmpsekt = ((strlista*)_ynoudaf(sektus, tmpind, 0))->str;
-		sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsekt);
-		SDL_SetClipboardText(tmp);
+		/*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
+		strlista *tmpsektlis = _ynoudaf(sektus, tmpind, 0);
+		if(tmpsektlis) {
+		  sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsektlis->str);
+		  SDL_SetClipboardText(tmp);
+		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
