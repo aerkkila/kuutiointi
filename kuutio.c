@@ -504,7 +504,7 @@ void kaanto(char akseli, char maara) {
   return;
 }
 
-inline char onkoRatkaistu() {
+inline char __attribute__((always_inline)) onkoRatkaistu() {
   for(int sivu=0; sivu<6; sivu++) {
     char laji = kuutio->sivut[sivu][0];
     for(int i=1; i<kuutio->N*kuutio->N; i++)
@@ -514,6 +514,8 @@ inline char onkoRatkaistu() {
   return 1;
 }
 
+char kontrol = 0;
+
 inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
   kaanto(akseli, maara);
   for(int i=0; i<6; i++)
@@ -522,6 +524,8 @@ inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
 }
 
 inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, char maara) {
+  if(kontrol)
+    return;
   siirto(puoli, kaista, maara);
   for(int i=0; i<6; i++)
     suora_sivu_kuvaksi(i);
@@ -678,6 +682,10 @@ int main(int argc, char** argv) {
 	  case SDLK_LSHIFT:
 	    siirtokaista++;
 	    break;
+	  case SDLK_RCTRL:
+	  case SDLK_LCTRL:
+	    kontrol = 1;
+	    break;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
@@ -736,6 +744,10 @@ int main(int argc, char** argv) {
 	case SDLK_LSHIFT:
 	  siirtokaista = 1;
 	  break;
+	case SDLK_RCTRL:
+	case SDLK_LCTRL:
+	  kontrol = 0;
+	  break;
 	default:
 	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	    siirtokaista = 1;
@@ -792,27 +804,21 @@ int main(int argc, char** argv) {
       }
       switch(puoliask) {
       case 0:
-      case 1:
 	siirtoInl1(_r, suunta);
 	break;
       case 2:
-      case 3:
 	siirtoInl1(_l, suunta);
 	break;
       case 4:
-      case 5:
 	siirtoInl1(_u, suunta);
 	break;
-      case 6:
-      case 7:
+      case 5:
 	siirtoInl1(_d, suunta);
 	break;
-      case 8:
-      case 9:
+      case 7:
 	siirtoInl1(_f, suunta);
 	break;
       case 10:
-      case 11:
 	siirtoInl1(_b, suunta);
 	break;
       }

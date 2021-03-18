@@ -29,7 +29,7 @@ int savel_ero(float savel) {
   if(alkusavel < 0) {
     alkusavel = savel;
     printf("Alkusävel: %f.0\n", alkusavel);
-    return 0xffffffff;
+    return 0x7fffffff;
   }
   return round(12 * log(savel/alkusavel) / log(2));
 }
