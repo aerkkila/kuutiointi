@@ -4,3 +4,4 @@
 
 float* savelmuistiin();
 int savel_ero(float);
+void* sulje_savelmuisti(void*);

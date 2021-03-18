@@ -50,7 +50,7 @@ def kuuntele_savelia():
 
             ka0 = np.mean(Sxx[alaraja:ularaja]);
             ka1 = 0;
-            raja = ka0*10;
+            raja = ka0*30;
             ohi = 0;
             maks = 0;
             maksind = 0;
@@ -70,7 +70,7 @@ def kuuntele_savelia():
             ka1 = ka1/(ularaja-alaraja-ohi);
             arvo = maks-ka1;
             suhde = arvo/ka1
-            if(suhde > 25):
+            if(suhde > 60):
                 taaj = (maksind+1)/Dt;
                 if(arvo > savelpiikki):
                     savel = taaj;
@@ -79,11 +79,11 @@ def kuuntele_savelia():
         if(70 < savel and savel < 3500):
             toisto += 1;
             if(toisto == 2):
-                print(savel, savelsuhde);
+                #print(savel, savelsuhde);
                 shm.write(np.float32(savel));
             if(toisto == 1 and suhde > 250):
                 toisto = 2;
-                print(savel, savelsuhde);
+                #print(savel, savelsuhde);
                 shm.write(np.float32(savel));
         else:
             toisto = 0;

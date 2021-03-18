@@ -694,27 +694,31 @@ int main(int argc, char** argv) {
 	    }
 #endif
 #ifdef __PYTHON_SAVEL__
-	  case SDLK_F2:; //käynnistää sävelkuuntelijan
-	    pid_t pid1, pid2;
-	    if((pid1 = fork()) < 0) {
-	      perror("Haarukkavirhe pid1");
+	  case SDLK_F2:; //käynnistää tai sammuttaa sävelkuuntelijan
+	    if(!savelPtr) {
+	      pid_t pid1, pid2;
+	      if((pid1 = fork()) < 0) {
+		perror("Haarukkavirhe pid1");
+		break;
+	      } else if(!pid1) {
+		if((pid2 = fork()) < 0) {
+		  perror("Haarukkavirhe pid2");
+		  exit(1);
+		} else if (pid2) {
+		  _exit(0);
+		} else {
+		  if(system("./sävel.py") < 0)
+		    perror("sävel.py");
+		  exit(0);
+		}
+	      } else
+		waitpid(pid1, NULL, 0);
+	      savelPtr = savelmuistiin();
+	      *savelPtr = -1.0;
 	      break;
-	    } else if(!pid1) {
-	      if((pid2 = fork()) < 0) {
-		perror("Haarukkavirhe pid2");
-		exit(1);
-	      } else if (pid2) {
-		_exit(0);
-	      } else {
-		if(system("./sävel.py") < 0)
-		  perror("sävel.py");
-		exit(0);
-	      }
-	    } else
-	      waitpid(pid1, NULL, 0);
-	    savelPtr = savelmuistiin();
-	    *savelPtr = -1.0;
-	    break;
+	    } else {
+	      savelPtr = sulje_savelmuisti((void*)savelPtr);
+	    }
 #endif
 	  default:
 	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
@@ -776,12 +780,44 @@ int main(int argc, char** argv) {
 #ifdef __PYTHON_SAVEL__
     if(savelPtr) {
       register float savel = *savelPtr;
-      if(savel > 0) {
-	int puoliask = savel_ero(savel);
-	printf("%i\n", puoliask);
-	*savelPtr = -1.0;
+      if(savel < 0)
+	goto EI_SAVELTA;
+      int puoliask = savel_ero(savel);
+      printf("%i\n", puoliask);
+      *savelPtr = -1.0;
+      char suunta = 1;
+      if(puoliask < 0) {
+	puoliask += 12;
+	suunta = 3;
+      }
+      switch(puoliask) {
+      case 0:
+      case 1:
+	siirtoInl1(_r, suunta);
+	break;
+      case 2:
+      case 3:
+	siirtoInl1(_l, suunta);
+	break;
+      case 4:
+      case 5:
+	siirtoInl1(_u, suunta);
+	break;
+      case 6:
+      case 7:
+	siirtoInl1(_d, suunta);
+	break;
+      case 8:
+      case 9:
+	siirtoInl1(_f, suunta);
+	break;
+      case 10:
+      case 11:
+	siirtoInl1(_b, suunta);
+	break;
       }
     }
+  EI_SAVELTA:
 #endif
     paivita(kuutio, kuva);
     SDL_Delay(0.02);
