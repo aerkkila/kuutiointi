@@ -270,9 +270,18 @@ int main(int argc, char** argv) {
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 
   /*luetaan tiedosto tarvittaessa*/
-  if(argc > 1)
-    if(lue_tiedosto(argv[1]))
+  /*luettavaa voidaan rajata:
+    viimeiset 1000 --> -1000:
+    alkaen 1000:sta --> 1000:
+    1000 ensimmäistä --> :1000
+    alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne*/
+  if(argc > 2) {
+    if( lue_tiedosto(argv[1], argv[2]) )
       return 1;
+  } else if(argc > 1) {
+    if( lue_tiedosto(argv[1], "") )
+      return 1;
+  }
   
   r = kaunnista();
 

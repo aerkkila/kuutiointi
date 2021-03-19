@@ -218,6 +218,7 @@ int kaunnista() {
 		  } else {
 		    strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
 		  }
+		  break;
 		case kuutionKokoKirj:
 		  sscanf(KELLO, "%hhu", &NxN);
 		  strcpy(TEKSTI, "");
@@ -225,7 +226,7 @@ int kaunnista() {
 		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		  break;
 		case avaa_tiedostoKirj:
-		  lue_tiedosto(KELLO);
+		  lue_tiedosto(KELLO, "");
 		  TEE_TIEDOT;
 		  laitot = kaikki_laitot;
 		  break;

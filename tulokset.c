@@ -315,7 +315,7 @@ char tallenna(tkset_s* t, char* tiednimi) {
   return 1;
 }
 
-char lue_tiedosto(char* tiednimi) {
+char lue_tiedosto(char* tiednimi, char* rajaus) {
   FILE *f = fopen(tiednimi, "r");
   if(!f) {
     fprintf(stderr, "Virhe, ei tiedostoa \"%s\"\n", tiednimi);
@@ -345,6 +345,48 @@ char lue_tiedosto(char* tiednimi) {
     tkset.strtulos = _strlisaa_kopioiden(tkset.strtulos, float_kelloksi(kello, faika));
   }
  LUETTU:
+  /*rajataan*/
+  if(strlen(rajaus)) {
+    int alku, loppu, kpl; //loppu on 1., jota ei tule
+    if( sscanf(rajaus, ":%i", &loppu) == 1) {
+      alku = 0;
+    } else {
+      int skan = sscanf(rajaus, "%i:%i", &alku, &loppu);
+      switch(skan) {
+      case 0:
+      case -1:
+	fprintf(stderr, "Virheellinen rajausargumentti\n");
+	break;
+      case 1:
+	loppu = -1;
+	break;
+      }
+    }
+    if(loppu < alku)
+      goto TEE_LISTA;
+    int *poist;
+    int pit = _ylaske(_yalkuun(tkset.ftulos));
+    if(alku < 0)
+      alku += pit;
+    if(loppu < 0)
+      loppu += pit+1;
+    kpl = pit-(loppu-alku);
+    poist = malloc(kpl*sizeof(int));
+    int ind=0;
+    for(int i=0; i<alku; i++)
+      poist[ind++] = i;
+    for(int i=loppu; i<pit; i++)
+      poist[ind++] = i;
+    if(ind != kpl)
+      fprintf(stderr, "Virhe poistossa: %i ≠ %i\n", kpl, ind);
+    if(poist) {
+      tkset.ftulos = _yloppuun(_yrm(_yalkuun(tkset.ftulos), poist, kpl));
+      tkset.tuloshetki = _yloppuun(_yrm(_yalkuun(tkset.tuloshetki), poist, kpl));
+      tkset.strtulos = _yloppuun(_strpoista(_yalkuun(tkset.strtulos), poist, kpl));
+      free(poist);
+    }
+  }
+ TEE_LISTA:
   tee_jarjlista(&tkset);
   fclose(f);
   return 0;

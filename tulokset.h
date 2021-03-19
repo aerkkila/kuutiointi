@@ -16,7 +16,7 @@ void lisaa_listoille(tkset_s* t, char* kello, time_t hetki);
 void poista_listoilta(tkset_s*, int);
 float lue_kellosta(char* s);
 char tallenna(tkset_s* t, char* tiednimi);
-char lue_tiedosto(char* tiednimi);
+char lue_tiedosto(char* tiednimi, char* rajaus);
 void tee_jarjlista(tkset_s* t);
 char* float_kelloksi(char* kello, float f);
 void muuta_sakko(tkset_s* t, char* teksti, int ind);
