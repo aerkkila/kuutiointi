@@ -373,17 +373,17 @@ int kaunnista() {
 			    (tluvutol.toteutuma->w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
 	      lisatd = _strpoista_kaikki(_yalkuun(lisatd));
-	      strlista* sektus = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
+	      strlista* sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
 	      switch (rivi) {
 	      case 0:
 	      case 1:
 	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(&tkset, sektus, avgind[sarake]-4, 5);
+		lisatd = tee_lisatiedot(&tkset, sektus1, avgind[sarake]-4, 5);
 		break;
 	      case 2:
 	      case 3:
 	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(&tkset, sektus, avgind[sarake+3]-11, 12);
+		lisatd = tee_lisatiedot(&tkset, sektus1, avgind[sarake+3]-11, 12);
 		break;
 	      case 4:
 	        lisatd = _strpoista_kaikki(lisatd);
