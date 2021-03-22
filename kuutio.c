@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "kuutio.h"
+#include "kuution_grafiikka.h"
 #include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
 #include "python_savel.h"
@@ -40,7 +41,7 @@ inline void __attribute__((always_inline)) hae_nakuvuus() {
     kuutio->nakuvat |= alatavu;
   if(kuutio->rotY < 0)
     kuutio->nakuvat |= oiktavu;
-  else
+  else if(kuutio->rotY > 0)
     kuutio->nakuvat |= vastavu;
   char tmpx = 0;
   char tmpy = 0;
@@ -96,173 +97,6 @@ void* tuhoa_kuutio() {
   return NULL;
 }
 
-kuva_t* suora_sivu_kuvaksi(const int sivu) {
-  char* pohja = kuva->pohjat[sivu];
-  int N = kuutio->N;
-  int resol = kuva->res1;
-  int resPala = resol/N;
-  for(int palaI=0; palaI<N; palaI++) {
-    for(int i=0; i<resPala; i++) {
-      int iKoord = palaI*resPala + i;
-      for(int palaJ=0; palaJ<N; palaJ++) {
-	for(int j=0; j<resPala; j++) {
-	  int jKoord = palaJ*resPala + j;
-	  pohja[iKoord*resol+jKoord] = kuutio->sivut[sivu][palaI*N+palaJ];
-	}
-      }
-    }
-  }
-  /*tehdään raot palojen välille*/
-  return kuva;
-}
-
-typedef struct {
-  float x;
-  float y;
-  float z;
-} koordf;
-
-void tee_koordtit() {
-  float xsij0, ysij0, zsij0, cosx, sinx, cosy, siny;
-  float x,y;
-  float xrot = kuutio->rotX, yrot = kuutio->rotY;
-  char nakuvat = kuutio->nakuvat;
-  int pit = kuva->res1*kuva->res1;
-  int res1 = kuva->res1;
-  int res2 = res1/2;
-  koordf ktit[pit];
-  
-  /*1. pyöräytys erikseen kullekin sivulle, 2. on sama kaikilla*/
-  cosx = cosf(xrot);
-  sinx = sinf(xrot);
-  cosy = cosf(yrot);
-  siny = sinf(yrot);
-
-  for(int sivu=0; sivu<6; sivu++) {
-    switch(sivu){
-    case _u:
-      if(!(nakuvat & ulatavu))
-	continue;
-      ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
-      /*x-pyöräytys, j-liikuttaa z-suunnassa*/
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = (i+xsij0)*1.0;
-	  ktit[i*res1+j].y = ysij0*cosx - (j+zsij0)*sinx;
-	  ktit[i*res1+j].z = ysij0*sinx + (j+zsij0)*cosx;
-	}
-      }
-      break;
-    case _d:
-      if(!(nakuvat & alatavu))
-	continue;
-      ysij0 = -res2; xsij0 = -res2; zsij0 = res2;
-      /*x-pyöräytys, j-liikuttaa -z-suunnassa*/
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = (i+xsij0)*1.0;
-	  ktit[i*res1+j].y = ysij0*cosx - (-j+zsij0)*sinx;
-	  ktit[i*res1+j].z = ysij0*sinx + (-j+zsij0)*cosx;
-	}
-      }
-      break;
-    case _r:
-      if(!(nakuvat & oiktavu))
-	continue;
-      ysij0 = res2; xsij0 = res2; zsij0 = res2;
-      /*x-pyöräytys, i-liikuttaa -z-suunnassa, j = -y*/
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = xsij0 * 1.0;
-	  ktit[i*res1+j].y = (-j+ysij0)*cosx - (-i+zsij0)*sinx;
-	  ktit[i*res1+j].z = (-j+ysij0)*sinx + (-i+zsij0)*cosx;
-	}
-      }
-      break;
-    case _l:
-      if(!(nakuvat & vastavu))
-	continue;
-      ysij0 = res2; xsij0 = -res2; zsij0 = -res2;
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = xsij0 * 1.0;
-	  ktit[i*res1+j].y = (-j+ysij0)*cosx - (i+zsij0)*sinx;
-	  ktit[i*res1+j].z = (-j+ysij0)*sinx + (i+zsij0)*cosx;
-	}
-      }
-      break;
-    case _f:
-      if(!(nakuvat & etutavu))
-	continue;
-      ysij0 = res2; xsij0 = -res2; zsij0 = res2;
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = (i+xsij0)*1.0;
-	  ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
-	  ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
-	}
-      }
-      break;
-    case _b:
-      if(!(nakuvat & taktavu))
-	continue;
-      ysij0 = res2; xsij0 = res2; zsij0 = -res2;
-      for(int i=0; i<res1; i++) {
-	for(int j=0; j<res1; j++) {
-	  ktit[i*res1+j].x = (-i+xsij0)*1.0;
-	  ktit[i*res1+j].y = (-j+ysij0)*cosx - zsij0*sinx;
-	  ktit[i*res1+j].z = (-j+ysij0)*sinx + zsij0*cosx;
-	}
-      }
-      break;
-    } //switch
-    
-    /*2. y-pyöräytys, joka ymmärtääkseni pitäisi olla sama kaikilla,
-      mutta ei näytä olevan, tämä on saatu kokeilemalla
-      "koodi toimii, mutta en tiedä, miksi"*/
-    switch(sivu) {
-    case _u:
-    case _l:
-    case _f:
-    for(int i=0; i<kuva->pit; i++) {
-      x = ktit[i].x*cosy + ktit[i].z*siny;
-      y = ktit[i].y;
-      kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-      kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0);
-    }
-    break;
-    case _r:
-    case _b:
-      for(int i=0; i<kuva->pit; i++) {
-	x = ktit[i].x*cosy + ktit[i].z*siny;
-	y = ktit[i].y;
-	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0)+res1;
-	kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0);
-      }
-      break;
-    case _d:
-      for(int i=0; i<kuva->pit; i++) {
-	x = ktit[i].x*cosy + ktit[i].z*siny;
-	y = ktit[i].y;
-	kuva->koordtit[sivu][i].x = (short)(x+kuva->sij0-xsij0);
-	kuva->koordtit[sivu][i].y = (short)(-y+kuva->sij0+ysij0) + res1;
-      }
-      break;
-    }
-  }
-}
-
-void piirra_kuvaksi(const int sivu) {
-  koord* ktit = kuva->koordtit[sivu];
-  char* pohja = kuva->pohjat[sivu];
-  for(int i=0; i<kuva->pit; i++) {
-    short laji = pohja[i];
-    vari vari = kuutio->varit[laji];
-    SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
-    SDL_RenderDrawPoint(kuva->rend, ktit[i].x, ktit[i].y);
-  }
-}
-
 void paivita() {
   if(!kuva->paivita)
     return;
@@ -272,15 +106,15 @@ void paivita() {
   
   if(kuutio->nakuvat & ulatavu)
     piirra_kuvaksi(_u);
-  else
+  else if(kuutio->nakuvat & alatavu)
     piirra_kuvaksi(_d);
   if(kuutio->nakuvat & etutavu)
     piirra_kuvaksi(_f);
-  else
+  else if(kuutio->nakuvat & taktavu)
     piirra_kuvaksi(_b);
   if(kuutio->nakuvat & oiktavu)
     piirra_kuvaksi(_r);
-  else
+  else if(kuutio->nakuvat & vastavu)
     piirra_kuvaksi(_l);
 
   SDL_RenderPresent(kuva->rend);
@@ -305,7 +139,7 @@ void siirto(int puoli, char siirtokaista, char maara) {
   char *sivu1, *sivu2;
 
   a = N-siirtokaista;
-  b = (N-1)-a;  
+  b = (N-1)-a;
   
   /*toiminta jaetaan kääntöakselin perusteella*/
   switch(puoli) {
@@ -518,8 +352,6 @@ char kontrol = 0;
 
 inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
   kaanto(akseli, maara);
-  for(int i=0; i<6; i++)
-    suora_sivu_kuvaksi(i);
   kuva->paivita = 1;
 }
 
@@ -527,8 +359,6 @@ inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, cha
   if(kontrol)
     return;
   siirto(puoli, kaista, maara);
-  for(int i=0; i<6; i++)
-    suora_sivu_kuvaksi(i);
   kuva->paivita = 1;
   kuutio->ratkaistu = onkoRatkaistu();
 #ifdef __KUUTION_KOMMUNIKOINTI__
@@ -574,16 +404,8 @@ int main(int argc, char** argv) {
   kuva->res1 = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
   kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->res1)/2: (ikkuna_w-kuva->res1)/2;
   kuva->pit = kuva->res1*kuva->res1;
-  kuva->pohjat = malloc(6*sizeof(char*));
-  for(int i=0; i<6; i++) {
-    kuva->pohjat[i] = malloc(kuva->res1*kuva->res1);
-    suora_sivu_kuvaksi(i);
-  }
-  kuva->koordtit = malloc(6*sizeof(koord*));
-  for(int i=0; i<6; i++)
-    kuva->koordtit[i] = malloc(kuva->pit*sizeof(koord));
-  tee_koordtit();
-
+  tee_kantavektorit();
+  tee_nurkan_koordtit();
 #ifdef __KUUTION_KOMMUNIKOINTI__
   ipc = liity_muistiin();
   if(!ipc)
@@ -686,6 +508,8 @@ int main(int argc, char** argv) {
 	  case SDLK_LCTRL:
 	    kontrol = 1;
 	    break;
+	  case SDLK_PAUSE:
+	    break; //tarvitaan debuggaukseen
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
@@ -780,7 +604,8 @@ int main(int argc, char** argv) {
 	    kuutio->rotX -= 2*PI;
 	  
 	  hae_nakuvuus();
-	  tee_koordtit();
+	  tee_kantavektorit();
+	  tee_nurkan_koordtit();
 	  kuva->paivita = 1;
 	}
 	break;
@@ -837,12 +662,6 @@ int main(int argc, char** argv) {
     savelPtr = NULL;
   }
 #endif
-  for(int i=0; i<6; i++)
-    free(kuva->pohjat[i]);
-  free(kuva->pohjat);
-  for(int i=0; i<6; i++)
-    free(kuva->koordtit[i]);
-  free(kuva->koordtit);
   SDL_DestroyRenderer(kuva->rend);
   SDL_DestroyWindow(kuva->ikkuna);
   free(kuva);

@@ -12,11 +12,7 @@ typedef enum {
 } sivu_e;
 
 typedef struct{ char v[3]; } vari;
-typedef struct{
-  short x;
-  short y;
-  //short z; jätetään pois koska kuva projisoidaan
-} koord;
+typedef struct{ float a[3]; } koordf;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
 
@@ -35,16 +31,20 @@ typedef struct {
   SDL_Window* ikkuna;
   SDL_Renderer* rend;
   char** pohjat;
-  koord** koordtit;
+  koordf kannat[3]; //kuution kantavektorit, pituus on palan särmän pituus*/
+  koordf nurkka; //C-nurkka eli ylä-etuvasen
   int xRes;
   int yRes;
   int sij0; //nurkan paikka kun katsotaan suoraan edestä
-  int res1;
+  float res1;
   int pit;
   char paivita;
 } kuva_t;
 
+#endif
+
+extern kuutio_t* kuutio;
+extern kuva_t* kuva;
+
 void siirto(int puoli, char kaista, char maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);
-
-#endif

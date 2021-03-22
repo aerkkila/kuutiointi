@@ -71,7 +71,5 @@ void lue_siirrot(shmRak_s* ipc) {
     while(ipc->data[i] == ' ')
       i++;
   }
-  for(int i=0; i<6; i++)
-    suora_sivu_kuvaksi(i);
   kuva->paivita = 1;
 }
