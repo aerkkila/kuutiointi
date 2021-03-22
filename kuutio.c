@@ -427,8 +427,10 @@ int main(int argc, char** argv) {
 	switch(tapaht.window.event) {
 	case SDL_WINDOWEVENT_RESIZED:;
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
-	  int koko0 = (kuva->xRes < kuva->yRes)? kuva->xRes: kuva->yRes;
-	  SDL_RenderSetScale(kuva->rend, koko1*1.0/koko0, koko1*1.0/koko0);
+	  kuva->res1 = koko1/sqrt(3.0);
+	  kuva->sij0 = (koko1-kuva->res1)/2;
+	  tee_nurkan_koordtit();
+	  tee_kantavektorit();
 	  kuva->paivita = 1;
 	  break;
 	}
