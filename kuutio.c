@@ -56,7 +56,6 @@ inline void __attribute__((always_inline)) hae_nakuvuus() {
 }
 
 kuutio_t* luo_kuutio(const unsigned char N) {
-  const char sivuja = 6;
   vari varit[6];
   varit[_u] = VARI(255,255,255); //valkoinen
   varit[_f] = VARI(0,  220,  0); //vihreä
@@ -66,16 +65,19 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   varit[_l] = VARI(220,120,0  ); //oranssi
   
   kuutio = malloc(sizeof(kuutio_t));
-  kuutio->sivuja = sivuja;
   kuutio->N = N;
   kuutio->rotX = PI/6;
   kuutio->rotY = -PI/6;
+  kuutio->ruutuValiKerr = 0.95;
   hae_nakuvuus();
-  kuutio->sivut = malloc(sivuja*sizeof(char*));
+  kuutio->sivut = malloc(6*sizeof(char*));
+  kuutio->ruudut = malloc(6*N*N*sizeof(koordf*));
+  for(int i=0; i<6*N*N; i++)
+    kuutio->ruudut[i] = malloc(4*sizeof(koordf));
   kuutio->varit = malloc(sizeof(varit));
   kuutio->ratkaistu = 1;
   
-  for(int i=0; i<sivuja; i++) {
+  for(int i=0; i<6; i++) {
     kuutio->varit[i] = varit[i];
     kuutio->sivut[i] = malloc(N*N);
     for(int j=0; j<N*N; j++)
@@ -85,10 +87,15 @@ kuutio_t* luo_kuutio(const unsigned char N) {
 }
 
 void* tuhoa_kuutio() {
-  for(int i=0; i<kuutio->sivuja; i++) {
+  for(int i=0; i<6; i++) {
     free(kuutio->sivut[i]);
     kuutio->sivut[i] = NULL;
   }
+  for(int i=0; i<6*kuutio->N*kuutio->N; i++) {
+    free(kuutio->ruudut[i]);
+    kuutio->ruudut[i] = NULL;
+  }
+  free(kuutio->ruudut);
   free(kuutio->sivut);
   kuutio->sivut = NULL;
   free(kuutio->varit);
@@ -401,11 +408,10 @@ int main(int argc, char** argv) {
   kuva->xRes = ikkuna_w;
   kuva->yRes = ikkuna_h;
   kuva->paivita = 1;
-  kuva->res1 = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
-  kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->res1)/2: (ikkuna_w-kuva->res1)/2;
-  kuva->pit = kuva->res1*kuva->res1;
-  tee_kantavektorit();
-  tee_nurkan_koordtit();
+  kuva->resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
+  kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->resKuut)/2: (ikkuna_w-kuva->resKuut)/2;
+  kuva->pit = kuva->resKuut*kuva->resKuut;
+  tee_ruutujen_koordtit();
 #ifdef __KUUTION_KOMMUNIKOINTI__
   ipc = liity_muistiin();
   if(!ipc)
@@ -427,10 +433,9 @@ int main(int argc, char** argv) {
 	switch(tapaht.window.event) {
 	case SDL_WINDOWEVENT_RESIZED:;
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
-	  kuva->res1 = koko1/sqrt(3.0);
-	  kuva->sij0 = (koko1-kuva->res1)/2;
-	  tee_nurkan_koordtit();
-	  tee_kantavektorit();
+	  kuva->resKuut = koko1/sqrt(3.0);
+	  kuva->sij0 = (koko1-kuva->resKuut)/2;
+	  tee_ruutujen_koordtit();
 	  kuva->paivita = 1;
 	  break;
 	}
@@ -594,8 +599,8 @@ int main(int argc, char** argv) {
 	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio->rotY += xEro*PI/(2*kuva->res1);
-	  kuutio->rotX += yEro*PI/(2*kuva->res1);
+	  kuutio->rotY += xEro*PI/(2*kuva->resKuut);
+	  kuutio->rotX += yEro*PI/(2*kuva->resKuut);
 	  if(kuutio->rotY < -PI)
 	    kuutio->rotY += 2*PI;
 	  else if (kuutio->rotY > PI)
@@ -606,8 +611,7 @@ int main(int argc, char** argv) {
 	    kuutio->rotX -= 2*PI;
 	  
 	  hae_nakuvuus();
-	  tee_kantavektorit();
-	  tee_nurkan_koordtit();
+	  tee_ruutujen_koordtit();
 	  kuva->paivita = 1;
 	}
 	break;

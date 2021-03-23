@@ -15,13 +15,16 @@ typedef struct{ char v[3]; } vari;
 typedef struct{ float a[3]; } koordf;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
+#define RUUTU(tahko,i,j) (tahko*kuutio->N*kuutio->N+i*kuutio->N+j)
 
 typedef struct {
   char** sivut;
+  koordf** ruudut;
+  float ruutuValiKerr;
   float rotX; //0:ssa katse on suoraan edestä
   float rotY;
+  float rotZ;
   vari* varit;
-  char sivuja; // aina 6
   char N; //NxNxN-kuutio
   char nakuvat;
   char ratkaistu;
@@ -30,13 +33,10 @@ typedef struct {
 typedef struct {
   SDL_Window* ikkuna;
   SDL_Renderer* rend;
-  char** pohjat;
-  koordf kannat[3]; //kuution kantavektorit, pituus on palan särmän pituus*/
-  koordf nurkka; //C-nurkka eli ylä-etuvasen
   int xRes;
   int yRes;
   int sij0; //nurkan paikka kun katsotaan suoraan edestä
-  float res1;
+  float resKuut;
   int pit;
   char paivita;
 } kuva_t;

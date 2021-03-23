@@ -3,41 +3,6 @@
 #include <math.h>
 #include "kuutio.h"
 
-void tee_nurkan_koordtit() {
-  float x,y,z;
-  float res2 = kuva->res1/2;
-  float xsij0 = -res2, ysij0 = res2, zsij0 = res2;
-  /*x-pyöräytys*/
-  x = xsij0;
-  y = ysij0*cosf(kuutio->rotX) - zsij0*sinf(kuutio->rotX);
-  z = ysij0*sinf(kuutio->rotX) + zsij0*cosf(kuutio->rotX);
-  /*y-pyöräytys*/
-  kuva->nurkka.a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY) - xsij0 + kuva->sij0;
-  kuva->nurkka.a[1] = y - ysij0 - kuva->sij0;
-  kuva->nurkka.a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY) - zsij0;
-}
-
-void tee_kantavektorit() {
-  float x,y,z;
-  float pit = kuva->res1/kuutio->N;
-  
-  for(int i=0; i<3; i++) {
-    if(i==0)      {x = pit; y = 0;    z = 0;}
-    else if(i==1) {x = 0;   y = -pit; z = 0;}
-    else          {x = 0;   y = 0;    z = -pit;}
-
-    /*x-pyöräytys*/
-    x = x;
-    y = y*cosf(kuutio->rotX) - z*sinf(kuutio->rotX);
-    z = y*sinf(kuutio->rotX) + z*cosf(kuutio->rotX);
-
-    /*y-pyöräytys*/
-    kuva->kannat[i].a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY);
-    kuva->kannat[i].a[1] = y;
-    kuva->kannat[i].a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY);
-  }
-}
-
 inline koordf __attribute__((always_inline)) vektKertI(koordf a, int b) {
   for(int i=0; i<3; i++)
     a.a[i] *= b;
@@ -56,63 +21,89 @@ koordf vektSum(int n, ...) {
   return r;
 }
 
-koordf* ruudun_nurkat(koordf *a, int tahko, char i, char j) {
+koordf* tee_ruudun_koordtit(koordf* a, int tahko, char i, char j) {
+  if(!a)
+    a = malloc(4*sizeof(koordf));
+  float x,y,z;
+  float res2 = kuva->resKuut/2;
+  float resPala = kuva->resKuut/kuutio->N;
+  koordf sij0 = (koordf){{-res2, res2, res2}};
+  koordf xkanta = (koordf){{resPala, 0, 0}};
+  koordf ykanta = (koordf){{0, -resPala, 0}};
+  koordf zkanta = (koordf){{0, 0, -resPala}};
   switch(tahko) {
   case _u:
-    a[0] = vektSum(3, kuva->nurkka,
-		   vektKertI(kuva->kannat[2], kuutio->N-j-1),
-		   vektKertI(kuva->kannat[0], i));
+    a[0] = vektSum(3, sij0,
+		   vektKertI(zkanta, kuutio->N-j-1),
+		   vektKertI(xkanta, i));
     break;
   case _f:
-    a[0] = vektSum(3, kuva->nurkka,
-		   vektKertI(kuva->kannat[0], i),
-		   vektKertI(kuva->kannat[1], j));
+    a[0] = vektSum(3, sij0,
+		   vektKertI(xkanta, i),
+		   vektKertI(ykanta, j));
     break;
   case _r:
-    a[0] = vektSum(4, kuva->nurkka,
-		   vektKertI(kuva->kannat[0], kuutio->N),
-		   vektKertI(kuva->kannat[2], i),
-		   vektKertI(kuva->kannat[1], j));
+    a[0] = vektSum(4, sij0,
+		   vektKertI(xkanta, kuutio->N),
+		   vektKertI(zkanta, i),
+		   vektKertI(ykanta, j));
     break;
   case _d:
-    a[0] = vektSum(4, kuva->nurkka,
-		   vektKertI(kuva->kannat[1], kuutio->N),
-		   vektKertI(kuva->kannat[0], i),
-		   vektKertI(kuva->kannat[2], j));
+    a[0] = vektSum(4, sij0,
+		   vektKertI(ykanta, kuutio->N),
+		   vektKertI(xkanta, i),
+		   vektKertI(zkanta, j));
     break;
   case _b:
-    a[0] = vektSum(4, kuva->nurkka,
-		   vektKertI(kuva->kannat[2], kuutio->N),
-		   vektKertI(kuva->kannat[0], kuutio->N-i-1),
-		   vektKertI(kuva->kannat[1], j));
+    a[0] = vektSum(4, sij0,
+		   vektKertI(zkanta, kuutio->N),
+		   vektKertI(xkanta, kuutio->N-i-1),
+		   vektKertI(ykanta, j));
     break;
   case _l:
-    a[0] = vektSum(3, kuva->nurkka,
-		   vektKertI(kuva->kannat[2], kuutio->N-i-1),
-		   vektKertI(kuva->kannat[1], j));
+    a[0] = vektSum(3, sij0,
+		   vektKertI(zkanta, kuutio->N-i-1),
+		   vektKertI(ykanta, j));
     break;
   }
   switch(tahko) {
   case _u:
   case _d:
-    a[1] = vektSum(2, a[0], kuva->kannat[0]);
-    a[2] = vektSum(2, a[1], kuva->kannat[2]);
-    a[3] = vektSum(2, a[0], kuva->kannat[2]);
+    a[1] = vektSum(2, a[0], xkanta);
+    a[2] = vektSum(2, a[1], zkanta);
+    a[3] = vektSum(2, a[0], zkanta);
     break;
   case _f:
   case _b:
-    a[1] = vektSum(2, a[0], kuva->kannat[0]);
-    a[2] = vektSum(2, a[1], kuva->kannat[1]);
-    a[3] = vektSum(2, a[0], kuva->kannat[1]);
+    a[1] = vektSum(2, a[0], xkanta);
+    a[2] = vektSum(2, a[1], ykanta);
+    a[3] = vektSum(2, a[0], ykanta);
     break;
   case _r:
   case _l:
-    a[1] = vektSum(2, a[0], kuva->kannat[1]);
-    a[2] = vektSum(2, a[1], kuva->kannat[2]);
-    a[3] = vektSum(2, a[0], kuva->kannat[2]);
+    a[1] = vektSum(2, a[0], ykanta);
+    a[2] = vektSum(2, a[1], zkanta);
+    a[3] = vektSum(2, a[0], zkanta);
     break;
+  }
+  for(int i=0; i<4; i++) {
+    /*x-pyöräytys*/
+    x = a[i].a[0];
+    y = a[i].a[1]*cosf(kuutio->rotX) - a[i].a[2]*sinf(kuutio->rotX);
+    z = a[i].a[1]*sinf(kuutio->rotX) + a[i].a[2]*cosf(kuutio->rotX);
+    /*y-pyöräytys*/
+    a[i].a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY) - sij0.a[0] + kuva->sij0;
+    a[i].a[1] = y - sij0.a[1] - kuva->sij0;
+    a[i].a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY) - sij0.a[2];
   }
   return a;
+}
+
+void tee_ruutujen_koordtit() {
+  for(int tahko=0; tahko<6; tahko++)
+    for(int i=0; i<kuutio->N; i++)
+      for(int j=0; j<kuutio->N; j++)
+	tee_ruudun_koordtit(kuutio->ruudut[RUUTU(tahko,i,j)], tahko, i, j);
 }
 
 int minKoordInd(koordf* ktit, int akseli, int pit) {
@@ -154,11 +145,8 @@ void piirra_ruutu(int tahko, int iRuutu, int jRuutu) {
   vari vari = kuutio->varit[(int)kuutio->sivut[tahko][iRuutu*kuutio->N+jRuutu]];
   SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
   
-  koordf *nurkat = malloc(4*sizeof(koordf));
-  ruudun_nurkat(nurkat, tahko, iRuutu, jRuutu);
-  koordf* xnurkat = jarjestaKoord(NULL, nurkat, 0,  4);
-  koordf* ynurkat = jarjestaKoord(nurkat, nurkat, 1, 4);
-  nurkat = NULL;
+  koordf* xnurkat = jarjestaKoord(NULL, kuutio->ruudut[RUUTU(tahko,iRuutu,jRuutu)], 0,  4);
+  koordf* ynurkat = jarjestaKoord(NULL, kuutio->ruudut[RUUTU(tahko,iRuutu,jRuutu)], 1,  4);
 
   if(fabs(xnurkat[0].a[0] - xnurkat[1].a[0]) < 0.5) {
     for(int i=xnurkat[0].a[0]; i<xnurkat[3].a[0]; i++)
