@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include "kuutio.h"
+#include "kuution_grafiikka.h"
 
 inline koordf __attribute__((always_inline)) vektKertI(koordf a, int b) {
   for(int i=0; i<3; i++)
@@ -202,4 +203,47 @@ void piirra_kuvaksi(int tahko) {
   for(int i=0; i<kuutio->N; i++)
     for(int j=0; j<kuutio->N; j++)
       piirra_ruutu(tahko, i, j);
+  korosta_tahko(tahko);
+}
+
+void korosta_tahko(int tahko) {
+  int paksuus = 10;
+  SDL_SetRenderDrawColor(kuva->rend, 0, 200, 255, 255);
+  koordf* ruutu = malloc(4*sizeof(koordf));
+  for(int iRuutu=0; iRuutu<kuutio->N; iRuutu++) {
+    /*alaosa*/
+    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,iRuutu,2)], 1, 4);
+    jarjestaKoord(ruutu, ruutu, 0, 2);
+    float kulmakerr = (ruutu[1].a[1]-ruutu[0].a[1]) / (ruutu[1].a[0]-ruutu[0].a[0]);
+    int iEro = ruutu[1].a[0]-ruutu[0].a[0];
+    for(int i=0; i<iEro; i++)
+      for(int j=-paksuus/2; j<paksuus/2; j++)
+	SDL_RenderDrawPoint(kuva->rend, i+ruutu[0].a[0], j-ruutu[0].a[1]-i*kulmakerr);
+    /*yläosa*/
+    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,iRuutu,0)], 1, 4);
+    jarjestaKoord(ruutu, ruutu+2, 0, 2);
+    iEro = ruutu[1].a[0]-ruutu[0].a[0];
+    for(int i=0; i<iEro; i++)
+      for(int j=-paksuus/2; j<paksuus/2; j++)
+	SDL_RenderDrawPoint(kuva->rend, i+ruutu[0].a[0], j-ruutu[0].a[1]-i*kulmakerr);
+  }
+  for(int jRuutu=0; jRuutu<kuutio->N; jRuutu++) {
+    /*vasen*/
+    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,0,jRuutu)], 0, 4);
+    jarjestaKoord(ruutu, ruutu, 1, 2);
+    float kulmakerr = (ruutu[1].a[0]-ruutu[0].a[0]) / (ruutu[1].a[1]-ruutu[0].a[1]);
+    int jEro = -ruutu[0].a[1]+ruutu[1].a[1];
+    for(int j=0; j<jEro; j++)
+      for(int i=-paksuus/2; i<paksuus/2; i++)
+	SDL_RenderDrawPoint(kuva->rend, i+ruutu[1].a[0]-j*kulmakerr, j-ruutu[1].a[1]);
+    /*oikea*/
+    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,2,jRuutu)], 0, 4);
+    jarjestaKoord(ruutu, ruutu+2, 1, 2);
+    kulmakerr = (ruutu[1].a[0]-ruutu[0].a[0]) / (ruutu[1].a[1]-ruutu[0].a[1]);
+    jEro = -ruutu[0].a[1]+ruutu[1].a[1];
+    for(int j=0; j<jEro; j++)
+      for(int i=-paksuus/2; i<paksuus/2; i++)
+	SDL_RenderDrawPoint(kuva->rend, i+ruutu[1].a[0]-j*kulmakerr, j-ruutu[1].a[1]);
+  }
+  free(ruutu);
 }
