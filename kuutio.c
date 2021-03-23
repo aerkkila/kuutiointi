@@ -72,6 +72,7 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   hae_nakuvuus();
   kuutio->sivut = malloc(6*sizeof(char*));
   kuutio->ruudut = malloc(6*N*N*sizeof(koordf*));
+  kuutio->nurkat = malloc(6*4*sizeof(koordf));
   for(int i=0; i<6*N*N; i++)
     kuutio->ruudut[i] = malloc(4*sizeof(koordf));
   kuutio->varit = malloc(sizeof(varit));
@@ -83,6 +84,7 @@ kuutio_t* luo_kuutio(const unsigned char N) {
     for(int j=0; j<N*N; j++)
       kuutio->sivut[i][j] = i;
   }
+  tee_ruutujen_koordtit();
   return kuutio;
 }
 
@@ -97,6 +99,8 @@ void* tuhoa_kuutio() {
   }
   free(kuutio->ruudut);
   free(kuutio->sivut);
+  free(kuutio->nurkat);
+  kuutio->nurkat = NULL;
   kuutio->sivut = NULL;
   free(kuutio->varit);
   kuutio->varit = NULL;
@@ -396,7 +400,6 @@ int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
   else
     oli_sdl = 1;
-  kuutio = luo_kuutio(N);
 
   /*Kuvan tekeminen*/
   kuva = malloc(sizeof(kuva_t));
@@ -411,7 +414,9 @@ int main(int argc, char** argv) {
   kuva->resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
   kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->resKuut)/2: (ikkuna_w-kuva->resKuut)/2;
   kuva->pit = kuva->resKuut*kuva->resKuut;
-  tee_ruutujen_koordtit();
+
+  kuutio = luo_kuutio(N);
+  
 #ifdef __KUUTION_KOMMUNIKOINTI__
   ipc = liity_muistiin();
   if(!ipc)

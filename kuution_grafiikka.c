@@ -206,6 +206,41 @@ void piirra_kuvaksi(int tahko) {
   korosta_tahko(tahko);
 }
 
+void piirra_viiva(koordf k1, koordf k2, int paksuus) {
+  float kulmakerr = (k2.a[1]-k1.a[1]) / (k2.a[0]-k1.a[0]);
+  int iEro = k1.a[0]-k2.a[0];
+  for(int i=0; i<iEro; i++)
+    for(int j=-paksuus/2; j<paksuus/2; j++)
+      SDL_RenderDrawPoint(kuva->rend, i+k1.a[0], j-k2.a[1]-i*kulmakerr);
+}
+
+void korosta_tahko(int tahko) {
+  int paksuus = 10;
+  koordf nurkka0, nurkka1, nurkka2;
+  SDL_SetRenderDrawColor(kuva->rend, 0, 200, 255, 255);
+  unsigned char nurkat = tahkon_nurkat[tahko];
+  int nurkInd = 0;
+  while(!nurkat & 0x01) {
+    nurkat >>= 1;
+    nurkInd++;
+  }
+  nurkInd++;
+  nurkka1 = *(kuutio->nurkat[nurkInd]);
+  nurkka0 = nurkka1;
+  for(int i=0; i<3; i++) {
+    while(!nurkat & 0x01) {
+      nurkat >>= 1;
+      nurkInd++;
+    }
+    nurkInd++;
+    nurkka2 = *(kuutio->nurkat[nurkInd]);
+    piirra_viiva(nurkka1, nurkka2, paksuus);
+    nurkka1 = nurkka2;
+  }
+  piirra_viiva(nurkka2, nurkka0, paksuus);
+}
+
+#if 0
 void korosta_tahko(int tahko) {
   int paksuus = 10;
   SDL_SetRenderDrawColor(kuva->rend, 0, 200, 255, 255);
@@ -247,3 +282,4 @@ void korosta_tahko(int tahko) {
   }
   free(ruutu);
 }
+#endif
