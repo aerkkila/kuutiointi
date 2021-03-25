@@ -24,8 +24,8 @@ const char alatavu = 0x08;
 const char taktavu = 0x10;
 const char vastavu = 0x20;
 
-kuutio_t* kuutio;
-kuva_t* kuva;
+kuutio_t kuutio;
+kuva_t kuva;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
@@ -37,29 +37,29 @@ void seis() {
 }
 
 inline void __attribute__((always_inline)) hae_nakuvuus() {
-  kuutio->nakuvat = 0;
-  if((kuutio->rotX > 0 && fabs(kuutio->rotY) < PI/2) ||		\
-     (kuutio->rotX < 0 && fabs(kuutio->rotY) > PI/2))
-    kuutio->nakuvat |= ulatavu;
+  kuutio.nakuvat = 0;
+  if((kuutio.rotX > 0 && fabs(kuutio.rotY) < PI/2) ||		\
+     (kuutio.rotX < 0 && fabs(kuutio.rotY) > PI/2))
+    kuutio.nakuvat |= ulatavu;
   else
-    kuutio->nakuvat |= alatavu;
-  if(kuutio->rotY < 0)
-    kuutio->nakuvat |= oiktavu;
-  else if(kuutio->rotY > 0)
-    kuutio->nakuvat |= vastavu;
+    kuutio.nakuvat |= alatavu;
+  if(kuutio.rotY < 0)
+    kuutio.nakuvat |= oiktavu;
+  else if(kuutio.rotY > 0)
+    kuutio.nakuvat |= vastavu;
   char tmpx = 0;
   char tmpy = 0;
-  if(fabs(kuutio->rotX) > PI/2)
+  if(fabs(kuutio.rotX) > PI/2)
     tmpx = 1;
-  if(fabs(kuutio->rotY) > PI/2)
+  if(fabs(kuutio.rotY) > PI/2)
     tmpy = 1;
   if(tmpx ^ tmpy)
-    kuutio->nakuvat |= taktavu;
+    kuutio.nakuvat |= taktavu;
   else
-    kuutio->nakuvat |= etutavu;
+    kuutio.nakuvat |= etutavu;
 }
 
-kuutio_t* luo_kuutio(const unsigned char N) {
+kuutio_t luo_kuutio(const unsigned char N) {
   vari varit[6];
   varit[_u] = VARI(255,255,255); //valkoinen
   varit[_f] = VARI(0,  220,  0); //vihreä
@@ -68,69 +68,65 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   varit[_b] = VARI(0,  0,  255); //sininen
   varit[_l] = VARI(220,120,0  ); //oranssi
   
-  kuutio = malloc(sizeof(kuutio_t));
-  kuutio->N = N;
-  kuutio->rotX = PI/6;
-  kuutio->rotY = -PI/6;
-  kuutio->ruutuValiKerr = 0.95;
+  kuutio.N = N;
+  kuutio.rotX = PI/6;
+  kuutio.rotY = -PI/6;
   hae_nakuvuus();
-  kuutio->sivut = malloc(6*sizeof(char*));
-  kuutio->ruudut = malloc(6*4*kuutio->N*kuutio->N*sizeof(koordf));
-  kuutio->varit = malloc(sizeof(varit));
-  kuutio->ratkaistu = 1;
+  kuutio.sivut = malloc(6*sizeof(char*));
+  kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
+  kuutio.varit = malloc(sizeof(varit));
+  kuutio.ratkaistu = 1;
   
   for(int i=0; i<6; i++) {
-    kuutio->varit[i] = varit[i];
-    kuutio->sivut[i] = malloc(N*N);
+    kuutio.varit[i] = varit[i];
+    kuutio.sivut[i] = malloc(N*N);
     for(int j=0; j<N*N; j++)
-      kuutio->sivut[i][j] = i;
+      kuutio.sivut[i][j] = i;
   }
   tee_ruutujen_koordtit();
   return kuutio;
 }
 
-void* tuhoa_kuutio() {
+void tuhoa_kuutio() {
   for(int i=0; i<6; i++) {
-    free(kuutio->sivut[i]);
-    kuutio->sivut[i] = NULL;
+    free(kuutio.sivut[i]);
+    kuutio.sivut[i] = NULL;
   }
-  free(kuutio->sivut);
-  free(kuutio->ruudut);
-  kuutio->ruudut = NULL;
-  kuutio->sivut = NULL;
-  free(kuutio->varit);
-  kuutio->varit = NULL;
-  free(kuutio);
-  return NULL;
+  free(kuutio.sivut);
+  free(kuutio.ruudut);
+  kuutio.ruudut = NULL;
+  kuutio.sivut = NULL;
+  free(kuutio.varit);
+  kuutio.varit = NULL;
 }
 
 void paivita() {
-  if(!kuva->paivita)
+  if(!kuva.paivita)
     return;
-  kuva->paivita = 0;
-  SDL_SetRenderDrawColor(kuva->rend, 0, 0, 0, 255);
-  SDL_RenderClear(kuva->rend);
+  kuva.paivita = 0;
+  SDL_SetRenderDrawColor(kuva.rend, 0, 0, 0, 255);
+  SDL_RenderClear(kuva.rend);
   
-  if(kuutio->nakuvat & ulatavu)
+  if(kuutio.nakuvat & ulatavu)
     piirra_kuvaksi(_u);
-  else if(kuutio->nakuvat & alatavu)
+  else if(kuutio.nakuvat & alatavu)
     piirra_kuvaksi(_d);
-  if(kuutio->nakuvat & etutavu)
+  if(kuutio.nakuvat & etutavu)
     piirra_kuvaksi(_f);
-  else if(kuutio->nakuvat & taktavu)
+  else if(kuutio.nakuvat & taktavu)
     piirra_kuvaksi(_b);
-  if(kuutio->nakuvat & oiktavu)
+  if(kuutio.nakuvat & oiktavu)
     piirra_kuvaksi(_r);
-  else if(kuutio->nakuvat & vastavu)
+  else if(kuutio.nakuvat & vastavu)
     piirra_kuvaksi(_l);
 
-  SDL_RenderPresent(kuva->rend);
+  SDL_RenderPresent(kuva.rend);
 }
 
 void siirto(int puoli, char siirtokaista, char maara) {
   if(maara == 0)
     return;
-  char N = kuutio->N;
+  char N = kuutio.N;
   if(siirtokaista < 1 || siirtokaista > N)
     return;
   else if(siirtokaista == N) {
@@ -159,14 +155,14 @@ void siirto(int puoli, char siirtokaista, char maara) {
       jarj = (struct i4){{_u, _b, _d, _f}};
       kaistat = (struct i4){{b,a,b,b}};
     }
-    sivu1 = kuutio->sivut[jarj.i[0]];
+    sivu1 = kuutio.sivut[jarj.i[0]];
     /*1. sivu talteen*/
     for(int i=0; i<N; i++)
       apu[i] = sivu1[N*kaistat.i[0]+i];
     /*siirretään*/
     for(int j=0; j<3; j++) {
-      sivu1 = kuutio->sivut[jarj.i[j]];
-      sivu2 = kuutio->sivut[jarj.i[j+1]];
+      sivu1 = kuutio.sivut[jarj.i[j]];
+      sivu2 = kuutio.sivut[jarj.i[j+1]];
       kaista1 = kaistat.i[j];
       kaista2 = kaistat.i[j+1];
       if( (j<2 && puoli == _l) || (j>=2 && puoli == _r) )
@@ -177,7 +173,7 @@ void siirto(int puoli, char siirtokaista, char maara) {
 	  sivu1[N*kaista1+i] = sivu2[N*kaista2+i];
     }
     /*viimeinen*/
-    sivu1 = kuutio->sivut[jarj.i[3]];
+    sivu1 = kuutio.sivut[jarj.i[3]];
     if(puoli == _r)
       for(int i=0; i<N; i++)
 	sivu1[N*kaistat.i[3]+i] = apu[N-1-i];
@@ -195,21 +191,21 @@ void siirto(int puoli, char siirtokaista, char maara) {
       jarj = (struct i4){{_f, _r, _b, _l}};
       kaistat = (struct i4){{b,b,b,b}};
     }
-    sivu1 = kuutio->sivut[jarj.i[0]];
+    sivu1 = kuutio.sivut[jarj.i[0]];
     /*1. sivu talteen*/
     for(int i=0; i<N; i++)
       apu[i] = sivu1[N*i + kaistat.i[0]];
     /*siirretään*/
     for(int j=0; j<3; j++) {
-      sivu1 = kuutio->sivut[jarj.i[j]];
-      sivu2 = kuutio->sivut[jarj.i[j+1]];
+      sivu1 = kuutio.sivut[jarj.i[j]];
+      sivu2 = kuutio.sivut[jarj.i[j+1]];
       kaista1 = kaistat.i[j];
       kaista2 = kaistat.i[j+1];
       for(int i=0; i<N; i++)
 	sivu1[N*i + kaista1] = sivu2[N*i + kaista2];
     }
     /*viimeinen*/
-    sivu1 = kuutio->sivut[jarj.i[3]];
+    sivu1 = kuutio.sivut[jarj.i[3]];
     for(int i=0; i<N; i++)
       sivu1[N*i+kaistat.i[3]] = apu[i];
     break;
@@ -223,14 +219,14 @@ void siirto(int puoli, char siirtokaista, char maara) {
       kaistat = (struct i4){{b,a,a,b}};
       jarj = (struct i4){{_u, _r, _d, _l}};
     }
-    sivu1 = kuutio->sivut[jarj.i[0]];
+    sivu1 = kuutio.sivut[jarj.i[0]];
     /*1. sivu talteen*/
     for(int i=0; i<N; i++)
       apu[i] = sivu1[N*i + kaistat.i[0]];
     /*siirretään, tässä vuorottelee, mennäänkö i- vai j-suunnassa*/
     for(int j=0; j<3; j++) {
-      sivu1 = kuutio->sivut[jarj.i[j]];
-      sivu2 = kuutio->sivut[jarj.i[j+1]];
+      sivu1 = kuutio.sivut[jarj.i[j]];
+      sivu2 = kuutio.sivut[jarj.i[j+1]];
       kaista1 = kaistat.i[j];
       kaista2 = kaistat.i[j+1];
       if(j % 2 == 0) //u tai d alussa
@@ -251,7 +247,7 @@ void siirto(int puoli, char siirtokaista, char maara) {
 	}
     }
     /*viimeinen*/
-    sivu1 = kuutio->sivut[jarj.i[3]];
+    sivu1 = kuutio.sivut[jarj.i[3]];
     if(puoli == _f)
       for(int i=0; i<N; i++)
 	sivu1[N*kaistat.i[3]+i] = apu[i];
@@ -305,7 +301,7 @@ void siirto(int puoli, char siirtokaista, char maara) {
   default:
     return;
   }
-  char* sivu = kuutio->sivut[sivuInd];
+  char* sivu = kuutio.sivut[sivuInd];
   /*kopioidaan kys. sivu ensin*/
   for(int i=0; i<N*N; i++)
     apu[i] = sivu[i];
@@ -338,7 +334,7 @@ void kaanto(char akseli, char maara) {
   default:
     return;
   }
-  for(char i=1; i<=kuutio->N; i++)
+  for(char i=1; i<=kuutio.N; i++)
     siirto(sivu, i, 1);
   
   kaanto(akseli, maara-1);
@@ -347,9 +343,9 @@ void kaanto(char akseli, char maara) {
 
 inline char __attribute__((always_inline)) onkoRatkaistu() {
   for(int sivu=0; sivu<6; sivu++) {
-    char laji = kuutio->sivut[sivu][0];
-    for(int i=1; i<kuutio->N*kuutio->N; i++)
-      if(kuutio->sivut[sivu][i] != laji)
+    char laji = kuutio.sivut[sivu][0];
+    for(int i=1; i<kuutio.N*kuutio.N; i++)
+      if(kuutio.sivut[sivu][i] != laji)
 	return 0;
   }
   return 1;
@@ -359,20 +355,20 @@ char kontrol = 0;
 
 inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
   kaanto(akseli, maara);
-  kuva->paivita = 1;
+  kuva.paivita = 1;
 }
 
 inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, char maara) {
   if(kontrol)
     return;
   siirto(puoli, kaista, maara);
-  kuva->paivita = 1;
-  kuutio->ratkaistu = onkoRatkaistu();
+  kuva.paivita = 1;
+  kuutio.ratkaistu = onkoRatkaistu();
 #ifdef __KUUTION_KOMMUNIKOINTI__
   if(viimeViesti == ipcTarkastelu) {
     ipc->viesti = ipcAloita;
     viimeViesti = ipcAloita;
-  } else if(viimeViesti == ipcAloita && kuutio->ratkaistu) {
+  } else if(viimeViesti == ipcAloita && kuutio.ratkaistu) {
     ipc->viesti = ipcLopeta;
     viimeViesti = ipcLopeta;
   }
@@ -398,17 +394,16 @@ int main(int argc, char** argv) {
     oli_sdl = 1;
 
   /*Kuvan tekeminen*/
-  kuva = malloc(sizeof(kuva_t));
-  kuva->ikkuna = SDL_CreateWindow\
+  kuva.ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
-  kuva->rend = SDL_CreateRenderer(kuva->ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
-  if(!kuva->rend)
+  kuva.rend = SDL_CreateRenderer(kuva.ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
+  if(!kuva.rend)
     goto ULOS;
-  kuva->xRes = ikkuna_w;
-  kuva->yRes = ikkuna_h;
-  kuva->paivita = 1;
-  kuva->resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
-  kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->resKuut)/2: (ikkuna_w-kuva->resKuut)/2;
+  kuva.xRes = ikkuna_w;
+  kuva.yRes = ikkuna_h;
+  kuva.paivita = 1;
+  kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
+  kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 
   kuutio = luo_kuutio(N);
   
@@ -433,11 +428,11 @@ int main(int argc, char** argv) {
 	switch(tapaht.window.event) {
 	case SDL_WINDOWEVENT_RESIZED:;
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
-	  kuva->resKuut = koko1/sqrt(3.0);
-	  if((koko1-kuva->resKuut)/2 != kuva->sij0) {
-	    kuva->sij0 = (koko1-kuva->resKuut)/2;
+	  kuva.resKuut = koko1/sqrt(3.0);
+	  if((koko1-kuva.resKuut)/2 != kuva.sij0) {
+	    kuva.sij0 = (koko1-kuva.resKuut)/2;
 	    tee_ruutujen_koordtit();
-	    kuva->paivita = 1;
+	    kuva.paivita = 1;
 	  }
 	  break;
 	}
@@ -602,20 +597,20 @@ int main(int argc, char** argv) {
 	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio->rotY += xEro*PI/(2*kuva->resKuut);
-	  kuutio->rotX += yEro*PI/(2*kuva->resKuut);
-	  if(kuutio->rotY < -PI)
-	    kuutio->rotY += 2*PI;
-	  else if (kuutio->rotY > PI)
-	    kuutio->rotY -= 2*PI;
-	  if(kuutio->rotX < -PI)
-	    kuutio->rotX += 2*PI;
-	  else if (kuutio->rotX > PI)
-	    kuutio->rotX -= 2*PI;
+	  kuutio.rotY += xEro*PI/(2*kuva.resKuut);
+	  kuutio.rotX += yEro*PI/(2*kuva.resKuut);
+	  if(kuutio.rotY < -PI)
+	    kuutio.rotY += 2*PI;
+	  else if (kuutio.rotY > PI)
+	    kuutio.rotY -= 2*PI;
+	  if(kuutio.rotX < -PI)
+	    kuutio.rotX += 2*PI;
+	  else if (kuutio.rotX > PI)
+	    kuutio.rotX -= 2*PI;
 	  
 	  hae_nakuvuus();
 	  tee_ruutujen_koordtit();
-	  kuva->paivita = 1;
+	  kuva.paivita = 1;
 	}
 	break;
       case SDL_MOUSEBUTTONUP:
@@ -638,7 +633,7 @@ int main(int argc, char** argv) {
       }
       switch(puoliask) {
       case 0:
-	korosta_tahko(_r);
+	siirtoInl1(_r, suunta);
 	break;
       case 2:
 	siirtoInl1(_l, suunta);
@@ -671,10 +666,9 @@ int main(int argc, char** argv) {
     savelPtr = NULL;
   }
 #endif
-  SDL_DestroyRenderer(kuva->rend);
-  SDL_DestroyWindow(kuva->ikkuna);
-  free(kuva);
-  kuutio = tuhoa_kuutio(kuutio);
+  SDL_DestroyRenderer(kuva.rend);
+  SDL_DestroyWindow(kuva.ikkuna);
+  tuhoa_kuutio(kuutio);
   if(!oli_sdl)
     SDL_Quit();
   return 0;

@@ -19,26 +19,26 @@ koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit);
   ei siis tarvitsisi laskea jokaisen ruudun jokaista nurkkaa*/
 void tee_ruutujen_koordtit() {
   for(int tahko=0; tahko<6; tahko++)
-    for(int i=0; i<kuutio->N; i++)
-      for(int j=0; j<kuutio->N; j++)
+    for(int i=0; i<kuutio.N; i++)
+      for(int j=0; j<kuutio.N; j++)
 	for(int nurkka=0; nurkka<4; nurkka++)
-	  kuutio->ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
+	  kuutio.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
 }
 
 void piirra_kuvaksi(int tahko) {
   koordf2* ktit = malloc(4*sizeof(koordf2));
-  for(int i=0; i<kuutio->N; i++)
-    for(int j=0; j<kuutio->N; j++) {
-      vari vari = kuutio->varit[(int)kuutio->sivut[tahko][i*kuutio->N+j]];
-      SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
-      piirra_suunnikas(kuutio->ruudut+RUUTU(tahko, i, j), 3);
+  for(int i=0; i<kuutio.N; i++)
+    for(int j=0; j<kuutio.N; j++) {
+      vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
+      SDL_SetRenderDrawColor(kuva.rend, vari.v[0], vari.v[1], vari.v[2], 255);
+      piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
     }
   free(ktit);
 }
 
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   koordf nurkka, nurkka0; //nurkka0 on nurkan sijainti ennen pyöritystä
-  float res = kuva->resKuut/2;
+  float res = kuva.resKuut/2;
   float i,j;
   /*haetaan oikea nurkka ruudusta (vasen ylä, vasen ala yms)*/
   switch(nurkkaInd) {
@@ -55,7 +55,7 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
     return (koordf){{NAN, NAN, NAN}};
   }
   /*siirretään oikeaan ruutuun*/
-  float resPala = kuva->resKuut/kuutio->N;
+  float resPala = kuva.resKuut/kuutio.N;
   i = resPala * (iRuutu + i);
   j = resPala * (jRuutu + j);
   
@@ -81,12 +81,12 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   float x,y,z;
   /*x-pyöräytys*/
   x = nurkka0.a[0];
-  y = nurkka0.a[1]*cosf(kuutio->rotX) - nurkka0.a[2]*sinf(kuutio->rotX);
-  z = nurkka0.a[1]*sinf(kuutio->rotX) + nurkka0.a[2]*cosf(kuutio->rotX);
+  y = nurkka0.a[1]*cosf(kuutio.rotX) - nurkka0.a[2]*sinf(kuutio.rotX);
+  z = nurkka0.a[1]*sinf(kuutio.rotX) + nurkka0.a[2]*cosf(kuutio.rotX);
   /*y-pyöräytys*/
-  nurkka.a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY) + res + kuva->sij0;
-  nurkka.a[1] = y - res - kuva->sij0;
-  nurkka.a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY);
+  nurkka.a[0] = x*cosf(kuutio.rotY) + z*sinf(kuutio.rotY) + res + kuva.sij0;
+  nurkka.a[1] = y - res - kuva.sij0;
+  nurkka.a[2] = -x*sinf(kuutio.rotY) + z*cosf(kuutio.rotY);
   return nurkka;
 }
 
@@ -109,7 +109,7 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
   if(fabs(xnurkat[0].a[0] - xnurkat[1].a[0]) < 0.5) {
     for(int i=xnurkat[0].a[0]; i<xnurkat[3].a[0]; i++)
       for(int j=-ynurkat[3].a[1]; j<-ynurkat[0].a[1]; j++)
-	SDL_RenderDrawPoint(kuva->rend, i, j);
+	SDL_RenderDrawPoint(kuva.rend, i, j);
     goto VALMIS;
   }
   
@@ -130,7 +130,7 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
     int xraja = (int)(xnurkat[patka+1].a[0]);
     for(int i=xnurkat[patka].a[0]; i<xraja; i++) {
       for(int j=y1; j<y2; j++)
-	SDL_RenderDrawPoint(kuva->rend, i, j);
+	SDL_RenderDrawPoint(kuva.rend, i, j);
       y1 -= kulmakerr1;
       y2 -= kulmakerr2;
     }
@@ -216,9 +216,9 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
 
 void korosta_tahko(int tahko) {
   int paksuus = 10;
-  SDL_SetRenderDrawColor(kuva->rend, 80, 200, 140, 255);
-  piirra_viiva(kuutio->ruudut+RUUTU(tahko, 0, 0), kuutio->ruudut+RUUTU(tahko, kuutio->N-1, 0)+1, 3, paksuus);
-  kuva->paivita=1;
+  SDL_SetRenderDrawColor(kuva.rend, 80, 200, 140, 255);
+  piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0), kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1, 3, paksuus);
+  kuva.paivita=1;
 }
 
 /*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
@@ -237,5 +237,5 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
     else
       k2 = (koordf2){{((koordf*)karg1)[1].a[0], ((koordf*)karg1)[1].a[1]}};
   }
-  SDL_RenderDrawLine(kuva->rend, k1.a[0], -k1.a[1], k2.a[0], -k2.a[1]);
+  SDL_RenderDrawLine(kuva.rend, k1.a[0], -k1.a[1], k2.a[0], -k2.a[1]);
 }

@@ -20,7 +20,6 @@ typedef struct {float a[2];} koordf2;
 typedef struct {
   char** sivut;
   koordf* ruudut;
-  float ruutuValiKerr;
   float rotX; //0:ssa katse on suoraan edestä
   float rotY;
   float rotZ;
@@ -42,9 +41,8 @@ typedef struct {
 
 #endif
 
-extern kuutio_t* kuutio;
-extern kuva_t* kuva;
-extern unsigned char tahkon_nurkat[];
+extern kuutio_t kuutio;
+extern kuva_t kuva;
 
 void siirto(int puoli, char kaista, char maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);

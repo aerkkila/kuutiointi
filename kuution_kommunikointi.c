@@ -7,8 +7,8 @@
 #include "kuutio.h"
 #include "cfg.h"
 
-extern kuutio_t* kuutio;
-extern kuva_t* kuva;
+extern kuutio_t kuutio;
+extern kuva_t kuva;
 extern int viimeViesti;
 
 inline int __attribute__((always_inline)) puoleksi(char c) {
@@ -71,5 +71,5 @@ void lue_siirrot(shmRak_s* ipc) {
     while(ipc->data[i] == ' ')
       i++;
   }
-  kuva->paivita = 1;
+  kuva.paivita = 1;
 }

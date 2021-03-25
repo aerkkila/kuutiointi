@@ -2,7 +2,7 @@
 
 #ifndef __KUUTION_GRAFIIKKA__
 #define __KUUTION_GRAFIIKKA__
-#define RUUTU(tahko, i, j) (((tahko)*kuutio->N*kuutio->N + (i)*kuutio->N + (j))*4)
+#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
 #endif
 
 void tee_ruutujen_koordtit();
