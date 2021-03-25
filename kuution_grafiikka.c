@@ -4,137 +4,10 @@
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
 
-inline koordf __attribute__((always_inline)) vektKertI(koordf a, int b) {
-  for(int i=0; i<3; i++)
-    a.a[i] *= b;
-  return a;
-}
-
-koordf vektSum(int n, ...) {
-  va_list argl;
-  va_start(argl, n);
-  koordf r = (koordf){{0,0,0}};
-  for(int i=0; i<n; i++) {
-    koordf a = va_arg(argl, koordf);
-    for(int i=0; i<3; i++)
-      r.a[i] += a.a[i];
-  }
-  return r;
-}
-
-koordf* tee_ruudun_koordtit(koordf* a, int tahko, char i, char j) {
-  if(!a)
-    a = malloc(4*sizeof(koordf));
-  float x,y,z;
-  float res2 = kuva->resKuut/2;
-  float resPala = kuva->resKuut/kuutio->N;
-  koordf sij0 = (koordf){{-res2, res2, res2}};
-  koordf xkanta = (koordf){{resPala, 0, 0}};
-  koordf ykanta = (koordf){{0, -resPala, 0}};
-  koordf zkanta = (koordf){{0, 0, -resPala}};
-  switch(tahko) {
-  case _u:
-    a[0] = vektSum(3, sij0,
-		   vektKertI(zkanta, kuutio->N-j-1),
-		   vektKertI(xkanta, i));
-    break;
-  case _f:
-    a[0] = vektSum(3, sij0,
-		   vektKertI(xkanta, i),
-		   vektKertI(ykanta, j));
-    break;
-  case _r:
-    a[0] = vektSum(4, sij0,
-		   vektKertI(xkanta, kuutio->N),
-		   vektKertI(zkanta, i),
-		   vektKertI(ykanta, j));
-    break;
-  case _d:
-    a[0] = vektSum(4, sij0,
-		   vektKertI(ykanta, kuutio->N),
-		   vektKertI(xkanta, i),
-		   vektKertI(zkanta, j));
-    break;
-  case _b:
-    a[0] = vektSum(4, sij0,
-		   vektKertI(zkanta, kuutio->N),
-		   vektKertI(xkanta, kuutio->N-i-1),
-		   vektKertI(ykanta, j));
-    break;
-  case _l:
-    a[0] = vektSum(3, sij0,
-		   vektKertI(zkanta, kuutio->N-i-1),
-		   vektKertI(ykanta, j));
-    break;
-  }
-  switch(tahko) {
-  case _u:
-  case _d:
-    a[1] = vektSum(2, a[0], xkanta);
-    a[2] = vektSum(2, a[1], zkanta);
-    a[3] = vektSum(2, a[0], zkanta);
-    break;
-  case _f:
-  case _b:
-    a[1] = vektSum(2, a[0], xkanta);
-    a[2] = vektSum(2, a[1], ykanta);
-    a[3] = vektSum(2, a[0], ykanta);
-    break;
-  case _r:
-  case _l:
-    a[1] = vektSum(2, a[0], ykanta);
-    a[2] = vektSum(2, a[1], zkanta);
-    a[3] = vektSum(2, a[0], zkanta);
-    break;
-  }
-  for(int i=0; i<4; i++) {
-    /*x-pyöräytys*/
-    x = a[i].a[0];
-    y = a[i].a[1]*cosf(kuutio->rotX) - a[i].a[2]*sinf(kuutio->rotX);
-    z = a[i].a[1]*sinf(kuutio->rotX) + a[i].a[2]*cosf(kuutio->rotX);
-    /*y-pyöräytys*/
-    a[i].a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY) - sij0.a[0] + kuva->sij0;
-    a[i].a[1] = y - sij0.a[1] - kuva->sij0;
-    a[i].a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY) - sij0.a[2];
-  }
-  return a;
-}
-
-void tee_ruutujen_koordtit() {
-  for(int tahko=0; tahko<6; tahko++)
-    for(int i=0; i<kuutio->N; i++)
-      for(int j=0; j<kuutio->N; j++)
-	tee_ruudun_koordtit(kuutio->ruudut[RUUTU(tahko,i,j)], tahko, i, j);
-}
-
-int minKoordInd(koordf* ktit, int akseli, int pit) {
-  int minInd = 0;
-  float min = ktit[0].a[akseli];
-  for(int i=1; i<pit; i++)
-    if(ktit[i].a[akseli] < min) {
-      min = ktit[i].a[akseli];
-      minInd = i;
-    }
-  return minInd;
-}
-
-/*luo uuden, jos ret == NULL*/
-koordf* jarjestaKoord(koordf *ret, koordf* ktit, int akseli, int pit) {
-  if(!ret)
-    ret = malloc(pit*sizeof(koordf));
-  koordf* juoksu = ret;
-  koordf apu;
-  for(int i=0; i<pit; i++)
-    ret[i] = ktit[i];
-  for(int i=0; i<pit; i++) {
-    int ind = minKoordInd(juoksu, akseli, pit-i);
-    apu = *juoksu;
-    *juoksu = juoksu[ind];
-    juoksu[ind] = apu;
-    juoksu++;
-  }
-  return ret;
-}
+int minKoordInd(koordf *ktit, int akseli, int pit);
+int minKoordInd2(koordf2 *ktit, int akseli, int pit);
+koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
+koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit);
 
 #define VAIHDA(a,b,tyyppi) {			\
     tyyppi apu = a;				\
@@ -142,12 +15,96 @@ koordf* jarjestaKoord(koordf *ret, koordf* ktit, int akseli, int pit) {
     b = apu;					\
   }
 
-void piirra_ruutu(int tahko, int iRuutu, int jRuutu) {
-  vari vari = kuutio->varit[(int)kuutio->sivut[tahko][iRuutu*kuutio->N+jRuutu]];
-  SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
+/*tätä voisi optimoida, koska ruudut jakavat nurkkia keskenään
+  ei siis tarvitsisi laskea jokaisen ruudun jokaista nurkkaa*/
+void tee_ruutujen_koordtit() {
+  for(int tahko=0; tahko<6; tahko++)
+    for(int i=0; i<kuutio->N; i++)
+      for(int j=0; j<kuutio->N; j++)
+	for(int nurkka=0; nurkka<4; nurkka++)
+	  kuutio->ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
+}
+
+void piirra_kuvaksi(int tahko) {
+  koordf2* ktit = malloc(4*sizeof(koordf2));
+  for(int i=0; i<kuutio->N; i++)
+    for(int j=0; j<kuutio->N; j++) {
+      vari vari = kuutio->varit[(int)kuutio->sivut[tahko][i*kuutio->N+j]];
+      SDL_SetRenderDrawColor(kuva->rend, vari.v[0], vari.v[1], vari.v[2], 255);
+      piirra_suunnikas(kuutio->ruudut+RUUTU(tahko, i, j), 3);
+    }
+  free(ktit);
+}
+
+koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
+  koordf nurkka, nurkka0; //nurkka0 on nurkan sijainti ennen pyöritystä
+  float res = kuva->resKuut/2;
+  float i,j;
+  /*haetaan oikea nurkka ruudusta (vasen ylä, vasen ala yms)*/
+  switch(nurkkaInd) {
+  case 0:
+    i = 0; j = 0; break;
+  case 1:
+    i = 1; j = 0; break;
+  case 2:
+    i = 1; j = 1; break;
+  case 3:
+    i = 0; j = 1; break;
+  default:
+    fprintf(stderr, "Virhe (tee_nurkan_koordtit): nurkkaInd = %i", nurkkaInd);
+    return (koordf){{NAN, NAN, NAN}};
+  }
+  /*siirretään oikeaan ruutuun*/
+  float resPala = kuva->resKuut/kuutio->N;
+  i = resPala * (iRuutu + i);
+  j = resPala * (jRuutu + j);
   
-  koordf* xnurkat = jarjestaKoord(NULL, kuutio->ruudut[RUUTU(tahko,iRuutu,jRuutu)], 0,  4);
-  koordf* ynurkat = jarjestaKoord(NULL, kuutio->ruudut[RUUTU(tahko,iRuutu,jRuutu)], 1,  4);
+  /*i ja j ovat siirrot sivun vasemmasta ylänurkasta, nyt huomioidaan sivu*/
+  switch(tahko) {
+  case _u:
+    nurkka0 = (koordf){{-res+i, res, -res+j}}; break;
+  case _d:
+    nurkka0 = (koordf){{-res+i, -res, res-j}}; break;
+  case _f:
+    nurkka0 = (koordf){{-res+i, res-j, res}}; break;
+  case _b:
+    nurkka0 = (koordf){{res-i, res-j, -res}}; break;
+  case _r:
+    nurkka0 = (koordf){{res, res-j, res-i}}; break;
+  case _l:
+    nurkka0 = (koordf){{-res, res-j, -res+i}}; break;
+  default:
+    fprintf(stderr, "Virhe (tee_nurkan_koordtit): tahko = %i", tahko);
+    return (koordf){{NAN, NAN, NAN}};
+  }
+
+  float x,y,z;
+  /*x-pyöräytys*/
+  x = nurkka0.a[0];
+  y = nurkka0.a[1]*cosf(kuutio->rotX) - nurkka0.a[2]*sinf(kuutio->rotX);
+  z = nurkka0.a[1]*sinf(kuutio->rotX) + nurkka0.a[2]*cosf(kuutio->rotX);
+  /*y-pyöräytys*/
+  nurkka.a[0] = x*cosf(kuutio->rotY) + z*sinf(kuutio->rotY) + res + kuva->sij0;
+  nurkka.a[1] = y - res - kuva->sij0;
+  nurkka.a[2] = -x*sinf(kuutio->rotY) + z*cosf(kuutio->rotY);
+  return nurkka;
+}
+
+void piirra_suunnikas(void* k23, int onko2vai3) {
+  koordf2* ktit;
+  if(onko2vai3==2) {
+    ktit = k23;
+  } else if (onko2vai3==3) {
+    ktit = malloc(4*sizeof(koordf2));
+    for(int i=0; i<4; i++)
+      for(int j=0; j<2; j++)
+	ktit[i].a[j] = ((koordf*)k23)[i].a[j];
+  } else {
+    fprintf(stderr, "Virhe: piirra_suunnikas kutsuttiin luvulla %i\n", onko2vai3);
+    return;
+  }
+  koordf2* xnurkat = jarjestaKoord2(NULL, ktit, 0,  4);
+  koordf2* ynurkat = jarjestaKoord2(ktit, ktit, 1,  4);
 
   if(fabs(xnurkat[0].a[0] - xnurkat[1].a[0]) < 0.5) {
     for(int i=xnurkat[0].a[0]; i<xnurkat[3].a[0]; i++)
@@ -158,9 +115,9 @@ void piirra_ruutu(int tahko, int iRuutu, int jRuutu) {
   
   /*valitaan että ymin ja ymax ovat välinurkat, näin ei välttämättä ole, jos on vaakasuoria viivoja*/
   if(ynurkat[0].a[0] == xnurkat[0].a[0] || ynurkat[0].a[0] == xnurkat[3].a[0])
-    VAIHDA(ynurkat[0], ynurkat[1], koordf);
+    VAIHDA(ynurkat[0], ynurkat[1], koordf2);
   if(ynurkat[3].a[0] == xnurkat[0].a[0] || ynurkat[3].a[0] == xnurkat[3].a[0])
-    VAIHDA(ynurkat[3], ynurkat[2], koordf);
+    VAIHDA(ynurkat[3], ynurkat[2], koordf2);
   float kulmakerr1 = (ynurkat[3].a[1]-xnurkat[0].a[1]) / (ynurkat[3].a[0]-xnurkat[0].a[0]);
   float kulmakerr2 = (ynurkat[0].a[1]-xnurkat[0].a[1]) / (ynurkat[0].a[0]-xnurkat[0].a[0]);
   float muisti;
@@ -195,15 +152,9 @@ void piirra_ruutu(int tahko, int iRuutu, int jRuutu) {
       }
   }
  VALMIS:
+  if(onko2vai3 != 2)
+    free(ktit);
   free(xnurkat);
-  free(ynurkat);
-}
-
-void piirra_kuvaksi(int tahko) {
-  for(int i=0; i<kuutio->N; i++)
-    for(int j=0; j<kuutio->N; j++)
-      piirra_ruutu(tahko, i, j);
-  korosta_tahko(tahko);
 }
 
 void piirra_viiva(koordf k1, koordf k2, int paksuus) {
@@ -214,6 +165,64 @@ void piirra_viiva(koordf k1, koordf k2, int paksuus) {
       SDL_RenderDrawPoint(kuva->rend, i+k1.a[0], j-k2.a[1]-i*kulmakerr);
 }
 
+int minKoordInd(koordf *ktit, int akseli, int pit) {
+  int minInd = 0;
+  float min = ktit[0].a[akseli];
+  for(int i=1; i<pit; i++)
+    if(ktit[i].a[akseli] < min) {
+      min = ktit[i].a[akseli];
+      minInd = i;
+    }
+  return minInd;
+}
+
+int minKoordInd2(koordf2 *ktit, int akseli, int pit) {
+  int minInd = 0;
+  float min = ktit[0].a[akseli];
+  for(int i=1; i<pit; i++)
+    if(ktit[i].a[akseli] < min) {
+      min = ktit[i].a[akseli];
+      minInd = i;
+    }
+  return minInd;
+}
+
+koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit) {
+  if(!ret)
+    ret = malloc(pit*sizeof(koordf));
+  koordf2* juoksu = ret;
+  koordf2 apu;
+  for(int i=0; i<pit; i++)
+    ret[i] = ktit[i];
+  for(int i=0; i<pit; i++) {
+    int ind = minKoordInd2(juoksu, akseli, pit-i);
+    apu = *juoksu;
+    *juoksu = juoksu[ind];
+    juoksu[ind] = apu;
+    juoksu++;
+  }
+  return ret;
+}
+
+/*luo uuden, jos ret == NULL*/
+koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
+  if(!ret)
+    ret = malloc(pit*sizeof(koordf));
+  koordf* juoksu = ret;
+  koordf apu;
+  for(int i=0; i<pit; i++)
+    ret[i] = ktit[i];
+  for(int i=0; i<pit; i++) {
+    int ind = minKoordInd(juoksu, akseli, pit-i);
+    apu = *juoksu;
+    *juoksu = juoksu[ind];
+    juoksu[ind] = apu;
+    juoksu++;
+  }
+  return ret;
+}
+
+#if 0
 void korosta_tahko(int tahko) {
   int paksuus = 10;
   koordf nurkka0, nurkka1, nurkka2;
@@ -240,46 +249,4 @@ void korosta_tahko(int tahko) {
   piirra_viiva(nurkka2, nurkka0, paksuus);
 }
 
-#if 0
-void korosta_tahko(int tahko) {
-  int paksuus = 10;
-  SDL_SetRenderDrawColor(kuva->rend, 0, 200, 255, 255);
-  koordf* ruutu = malloc(4*sizeof(koordf));
-  for(int iRuutu=0; iRuutu<kuutio->N; iRuutu++) {
-    /*alaosa*/
-    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,iRuutu,2)], 1, 4);
-    jarjestaKoord(ruutu, ruutu, 0, 2);
-    float kulmakerr = (ruutu[1].a[1]-ruutu[0].a[1]) / (ruutu[1].a[0]-ruutu[0].a[0]);
-    int iEro = ruutu[1].a[0]-ruutu[0].a[0];
-    for(int i=0; i<iEro; i++)
-      for(int j=-paksuus/2; j<paksuus/2; j++)
-	SDL_RenderDrawPoint(kuva->rend, i+ruutu[0].a[0], j-ruutu[0].a[1]-i*kulmakerr);
-    /*yläosa*/
-    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,iRuutu,0)], 1, 4);
-    jarjestaKoord(ruutu, ruutu+2, 0, 2);
-    iEro = ruutu[1].a[0]-ruutu[0].a[0];
-    for(int i=0; i<iEro; i++)
-      for(int j=-paksuus/2; j<paksuus/2; j++)
-	SDL_RenderDrawPoint(kuva->rend, i+ruutu[0].a[0], j-ruutu[0].a[1]-i*kulmakerr);
-  }
-  for(int jRuutu=0; jRuutu<kuutio->N; jRuutu++) {
-    /*vasen*/
-    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,0,jRuutu)], 0, 4);
-    jarjestaKoord(ruutu, ruutu, 1, 2);
-    float kulmakerr = (ruutu[1].a[0]-ruutu[0].a[0]) / (ruutu[1].a[1]-ruutu[0].a[1]);
-    int jEro = -ruutu[0].a[1]+ruutu[1].a[1];
-    for(int j=0; j<jEro; j++)
-      for(int i=-paksuus/2; i<paksuus/2; i++)
-	SDL_RenderDrawPoint(kuva->rend, i+ruutu[1].a[0]-j*kulmakerr, j-ruutu[1].a[1]);
-    /*oikea*/
-    jarjestaKoord(ruutu, kuutio->ruudut[RUUTU(tahko,2,jRuutu)], 0, 4);
-    jarjestaKoord(ruutu, ruutu+2, 1, 2);
-    kulmakerr = (ruutu[1].a[0]-ruutu[0].a[0]) / (ruutu[1].a[1]-ruutu[0].a[1]);
-    jEro = -ruutu[0].a[1]+ruutu[1].a[1];
-    for(int j=0; j<jEro; j++)
-      for(int i=-paksuus/2; i<paksuus/2; i++)
-	SDL_RenderDrawPoint(kuva->rend, i+ruutu[1].a[0]-j*kulmakerr, j-ruutu[1].a[1]);
-  }
-  free(ruutu);
-}
 #endif

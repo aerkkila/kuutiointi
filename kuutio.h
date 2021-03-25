@@ -13,14 +13,13 @@ typedef enum {
 
 typedef struct{ char v[3]; } vari;
 typedef struct{ float a[3]; } koordf;
+typedef struct {float a[2];} koordf2;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
-#define RUUTU(tahko,i,j) (tahko*kuutio->N*kuutio->N+i*kuutio->N+j)
 
 typedef struct {
   char** sivut;
-  koordf** ruudut;
-  koordf* nurkat;
+  koordf* ruudut;
   float ruutuValiKerr;
   float rotX; //0:ssa katse on suoraan edestä
   float rotY;
@@ -38,7 +37,6 @@ typedef struct {
   int yRes;
   int sij0; //nurkan paikka kun katsotaan suoraan edestä
   float resKuut;
-  int pit;
   char paivita;
 } kuva_t;
 

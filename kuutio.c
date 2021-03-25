@@ -32,6 +32,10 @@ shmRak_s *ipc;
 volatile float* savelPtr;
 #endif
 
+void seis() {
+  ;
+}
+
 inline void __attribute__((always_inline)) hae_nakuvuus() {
   kuutio->nakuvat = 0;
   if((kuutio->rotX > 0 && fabs(kuutio->rotY) < PI/2) ||		\
@@ -71,10 +75,7 @@ kuutio_t* luo_kuutio(const unsigned char N) {
   kuutio->ruutuValiKerr = 0.95;
   hae_nakuvuus();
   kuutio->sivut = malloc(6*sizeof(char*));
-  kuutio->ruudut = malloc(6*N*N*sizeof(koordf*));
-  kuutio->nurkat = malloc(6*4*sizeof(koordf));
-  for(int i=0; i<6*N*N; i++)
-    kuutio->ruudut[i] = malloc(4*sizeof(koordf));
+  kuutio->ruudut = malloc(6*4*kuutio->N*kuutio->N*sizeof(koordf));
   kuutio->varit = malloc(sizeof(varit));
   kuutio->ratkaistu = 1;
   
@@ -93,14 +94,9 @@ void* tuhoa_kuutio() {
     free(kuutio->sivut[i]);
     kuutio->sivut[i] = NULL;
   }
-  for(int i=0; i<6*kuutio->N*kuutio->N; i++) {
-    free(kuutio->ruudut[i]);
-    kuutio->ruudut[i] = NULL;
-  }
-  free(kuutio->ruudut);
   free(kuutio->sivut);
-  free(kuutio->nurkat);
-  kuutio->nurkat = NULL;
+  free(kuutio->ruudut);
+  kuutio->ruudut = NULL;
   kuutio->sivut = NULL;
   free(kuutio->varit);
   kuutio->varit = NULL;
@@ -411,9 +407,8 @@ int main(int argc, char** argv) {
   kuva->xRes = ikkuna_w;
   kuva->yRes = ikkuna_h;
   kuva->paivita = 1;
-  kuva->resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0) : ikkuna_w/sqrt(3.0);
+  kuva->resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva->sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva->resKuut)/2: (ikkuna_w-kuva->resKuut)/2;
-  kuva->pit = kuva->resKuut*kuva->resKuut;
 
   kuutio = luo_kuutio(N);
   
@@ -439,9 +434,11 @@ int main(int argc, char** argv) {
 	case SDL_WINDOWEVENT_RESIZED:;
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
 	  kuva->resKuut = koko1/sqrt(3.0);
-	  kuva->sij0 = (koko1-kuva->resKuut)/2;
-	  tee_ruutujen_koordtit();
-	  kuva->paivita = 1;
+	  if((koko1-kuva->resKuut)/2 != kuva->sij0) {
+	    kuva->sij0 = (koko1-kuva->resKuut)/2;
+	    tee_ruutujen_koordtit();
+	    kuva->paivita = 1;
+	  }
 	  break;
 	}
 	break;
@@ -521,6 +518,7 @@ int main(int argc, char** argv) {
 	    kontrol = 1;
 	    break;
 	  case SDLK_PAUSE:
+	    seis();
 	    break; //tarvitaan debuggaukseen
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
@@ -640,8 +638,8 @@ int main(int argc, char** argv) {
       }
       switch(puoliask) {
       case 0:
-	//siirtoInl1(_r, suunta);
-	korosta_tahko(_r);
+	siirtoInl1(_r, suunta);
+	;//korosta_tahko(_r);
 	break;
       case 2:
 	siirtoInl1(_l, suunta);
