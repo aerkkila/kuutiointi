@@ -157,14 +157,6 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
   free(xnurkat);
 }
 
-void piirra_viiva(koordf k1, koordf k2, int paksuus) {
-  float kulmakerr = (k2.a[1]-k1.a[1]) / (k2.a[0]-k1.a[0]);
-  int iEro = k1.a[0]-k2.a[0];
-  for(int i=0; i<iEro; i++)
-    for(int j=-paksuus/2; j<paksuus/2; j++)
-      SDL_RenderDrawPoint(kuva->rend, i+k1.a[0], j-k2.a[1]-i*kulmakerr);
-}
-
 int minKoordInd(koordf *ktit, int akseli, int pit) {
   int minInd = 0;
   float min = ktit[0].a[akseli];
@@ -222,31 +214,28 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
   return ret;
 }
 
-#if 0
 void korosta_tahko(int tahko) {
   int paksuus = 10;
-  koordf nurkka0, nurkka1, nurkka2;
-  SDL_SetRenderDrawColor(kuva->rend, 0, 200, 255, 255);
-  unsigned char nurkat = tahkon_nurkat[tahko];
-  int nurkInd = 0;
-  while(!nurkat & 0x01) {
-    nurkat >>= 1;
-    nurkInd++;
-  }
-  nurkInd++;
-  nurkka1 = *(kuutio->nurkat[nurkInd]);
-  nurkka0 = nurkka1;
-  for(int i=0; i<3; i++) {
-    while(!nurkat & 0x01) {
-      nurkat >>= 1;
-      nurkInd++;
-    }
-    nurkInd++;
-    nurkka2 = *(kuutio->nurkat[nurkInd]);
-    piirra_viiva(nurkka1, nurkka2, paksuus);
-    nurkka1 = nurkka2;
-  }
-  piirra_viiva(nurkka2, nurkka0, paksuus);
+  SDL_SetRenderDrawColor(kuva->rend, 80, 200, 140, 255);
+  piirra_viiva(kuutio->ruudut+RUUTU(tahko, 0, 0), kuutio->ruudut+RUUTU(tahko, kuutio->N-1, 0)+1, 3, paksuus);
+  kuva->paivita=1;
 }
 
-#endif
+/*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
+void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
+  koordf2 k1, k2;
+  if(onko2vai3 == 2) {
+    k1 = *(koordf2*)karg1;
+    if(karg2)
+      k2 = *(koordf2*)karg2;
+    else
+      k2 = (((koordf2*)karg1))[1];
+  } else {
+    k1 = (koordf2){{((koordf*)karg1)[0].a[0], ((koordf*)karg1)[0].a[1]}};
+    if(karg2)
+      k2 = (koordf2){{((koordf*)karg2)[0].a[0], ((koordf*)karg2)[0].a[1]}};
+    else
+      k2 = (koordf2){{((koordf*)karg1)[1].a[0], ((koordf*)karg1)[1].a[1]}};
+  }
+  SDL_RenderDrawLine(kuva->rend, k1.a[0], -k1.a[1], k2.a[0], -k2.a[1]);
+}

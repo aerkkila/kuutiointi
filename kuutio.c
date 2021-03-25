@@ -638,8 +638,7 @@ int main(int argc, char** argv) {
       }
       switch(puoliask) {
       case 0:
-	siirtoInl1(_r, suunta);
-	;//korosta_tahko(_r);
+	korosta_tahko(_r);
 	break;
       case 2:
 	siirtoInl1(_l, suunta);
