@@ -15,15 +15,25 @@ koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit);
     b = apu;					\
   }
 
-/*tätä voisi optimoida, koska ruudut jakavat nurkkia keskenään
-  ei siis tarvitsisi laskea jokaisen ruudun jokaista nurkkaa*/
+#define TEE_RUUTU kuutio.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
 void tee_ruutujen_koordtit() {
   for(int tahko=0; tahko<6; tahko++)
     for(int i=0; i<kuutio.N; i++)
       for(int j=0; j<kuutio.N; j++)
 	for(int nurkka=0; nurkka<4; nurkka++)
-	  kuutio.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
+	  /*ruudut jakavat nurkkia keskenään, joten optimoidaan
+	    vähentämällä saman laskemista monta kertaa*/
+	  if(i>0) {
+	    if(nurkka == 0)
+	      kuutio.ruudut[RUUTU(tahko,i,j)] = kuutio.ruudut[RUUTU(tahko,i-1,j)+1];
+	    else if(nurkka == 3)
+	      kuutio.ruudut[RUUTU(tahko,i,j)+3] = kuutio.ruudut[RUUTU(tahko,i-1,j)+2];
+	    else
+	      TEE_RUUTU;
+	  } else
+	    TEE_RUUTU;
 }
+#undef TEE_RUUTU
 
 void piirra_kuvaksi(int tahko) {
   koordf2* ktit = malloc(4*sizeof(koordf2));
