@@ -46,9 +46,9 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
 #define SJARJ (tkset.strjarj)
 #define SIJARJ (tkset.sijarj)
 #define MUUTA_TULOS laitot |= muuta_tulos;
-#define LISTARIVI(nimi) (nimi.alku +				 \
-			 (tapaht.button.y - nimi.toteutuma->y) / \
-			 TTF_FontLineSkip(nimi.font))
+#define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
+				     (tapaht.tapahtlaji.y - (nimi).toteutuma->y) / \
+				     TTF_FontLineSkip((nimi).font))
 #define TEE_TIEDOT tiedot = tee_tiedot(tiedot, &tkset, avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
@@ -415,7 +415,7 @@ int kaunnista() {
 	      KIRJOITUSLAJIKSI(kuutionKokoKirj);
 	    break;
 	  case muutal:;
-	    int rivi = LISTARIVI(muutol);
+	    int rivi = LISTARIVI(muutol, button);
 	    if(rivi == _ylaske(muut_a))
 	      rivi--;
 	    char* tmpstr = ((strlista*)(_ynouda(muut_a, rivi)))->str;
@@ -480,7 +480,7 @@ int kaunnista() {
 	      laitot |= vntalai;
 	    }
 	  } else if(alue == tuloksetal) {
-	    int tmpind = LISTARIVI(tulosol);
+	    int tmpind = LISTARIVI(tulosol, button);
 	    if(tmpind == _ylaske_taakse(tkset.strtulos))
 	      tmpind--;
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
@@ -586,12 +586,10 @@ int kaunnista() {
 	    }
 	    break;
 	  case jarjestus1al:
+	    apuind = LISTARIVI(jarjol1, motion);
 	  case jarjestus2al:;
-	    tekstiolio_s* o = &jarjol1;
-	    if(alue == jarjestus2al)
-	      o = &jarjol2;
-	    apuind = (o->alku + (tapaht.button.y - o->toteutuma->y) /	\
-		      TTF_FontLineSkip(o->font));
+	    if(alue != jarjestus1al)
+	      apuind = LISTARIVI(jarjol2, motion);
 	    if(apuind+1 < _ylaske(SIJARJ)) {
 	      sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
 	      apuind--;
@@ -601,7 +599,7 @@ int kaunnista() {
 	    break;
 	  case tuloksetal:;
 	    /*laitetaan aika näkyviin*/
-	    apuind = LISTARIVI(tulosol);
+	    apuind = LISTARIVI(tulosol, motion);
 	    if(apuind < _ylaske_taakse(tkset.tuloshetki)) {
 	    LAITA_AIKA_NAKUVIIN:;
 	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;

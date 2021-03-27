@@ -420,6 +420,7 @@ void tee_jarjlista(tkset_s* t) {
     apuf = _ynouda(fj, jarji); //fjarj
     if(!apuf) {
       ft = ft->seur; //ei löydy, jos on inf
+      i++;
       continue;
     }
     _flisaa(apuf, ft->f);
