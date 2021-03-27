@@ -21,17 +21,7 @@ void tee_ruutujen_koordtit() {
     for(int i=0; i<kuutio.N; i++)
       for(int j=0; j<kuutio.N; j++)
 	for(int nurkka=0; nurkka<4; nurkka++)
-	  /*ruudut jakavat nurkkia keskenään, joten optimoidaan
-	    vähentämällä saman laskemista monta kertaa*/
-	  if(i>0) {
-	    if(nurkka == 0)
-	      kuutio.ruudut[RUUTU(tahko,i,j)] = kuutio.ruudut[RUUTU(tahko,i-1,j)+1];
-	    else if(nurkka == 3)
-	      kuutio.ruudut[RUUTU(tahko,i,j)+3] = kuutio.ruudut[RUUTU(tahko,i-1,j)+2];
-	    else
-	      TEE_RUUTU;
-	  } else
-	    TEE_RUUTU;
+	  TEE_RUUTU;
 }
 #undef TEE_RUUTU
 
@@ -66,8 +56,9 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   }
   /*siirretään oikeaan ruutuun*/
   float resPala = kuva.resKuut/kuutio.N;
-  i = resPala * (iRuutu + i);
-  j = resPala * (jRuutu + j);
+  float resMusta = resPala*kuva.mustaOsuus/2; // x/2, koska jakautuu kahteen palaan
+  i = resPala * (iRuutu + i) + pow(-1,i)*resMusta;
+  j = resPala * (jRuutu + j) + pow(-1,j)*resMusta;
   
   /*i ja j ovat siirrot sivun vasemmasta ylänurkasta, nyt huomioidaan sivu*/
   switch(tahko) {

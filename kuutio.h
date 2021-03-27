@@ -36,6 +36,7 @@ typedef struct {
   int yRes;
   int sij0; //nurkan paikka kun katsotaan suoraan edestä
   float resKuut;
+  float mustaOsuus;
   char paivita;
 } kuva_t;
 

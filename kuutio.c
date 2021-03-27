@@ -401,6 +401,7 @@ int main(int argc, char** argv) {
     goto ULOS;
   kuva.xRes = ikkuna_w;
   kuva.yRes = ikkuna_h;
+  kuva.mustaOsuus = 0.05;
   kuva.paivita = 1;
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
@@ -655,7 +656,7 @@ int main(int argc, char** argv) {
   EI_SAVELTA:
 #endif
     paivita(kuutio, kuva);
-    SDL_Delay(0.02);
+    SDL_Delay(0.03);
   }
   
  ULOS:
