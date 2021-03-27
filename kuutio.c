@@ -36,28 +36,30 @@ void seis() {
   ;
 }
 
+#define RAJA 0.01
 inline void __attribute__((always_inline)) hae_nakuvuus() {
   kuutio.nakuvat = 0;
-  if((kuutio.rotX > 0 && fabs(kuutio.rotY) < PI/2) ||		\
-     (kuutio.rotX < 0 && fabs(kuutio.rotY) > PI/2))
+  /*ylä-ala*/
+  if((kuutio.rotX > RAJA && fabs(kuutio.rotY) < PI/2-RAJA) ||	\
+     (kuutio.rotX < -RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
     kuutio.nakuvat |= ulatavu;
-  else
+  else if((kuutio.rotX < -RAJA && fabs(kuutio.rotY) < PI/2-RAJA) ||	\
+	  (kuutio.rotX > RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
     kuutio.nakuvat |= alatavu;
-  if(kuutio.rotY < 0)
+  /*oikea-vasen*/
+  if(kuutio.rotY < -RAJA && kuutio.rotY > -PI+RAJA)
     kuutio.nakuvat |= oiktavu;
-  else if(kuutio.rotY > 0)
+  else if(kuutio.rotY > RAJA && kuutio.rotY < PI-RAJA)
     kuutio.nakuvat |= vastavu;
-  char tmpx = 0;
-  char tmpy = 0;
-  if(fabs(kuutio.rotX) > PI/2)
-    tmpx = 1;
-  if(fabs(kuutio.rotY) > PI/2)
-    tmpy = 1;
-  if(tmpx ^ tmpy)
+  /*etu-taka*/
+  if( (fabs(kuutio.rotX) > PI/2+RAJA && fabs(kuutio.rotY) < PI/2-RAJA) || \
+      (fabs(kuutio.rotX) < PI/2-RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
     kuutio.nakuvat |= taktavu;
-  else
+  else if((fabs(kuutio.rotX) < PI/2-RAJA && fabs(kuutio.rotY) < PI/2-RAJA) || \
+	  (fabs(kuutio.rotX) > PI/2+RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
     kuutio.nakuvat |= etutavu;
 }
+#undef RAJA
 
 kuutio_t luo_kuutio(const unsigned char N) {
   vari varit[6];
