@@ -4,6 +4,7 @@ import sounddevice as sd
 import numpy as np
 import sys, select
 import sysv_ipc as ipc
+import scipy.signal as sig
 
 taajuus = 16000; #oltava vähintään 2*f1
 Dt = 0.06; #vähintään 1/f0: 0,025, jos f0 = 40 Hz
@@ -19,8 +20,7 @@ shm = ipc.SharedMemory(avain, 0, 0);
 shm.attach(0,0);
 
 #Yksittäisiä virhesäveliä voi tulla ympäristön metelistä.
-#Siksi vaaditaan asian toistamista kahdesti
-#Sen jälkeen pitää tulla välissä tyhjää, jotta taas otetaan vastaan
+#Siksi vaaditaan asian toistamista kahdesti tai selkeää säveltä
 def kuuntele_savelia():
     toisto = 0;
     while 1:
@@ -30,8 +30,8 @@ def kuuntele_savelia():
         #Spektri:
         #tarvitaan vain varianssi ja spektrin maksimi,
         #joten laatikkoikkuna kelpaa ja aiheuttaa vähiten laskentakuormaa
-        #trendin poistaminen ei liene tarpeellista
-        X = np.fft.fft(data)[0:Ns//4]
+        #trendin poistaminen lienee sittenkin tarpeellista
+        X = np.fft.fft(sig.detrend(data))[0:Ns//4]
         if not (Ns % 2):
             X[-1] /= 2;
 
@@ -78,12 +78,9 @@ def kuuntele_savelia():
                     savelsuhde = suhde;
         if(70 < savel and savel < 3500):
             toisto += 1;
-            if(toisto == 2):
-                #print(savel, savelsuhde);
+            if(toisto > 1):
                 shm.write(np.float32(savel));
             if(toisto == 1 and suhde > 250):
-                toisto = 2;
-                #print(savel, savelsuhde);
                 shm.write(np.float32(savel));
         else:
             toisto = 0;

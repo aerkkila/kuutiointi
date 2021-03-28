@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
@@ -121,7 +122,8 @@ void paivita() {
     piirra_kuvaksi(_r);
   else if(kuutio.nakuvat & vastavu)
     piirra_kuvaksi(_l);
-  korosta_tahko(kuva.korostus);
+  if(kuva.korostus >= 0)
+    korosta_tahko(kuva.korostus);
   SDL_RenderPresent(kuva.rend);
 }
 
@@ -405,7 +407,7 @@ int main(int argc, char** argv) {
   kuva.yRes = ikkuna_h;
   kuva.mustaOsuus = 0.05;
   kuva.paivita = 1;
-  kuva.korostus = _u;
+  kuva.korostus = -1;
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 
@@ -624,37 +626,59 @@ int main(int argc, char** argv) {
     } //while poll_event
 #ifdef __PYTHON_SAVEL__
     if(savelPtr) {
+      static char suunta = 1;
+      static double savLoppuHetki = 1.0;
       register float savel = *savelPtr;
-      if(savel < 0)
+      if(savel < 0) {
+	if(savLoppuHetki < 0) { //sävel päättyi juuri
+	  struct timeval hetki;
+	  gettimeofday(&hetki, NULL);
+	  savLoppuHetki = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
+	} else if(savLoppuHetki > 2) { // 1 olisi merkkinä, ettei tehdä mitään
+	  struct timeval hetki;
+	  gettimeofday(&hetki, NULL);
+	  double hetkiNyt = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
+	  if(hetkiNyt - savLoppuHetki > 1.0 && kuva.korostus >= 0) {
+	    siirtoInl1(kuva.korostus, suunta);
+	    kuva.korostus = -1;
+	    savLoppuHetki = 1;
+	    *savelPtr = -1.0;
+	  }
+	}
 	goto EI_SAVELTA;
+      }
+      savLoppuHetki = -1.0;
       int puoliask = savel_ero(savel);
       printf("%i\n", puoliask);
       *savelPtr = -1.0;
-      char suunta = 1;
+      suunta = 1;
       if(puoliask < 0) {
 	puoliask += 12;
 	suunta = 3;
       }
       switch(puoliask) {
       case 0:
-	siirtoInl1(_r, suunta);
+	kuva.korostus = _r;
 	break;
       case 2:
-	siirtoInl1(_l, suunta);
+	kuva.korostus = _l;
 	break;
       case 4:
-	siirtoInl1(_u, suunta);
+	kuva.korostus = _u;
 	break;
       case 5:
-	siirtoInl1(_d, suunta);
+	kuva.korostus = _d;
 	break;
       case 7:
-	siirtoInl1(_f, suunta);
+	kuva.korostus = _f;
 	break;
       case 10:
-	siirtoInl1(_b, suunta);
+	kuva.korostus = _b;
 	break;
+      default:
+	goto EI_SAVELTA;
       }
+      kuva.paivita = 1;
     }
   EI_SAVELTA:
 #endif
