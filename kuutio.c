@@ -121,7 +121,7 @@ void paivita() {
     piirra_kuvaksi(_r);
   else if(kuutio.nakuvat & vastavu)
     piirra_kuvaksi(_l);
-
+  korosta_tahko(kuva.korostus);
   SDL_RenderPresent(kuva.rend);
 }
 
@@ -405,6 +405,7 @@ int main(int argc, char** argv) {
   kuva.yRes = ikkuna_h;
   kuva.mustaOsuus = 0.05;
   kuva.paivita = 1;
+  kuva.korostus = _u;
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 

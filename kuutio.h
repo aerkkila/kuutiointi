@@ -38,6 +38,7 @@ typedef struct {
   float resKuut;
   float mustaOsuus;
   char paivita;
+  int korostus;
 } kuva_t;
 
 #endif

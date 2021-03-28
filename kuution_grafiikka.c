@@ -216,14 +216,27 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
 }
 
 void korosta_tahko(int tahko) {
-  int paksuus = 10;
-  SDL_SetRenderDrawColor(kuva.rend, 80, 200, 140, 255);
-  piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0), kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1, 3, paksuus);
-  kuva.paivita=1;
+  if(tahko < 0 || tahko > 5)
+    return;
+  int paksuus = 15;
+  SDL_SetRenderDrawColor(kuva.rend, 80, 233, 166, 255);
+  piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
+	       kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1,	\
+	       3, paksuus);
+  piirra_viiva(kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1,		\
+	       kuutio.ruudut+RUUTU(tahko, kuutio.N-1, kuutio.N-1)+2,	\
+	       3, paksuus);
+  piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, kuutio.N-1)+3,		\
+	       kuutio.ruudut+RUUTU(tahko, kuutio.N-1, kuutio.N-1)+2,	\
+	       3, paksuus);
+  piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
+	       kuutio.ruudut+RUUTU(tahko, 0, kuutio.N-1)+3,	\
+	       3, paksuus);
 }
 
 /*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
+  int h2 = paksuus/2;
   koordf2 k1, k2;
   if(onko2vai3 == 2) {
     k1 = *(koordf2*)karg1;
@@ -238,5 +251,91 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
     else
       k2 = (koordf2){{((koordf*)karg1)[1].a[0], ((koordf*)karg1)[1].a[1]}};
   }
-  SDL_RenderDrawLine(kuva.rend, k1.a[0], -k1.a[1], k2.a[0], -k2.a[1]);
+  /*kasvava x-koordinaatti*/
+  if(k2.a[0] < k1.a[0])
+    VAIHDA(k2, k1, koordf2);
+  float yEro = k2.a[1] - k1.a[1];
+  float xEro = k2.a[0] - k1.a[0];
+  if(xEro < 1) {
+    int iAlku = k1.a[0], jAlku = k1.a[1];
+    int yEroi = yEro;
+    if(yEroi > 0)
+      for(int j=0; j<yEroi; j++)
+	for(int i=-h2; i<=h2; i++)
+	  SDL_RenderDrawPoint(kuva.rend, i+iAlku, -(j+jAlku));
+    else
+      for(int j=0; j>yEroi; j--)
+	for(int i=-h2; i<=h2; i++)
+	  SDL_RenderDrawPoint(kuva.rend, i+iAlku, -(j+jAlku));
+    return;
+  }
+  if(fabs(yEro) < 1) {
+    int jAlku = k1.a[1], iAlku = k1.a[0];
+    int xEroi = xEro;
+    if(xEroi > 0)
+      for(int i=0; i<xEroi; i++)
+	for(int j=-h2; j<=h2; j++)
+	  SDL_RenderDrawPoint(kuva.rend, iAlku+i, -(jAlku+j));
+    else
+      for(int i=0; i>xEroi; i--)
+	for(int j=-h2; j<=h2; j++)
+	  SDL_RenderDrawPoint(kuva.rend, iAlku+i, -(jAlku+j));
+    return;
+  }
+  float kulma = yEro / xEro;
+  double kulmaT = -1/kulma;
+  if(kulma >= 0) {
+    int jNyt, jSeur, xEroi=xEro, jLoppu=k2.a[1];
+    float iAlku, jAlku, jAlkuLoppu, jAlkuSeur, jAlkuNyt;
+    iAlku = k1.a[0]; jAlku = k1.a[1];
+    /*piirretään ohuita viivoja vierekkäin kunnes saavutetaan haluttu paksuus*/
+    iAlku -= cos(atan(kulmaT))*h2;
+    jAlku -= sin(atan(kulmaT))*h2; //kasvaa
+    jAlkuLoppu = jAlku + (k1.a[1]-jAlku)*2; //loppu < alku
+
+    /*ohuitten viivojen silmukka*/
+    while(jAlku >= jAlkuLoppu) {
+      jAlkuSeur = jAlku + kulmaT; //seuraava on pienempi
+      /*jAlku voi muuttua alle 1:n, joten tähän silmukkaan otetaan toinen muuttuja*/
+      jAlkuNyt = jAlku;
+      /*tätä silmukkaa tarvitaan, jos kulmaT > 1; monta y-alkua samalla x-alulla*/
+      while(jAlkuNyt > jAlkuSeur && jAlkuNyt >= jAlkuLoppu) {
+	for(int i=0; i<=xEroi; i++) {
+	  jNyt = jAlkuNyt + i*kulma;
+	  jSeur = jAlkuNyt + (i+1)*kulma;
+	  while(jNyt <= jSeur && jNyt <= jLoppu)
+	    SDL_RenderDrawPoint(kuva.rend, i+iAlku, -jNyt++);
+	}
+	jAlkuNyt--; //kulmaT on negatiivinen
+      }
+      jAlku += kulmaT;
+      iAlku++;
+    }
+    return;
+  }
+  /*kulma < 0*/
+  int jNyt, jSeur, xEroi=xEro, jLoppu=k2.a[1];
+  float iAlku, jAlku, jAlkuLoppu, jAlkuSeur, jAlkuNyt;
+  iAlku = k1.a[0]; jAlku = k1.a[1];
+  /*piirretään ohuita viivoja vierekkäin kunnes saavutetaan haluttu paksuus*/
+  iAlku -= cos(atan(kulmaT))*h2;
+  jAlku -= sin(atan(kulmaT))*h2; //vähenee
+  jAlkuLoppu = jAlku + (k1.a[1]-jAlku)*2; //loppu > alku
+  
+  while(jAlku <= jAlkuLoppu) {
+    jAlkuSeur = jAlku + kulmaT; //seuraava on suurempi
+    jAlkuNyt = jAlku;
+    while(jAlkuNyt < jAlkuSeur && jAlkuNyt <= jAlkuLoppu) {
+      for(int i=0; i<=xEroi; i++) {
+	jNyt = jAlkuNyt + i*kulma;
+	jSeur = jAlkuNyt + (i+1)*kulma;
+	while(jNyt >= jSeur && jNyt >= jLoppu) //kulma on negatiivinen
+	  SDL_RenderDrawPoint(kuva.rend, i+iAlku, -jNyt--);
+      }
+      jAlkuNyt++; //kulmaT on positiivinen
+    }
+    jAlku += kulmaT;
+    iAlku++;
+  }
+  return;
 }
