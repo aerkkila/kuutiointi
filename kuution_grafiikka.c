@@ -79,15 +79,24 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
     return (koordf){{NAN, NAN, NAN}};
   }
 
-  float x,y,z;
+  float x,y,z,x1,y1,z1;
+  x = nurkka0.a[0]; y = nurkka0.a[1]; z = nurkka0.a[2];
   /*x-pyöräytys*/
-  x = nurkka0.a[0];
-  y = nurkka0.a[1]*cosf(kuutio.rotX) - nurkka0.a[2]*sinf(kuutio.rotX);
-  z = nurkka0.a[1]*sinf(kuutio.rotX) + nurkka0.a[2]*cosf(kuutio.rotX);
+  y1 = y*cosf(kuutio.rotX) - z*sinf(kuutio.rotX);
+  z1 = y*sinf(kuutio.rotX) + z*cosf(kuutio.rotX);
+  y = y1; z = z1;
   /*y-pyöräytys*/
-  nurkka.a[0] = x*cosf(kuutio.rotY) + z*sinf(kuutio.rotY) + res + kuva.sij0;
+  x1 = x*cosf(kuutio.rotY) + z*sinf(kuutio.rotY);
+  z1 = -x*sinf(kuutio.rotY) + z*cosf(kuutio.rotY);
+  x = x1; z = z1;
+  /*z-pyöräytys*/
+  x1 = x*cosf(kuutio.rotZ) - y*sinf(kuutio.rotZ);
+  y1 = x*sinf(kuutio.rotZ) + y*cosf(kuutio.rotZ);
+  x = x1; y = y1;
+
+  nurkka.a[0] = x + res + kuva.sij0;
   nurkka.a[1] = y - res - kuva.sij0;
-  nurkka.a[2] = -x*sinf(kuutio.rotY) + z*cosf(kuutio.rotY);
+  nurkka.a[2] = z;
   return nurkka;
 }
 

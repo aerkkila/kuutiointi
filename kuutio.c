@@ -74,6 +74,7 @@ kuutio_t luo_kuutio(const unsigned char N) {
   kuutio.N = N;
   kuutio.rotX = PI/6;
   kuutio.rotY = -PI/6;
+  kuutio.rotZ = -PI/6;
   hae_nakuvuus();
   kuutio.sivut = malloc(6*sizeof(char*));
   kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
@@ -595,6 +596,8 @@ int main(int argc, char** argv) {
 	xVanha = tapaht.button.x;
 	yVanha = tapaht.button.y;
 	hiiri_painettu = 1;
+	if(tapaht.button.button == SDL_BUTTON_RIGHT)
+	  hiiri_painettu = 2;
 	break;
       case SDL_MOUSEMOTION:;
 	/*pyöritetään, raahauksesta hiirellä*/
@@ -604,7 +607,10 @@ int main(int argc, char** argv) {
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
 	  kuutio.rotY += xEro*PI/(2*kuva.resKuut);
-	  kuutio.rotX += yEro*PI/(2*kuva.resKuut);
+	  if(hiiri_painettu == 2)
+	    kuutio.rotZ += yEro*PI/(2*kuva.resKuut);
+	  else
+	    kuutio.rotX += yEro*PI/(2*kuva.resKuut);
 	  if(kuutio.rotY < -PI)
 	    kuutio.rotY += 2*PI;
 	  else if (kuutio.rotY > PI)
