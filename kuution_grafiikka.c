@@ -1,6 +1,7 @@
 #include <SDL.h>
 #include <stdarg.h>
 #include <math.h>
+#include <sys/time.h>
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
 
@@ -26,14 +27,12 @@ void tee_ruutujen_koordtit() {
 #undef TEE_RUUTU
 
 void piirra_kuvaksi(int tahko) {
-  koordf2* ktit = malloc(4*sizeof(koordf2));
   for(int i=0; i<kuutio.N; i++)
     for(int j=0; j<kuutio.N; j++) {
       vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
       SDL_SetRenderDrawColor(kuva.rend, vari.v[0], vari.v[1], vari.v[2], 255);
       piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
     }
-  free(ktit);
 }
 
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
@@ -347,4 +346,56 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
     iAlku++;
   }
   return;
+}
+
+#define PI 3.14159265
+void kaantoanimaatio(int tahko, double maara, double aika) {
+  double fps = 25.0;
+  double kokoKulma = PI/2*maara;
+  double kulmaNyt = 0.0;
+  float rot0 = kuutio.rotZ;
+  struct timeval hetki;
+  gettimeofday(&hetki, NULL);
+  double alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+  double loppu = alku + aika;
+  double kului = 0;
+  
+  while(alku+kului/2 < loppu) {
+    double askel = (kokoKulma - kulmaNyt) / (fps * (loppu-alku));
+    kulmaNyt += askel;
+    kuutio.rotZ += askel;
+    if(kuutio.rotZ > rot0 + kokoKulma)
+      break;
+    
+    for(int i=0; i<kuutio.N; i++)
+      for(int j=0; j<kuutio.N; j++)
+	for(int n=0; n<4; n++)
+	  kuutio.ruudut[RUUTU(tahko,i,j)+n] = ruudun_nurkka(tahko, i, j, n);
+      
+    paivita();
+    /*pysähdys*/
+    gettimeofday(&hetki, NULL);
+    double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+    kului = nyt - alku;
+    if(kului < 1/fps)
+      SDL_Delay((unsigned)((1/fps - kului)*1000));
+    else {
+      printf("\rKului %5.4f s, vaikka 1/fps on %5.4f", kului, 1/fps);
+      fflush(stdout);
+    }
+    
+    /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
+    gettimeofday(&hetki, NULL);
+    alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+    SDL_RenderPresent(kuva.rend);
+  }
+  
+  /*viimeinen askel menee loppuun*/
+  kuutio.rotZ = rot0+kokoKulma;
+  for(int i=0; i<kuutio.N; i++)
+    for(int j=0; j<kuutio.N; j++)
+      for(int n=0; n<4; n++)
+	kuutio.ruudut[RUUTU(tahko,i,j)+n] = ruudun_nurkka(tahko, i, j, n);
+  paivita();
+  kuutio.rotZ = rot0;
 }

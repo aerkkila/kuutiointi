@@ -13,3 +13,4 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
 void piirra_kuvaksi(int tahko);
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 void korosta_tahko(int tahko);
+void kaantoanimaatio(int tahko, double maara, double aika);

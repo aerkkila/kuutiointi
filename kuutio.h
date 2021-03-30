@@ -48,3 +48,4 @@ extern kuva_t kuva;
 
 void siirto(int puoli, char kaista, char maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);
+void paivita();

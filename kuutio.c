@@ -33,7 +33,7 @@ shmRak_s *ipc;
 volatile float* savelPtr;
 #endif
 
-void seis() {
+void seis() { //tarvitaan virheenjäljitykseen (gdb: break seis)
   ;
 }
 
@@ -74,7 +74,7 @@ kuutio_t luo_kuutio(const unsigned char N) {
   kuutio.N = N;
   kuutio.rotX = PI/6;
   kuutio.rotY = -PI/6;
-  kuutio.rotZ = -PI/6;
+  kuutio.rotZ = 0;
   hae_nakuvuus();
   kuutio.sivut = malloc(6*sizeof(char*));
   kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
@@ -105,8 +105,6 @@ void tuhoa_kuutio() {
 }
 
 void paivita() {
-  if(!kuva.paivita)
-    return;
   kuva.paivita = 0;
   SDL_SetRenderDrawColor(kuva.rend, 0, 0, 0, 255);
   SDL_RenderClear(kuva.rend);
@@ -520,8 +518,11 @@ int main(int argc, char** argv) {
 	    kontrol = 1;
 	    break;
 	  case SDLK_PAUSE:
-	    seis();
-	    break; //tarvitaan debuggaukseen
+	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
+	    break;
+	  case SDLK_RETURN:
+	    kaantoanimaatio(_f, 4.0, 1.0);
+	    break;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
@@ -688,8 +689,9 @@ int main(int argc, char** argv) {
     }
   EI_SAVELTA:
 #endif
-    paivita(kuutio, kuva);
-    SDL_Delay(0.03);
+    if(kuva.paivita)
+      paivita();
+    SDL_Delay(20);
   }
   
  ULOS:
