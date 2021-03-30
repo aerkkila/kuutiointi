@@ -41,23 +41,23 @@ void seis() { //tarvitaan virheenjäljitykseen (gdb: break seis)
 inline void __attribute__((always_inline)) hae_nakuvuus() {
   kuutio.nakuvat = 0;
   /*ylä-ala*/
-  if((kuutio.rotX > RAJA && fabs(kuutio.rotY) < PI/2-RAJA) ||	\
-     (kuutio.rotX < -RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
+  if((kuutio.xyz.a[0] > RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) ||	\
+     (kuutio.xyz.a[0] < -RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
     kuutio.nakuvat |= ulatavu;
-  else if((kuutio.rotX < -RAJA && fabs(kuutio.rotY) < PI/2-RAJA) ||	\
-	  (kuutio.rotX > RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
+  else if((kuutio.xyz.a[0] < -RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) ||	\
+	  (kuutio.xyz.a[0] > RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
     kuutio.nakuvat |= alatavu;
   /*oikea-vasen*/
-  if(kuutio.rotY < -RAJA && kuutio.rotY > -PI+RAJA)
+  if(kuutio.xyz.a[1] < -RAJA && kuutio.xyz.a[1] > -PI+RAJA)
     kuutio.nakuvat |= oiktavu;
-  else if(kuutio.rotY > RAJA && kuutio.rotY < PI-RAJA)
+  else if(kuutio.xyz.a[1] > RAJA && kuutio.xyz.a[1] < PI-RAJA)
     kuutio.nakuvat |= vastavu;
   /*etu-taka*/
-  if( (fabs(kuutio.rotX) > PI/2+RAJA && fabs(kuutio.rotY) < PI/2-RAJA) || \
-      (fabs(kuutio.rotX) < PI/2-RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
+  if( (fabs(kuutio.xyz.a[0]) > PI/2+RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) || \
+      (fabs(kuutio.xyz.a[0]) < PI/2-RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
     kuutio.nakuvat |= taktavu;
-  else if((fabs(kuutio.rotX) < PI/2-RAJA && fabs(kuutio.rotY) < PI/2-RAJA) || \
-	  (fabs(kuutio.rotX) > PI/2+RAJA && fabs(kuutio.rotY) > PI/2+RAJA))
+  else if((fabs(kuutio.xyz.a[0]) < PI/2-RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) || \
+	  (fabs(kuutio.xyz.a[0]) > PI/2+RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
     kuutio.nakuvat |= etutavu;
 }
 #undef RAJA
@@ -72,9 +72,7 @@ kuutio_t luo_kuutio(const unsigned char N) {
   varit[_l] = VARI(220,120,0  ); //oranssi
   
   kuutio.N = N;
-  kuutio.rotX = PI/6;
-  kuutio.rotY = -PI/6;
-  kuutio.rotZ = 0;
+  kuutio.xyz = (koordf){{PI/6, -PI/6, 0}};
   hae_nakuvuus();
   kuutio.sivut = malloc(6*sizeof(char*));
   kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
@@ -521,7 +519,7 @@ int main(int argc, char** argv) {
 	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
 	    break;
 	  case SDLK_RETURN:
-	    kaantoanimaatio(_f, 4.0, 1.0);
+	    kaantoanimaatio(_f, (koordf){{0,0,1}}, 4.0, 1.5);
 	    break;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
@@ -607,19 +605,19 @@ int main(int argc, char** argv) {
 	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio.rotY += xEro*PI/(2*kuva.resKuut);
+	  kuutio.xyz.a[1] += xEro*PI/(2*kuva.resKuut);
 	  if(hiiri_painettu == 2)
-	    kuutio.rotZ += yEro*PI/(2*kuva.resKuut);
+	    kuutio.xyz.a[2] += yEro*PI/(2*kuva.resKuut);
 	  else
-	    kuutio.rotX += yEro*PI/(2*kuva.resKuut);
-	  if(kuutio.rotY < -PI)
-	    kuutio.rotY += 2*PI;
-	  else if (kuutio.rotY > PI)
-	    kuutio.rotY -= 2*PI;
-	  if(kuutio.rotX < -PI)
-	    kuutio.rotX += 2*PI;
-	  else if (kuutio.rotX > PI)
-	    kuutio.rotX -= 2*PI;
+	    kuutio.xyz.a[0] += yEro*PI/(2*kuva.resKuut);
+	  if(kuutio.xyz.a[1] < -PI)
+	    kuutio.xyz.a[1] += 2*PI;
+	  else if (kuutio.xyz.a[1] > PI)
+	    kuutio.xyz.a[1] -= 2*PI;
+	  if(kuutio.xyz.a[0] < -PI)
+	    kuutio.xyz.a[0] += 2*PI;
+	  else if (kuutio.xyz.a[0] > PI)
+	    kuutio.xyz.a[0] -= 2*PI;
 	  
 	  hae_nakuvuus();
 	  tee_ruutujen_koordtit();

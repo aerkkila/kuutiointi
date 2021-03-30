@@ -20,9 +20,7 @@ typedef struct {float a[2];} koordf2;
 typedef struct {
   char** sivut;
   koordf* ruudut;
-  float rotX; //0:ssa katse on suoraan edestä
-  float rotY;
-  float rotZ;
+  koordf xyz;
   vari* varit;
   char N; //NxNxN-kuutio
   char nakuvat;

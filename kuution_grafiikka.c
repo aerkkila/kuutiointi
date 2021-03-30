@@ -77,25 +77,11 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
     fprintf(stderr, "Virhe (tee_nurkan_koordtit): tahko = %i", tahko);
     return (koordf){{NAN, NAN, NAN}};
   }
+  nurkka0 = puorauta(nurkka0, kuutio.xyz);
 
-  float x,y,z,x1,y1,z1;
-  x = nurkka0.a[0]; y = nurkka0.a[1]; z = nurkka0.a[2];
-  /*x-pyöräytys*/
-  y1 = y*cosf(kuutio.rotX) - z*sinf(kuutio.rotX);
-  z1 = y*sinf(kuutio.rotX) + z*cosf(kuutio.rotX);
-  y = y1; z = z1;
-  /*y-pyöräytys*/
-  x1 = x*cosf(kuutio.rotY) + z*sinf(kuutio.rotY);
-  z1 = -x*sinf(kuutio.rotY) + z*cosf(kuutio.rotY);
-  x = x1; z = z1;
-  /*z-pyöräytys*/
-  x1 = x*cosf(kuutio.rotZ) - y*sinf(kuutio.rotZ);
-  y1 = x*sinf(kuutio.rotZ) + y*cosf(kuutio.rotZ);
-  x = x1; y = y1;
-
-  nurkka.a[0] = x + res + kuva.sij0;
-  nurkka.a[1] = y - res - kuva.sij0;
-  nurkka.a[2] = z;
+  nurkka.a[0] = nurkka0.a[0] + res + kuva.sij0;
+  nurkka.a[1] = nurkka0.a[1] - res - kuva.sij0;
+  nurkka.a[2] = nurkka0.a[2];
   return nurkka;
 }
 
@@ -348,30 +334,58 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
   return;
 }
 
+inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
+#define k(i) (koord.a[i])
+#define u(i) (aks.a[i])
+#define co (cosf(kulma))
+#define si (sinf(kulma))
+  float x,y,z;
+  x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
+       k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
+       k(2) * (u(0)*u(2)*(1-co) + u(1)*si));
+  
+  y = (k(0) * (u(1)*u(0)*(1-co) + u(2)*si) +	\
+       k(1) * (co + u(1)*u(1)*(1-co)) +		\
+       k(2) * (u(1)*u(2)*(1-co) - u(0)*si));
+
+  z = (k(0) * (u(2)*u(0)*(1-co) - u(1)*si) + \
+       k(1) * (u(2)*u(1)*(1-co) + u(0)*si) + \
+       k(2) * (co + u(2)*u(2)*(1-co)));
+  return (koordf){{x,y,z}};
+}
+#undef k
+#undef u
+#undef co
+#undef si
+
 #define PI 3.14159265
-void kaantoanimaatio(int tahko, double maara, double aika) {
-  double fps = 25.0;
+void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika) {
+  float siirto = kuva.resKuut/2 + kuva.sij0;
+  double fps = 30.0;
   double kokoKulma = PI/2*maara;
   double kulmaNyt = 0.0;
-  float rot0 = kuutio.rotZ;
   struct timeval hetki;
   gettimeofday(&hetki, NULL);
   double alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
   double loppu = alku + aika;
   double kului = 0;
+  akseli = puorauta(akseli, kuutio.xyz);
   
   while(alku+kului/2 < loppu) {
-    double askel = (kokoKulma - kulmaNyt) / (fps * (loppu-alku));
-    kulmaNyt += askel;
-    kuutio.rotZ += askel;
-    if(kuutio.rotZ > rot0 + kokoKulma)
+    float askel = (kokoKulma - kulmaNyt) / (fps * (loppu-alku));
+    if(kulmaNyt+askel > kokoKulma)
       break;
+    kulmaNyt += askel;
     
+#define A kuutio.ruudut[RUUTU(tahko,i,j)+n]
     for(int i=0; i<kuutio.N; i++)
       for(int j=0; j<kuutio.N; j++)
-	for(int n=0; n<4; n++)
-	  kuutio.ruudut[RUUTU(tahko,i,j)+n] = ruudun_nurkka(tahko, i, j, n);
-      
+	for(int n=0; n<4; n++) {
+	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
+	  A = yleispuorautus(A, akseli, askel);
+	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
+	}
+    
     paivita();
     /*pysähdys*/
     gettimeofday(&hetki, NULL);
@@ -379,10 +393,6 @@ void kaantoanimaatio(int tahko, double maara, double aika) {
     kului = nyt - alku;
     if(kului < 1/fps)
       SDL_Delay((unsigned)((1/fps - kului)*1000));
-    else {
-      printf("\rKului %5.4f s, vaikka 1/fps on %5.4f", kului, 1/fps);
-      fflush(stdout);
-    }
     
     /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
     gettimeofday(&hetki, NULL);
@@ -391,11 +401,14 @@ void kaantoanimaatio(int tahko, double maara, double aika) {
   }
   
   /*viimeinen askel menee loppuun*/
-  kuutio.rotZ = rot0+kokoKulma;
+  float askel = kokoKulma-kulmaNyt;
   for(int i=0; i<kuutio.N; i++)
     for(int j=0; j<kuutio.N; j++)
-      for(int n=0; n<4; n++)
-	kuutio.ruudut[RUUTU(tahko,i,j)+n] = ruudun_nurkka(tahko, i, j, n);
+      for(int n=0; n<4; n++) {
+	A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
+	A = yleispuorautus(A, akseli, askel);
+	A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
+      }
+#undef A
   paivita();
-  kuutio.rotZ = rot0;
 }

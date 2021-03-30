@@ -2,7 +2,26 @@
 
 #ifndef __KUUTION_GRAFIIKKA__
 #define __KUUTION_GRAFIIKKA__
+
 #define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+
+inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
+  /*x-pyöräytys*/
+  float x = xyz.a[0], y = xyz.a[1], z = xyz.a[2];
+  float x1,y1,z1;
+  y1 = y*cosf(kulmat.a[0]) - z*sinf(kulmat.a[0]);
+  z1 = y*sinf(kulmat.a[0]) + z*cosf(kulmat.a[0]);
+  y = y1; z = z1;
+  /*y-pyöräytys*/
+  x1 = x*cosf(kulmat.a[1]) + z*sinf(kulmat.a[1]);
+  z1 = -x*sinf(kulmat.a[1]) + z*cosf(kulmat.a[1]);
+  x = x1; z = z1;
+  /*z-pyöräytys*/
+  x1 = x*cosf(kulmat.a[2]) - y*sinf(kulmat.a[2]);
+  y1 = x*sinf(kulmat.a[2]) + y*cosf(kulmat.a[2]);
+  x = x1; y = y1;
+  return (koordf){{x,y,z}};
+}
 #endif
 
 void tee_ruutujen_koordtit();
@@ -13,4 +32,4 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
 void piirra_kuvaksi(int tahko);
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 void korosta_tahko(int tahko);
-void kaantoanimaatio(int tahko, double maara, double aika);
+void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika);
