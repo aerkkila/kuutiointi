@@ -4,6 +4,7 @@
 #define __KUUTION_GRAFIIKKA__
 
 #define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
 
 inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
   /*x-pyöräytys*/
@@ -22,6 +23,9 @@ inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
   x = x1; y = y1;
   return (koordf){{x,y,z}};
 }
+inline void __attribute((always_inline)) aseta_vari(vari v) {
+  SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
+}
 #endif
 
 void tee_ruutujen_koordtit();
@@ -32,4 +36,5 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
 void piirra_kuvaksi(int tahko);
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 void korosta_tahko(int tahko);
+void korosta_ruutu(void* ktit, int onko2vai3);
 void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika);

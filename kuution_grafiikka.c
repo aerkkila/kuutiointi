@@ -10,12 +10,6 @@ int minKoordInd2(koordf2 *ktit, int akseli, int pit);
 koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
 koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit);
 
-#define VAIHDA(a,b,tyyppi) {			\
-    tyyppi apu = a;				\
-    a = b;					\
-    b = apu;					\
-  }
-
 #define TEE_RUUTU kuutio.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
 void tee_ruutujen_koordtit() {
   for(int tahko=0; tahko<6; tahko++)
@@ -213,7 +207,7 @@ void korosta_tahko(int tahko) {
   if(tahko < 0 || tahko > 5)
     return;
   int paksuus = 15;
-  SDL_SetRenderDrawColor(kuva.rend, 80, 233, 166, 255);
+  aseta_vari(kuva.korostusVari);
   piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
 	       kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1,	\
 	       3, paksuus);
@@ -226,6 +220,24 @@ void korosta_tahko(int tahko) {
   piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
 	       kuutio.ruudut+RUUTU(tahko, 0, kuutio.N-1)+3,	\
 	       3, paksuus);
+}
+
+void korosta_ruutu(void* ktit, int onko2vai3) {
+  int paksuus = 10;
+  aseta_vari(kuva.korostusVari);
+  if(onko2vai3 == 2) {
+    koordf2* k = ktit;
+    piirra_viiva(k, k+1, onko2vai3, paksuus);
+    piirra_viiva(k+1, k+2, onko2vai3, paksuus);
+    piirra_viiva(k+2, k+3, onko2vai3, paksuus);
+    piirra_viiva(k+3, k, onko2vai3, paksuus);
+  } else {
+    koordf* k = ktit;
+    piirra_viiva(k, k+1, onko2vai3, paksuus);
+    piirra_viiva(k+1, k+2, onko2vai3, paksuus);
+    piirra_viiva(k+2, k+3, onko2vai3, paksuus);
+    piirra_viiva(k+3, k, onko2vai3, paksuus);
+  }
 }
 
 /*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
@@ -360,6 +372,7 @@ inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf
 
 #define PI 3.14159265
 void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika) {
+  int3 paikka;
   float siirto = kuva.resKuut/2 + kuva.sij0;
   double fps = 30.0;
   double kokoKulma = PI/2*maara;
@@ -377,15 +390,18 @@ void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika) {
       break;
     kulmaNyt += askel;
     
-#define A kuutio.ruudut[RUUTU(tahko,i,j)+n]
-    for(int i=0; i<kuutio.N; i++)
-      for(int j=0; j<kuutio.N; j++)
+#define A kuutio.ruudut[RUUTU(paikka.a[0],paikka.a[1],paikka.a[2])+n]
+    for(int i=-1; i<kuutio.N+1; i++)
+      for(int j=-1; j<kuutio.N+1; j++) {
+	paikka = hae_ruutu(tahko,i,j);
+	if(paikka.a[0] < 0)
+	  continue;
 	for(int n=0; n<4; n++) {
 	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
 	  A = yleispuorautus(A, akseli, askel);
 	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
 	}
-    
+      }
     paivita();
     /*pysähdys*/
     gettimeofday(&hetki, NULL);
@@ -399,16 +415,19 @@ void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika) {
     alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
     SDL_RenderPresent(kuva.rend);
   }
-  
   /*viimeinen askel menee loppuun*/
   float askel = kokoKulma-kulmaNyt;
-  for(int i=0; i<kuutio.N; i++)
-    for(int j=0; j<kuutio.N; j++)
+  for(int i=-1; i<kuutio.N+1; i++)
+    for(int j=-1; j<kuutio.N+1; j++) {
+      paikka = hae_ruutu(tahko,i,j);
+      if(paikka.a[0] < 0)
+	continue;
       for(int n=0; n<4; n++) {
 	A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
 	A = yleispuorautus(A, akseli, askel);
 	A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
       }
-#undef A
+    }
   paivita();
 }
+#undef A

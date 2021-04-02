@@ -27,6 +27,7 @@ const char vastavu = 0x20;
 
 kuutio_t kuutio;
 kuva_t kuva;
+int3 akst[6];
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
@@ -121,7 +122,46 @@ void paivita() {
     piirra_kuvaksi(_l);
   if(kuva.korostus >= 0)
     korosta_tahko(kuva.korostus);
+  if(kuva.ruutuKorostus.a[0] >= 0)
+    korosta_ruutu(kuutio.ruudut+RUUTUINT3(kuva.ruutuKorostus), 3);
   SDL_RenderPresent(kuva.rend);
+}
+
+/*esim _u, 3, 0 (3x3x3-kuutio) --> _r, 2, 0:
+  palauttaa oikean ruudun koordinaatit, kun yksi indeksi menee alunperin yhden yli tahkolta*/
+int3 hae_ruutu(int tahko0, int i0, int j0) {
+  int aksTahko0;
+  for(aksTahko0=0; aksTahko0<3; aksTahko0++)
+    if(ABS(akst[tahko0].a[aksTahko0]) == 3)
+      break;
+  if((i0 < 0 || i0 >= kuutio.N) && (j0 < 0 || j0 >= kuutio.N))
+    return (int3){{-1, -1, -1}};
+  int IvaiJ = (i0<0)? -1: (i0>=kuutio.N)? 1: (j0<0)? -2: (j0>=kuutio.N)? 2: 0;
+  if(!IvaiJ)
+    return (int3){{tahko0, i0, j0}};
+  int ylimenoaks;
+  for(ylimenoaks=0; ylimenoaks<3; ylimenoaks++)
+    if(ABS(akst[tahko0].a[ylimenoaks]) == ABS(IvaiJ)) //akseli, jolta kys tahko menee yli
+      break;
+  int tahko1;
+  int haluttu = 3*SIGN(IvaiJ)*SIGN(akst[tahko0].a[ylimenoaks]); //menosuunta ja lukusuunta
+  for(tahko1=0; tahko1<6; tahko1++)
+    if(akst[tahko1].a[ylimenoaks] == haluttu)
+      break;
+  int ij1[2], ind;
+  /*tullaanko alkuun vai loppuun eli kasvaako uusi indeksi vanhan tahkon sijainnin suuntaan
+    myös, että tullaanko i- vai j-akselin suunnasta*/
+  int tulo = akst[tahko1].a[aksTahko0] * SIGN(akst[tahko0].a[aksTahko0]);
+  ind = ABS(tulo)-1; //±1->0->i, ±2->1->j
+  ij1[ind] = (tulo<0)? 0: kuutio.N-1; //negat --> tullaan negatiiviselta suunnalta
+  ind = (ind+1)%2;
+  /*toisen indeksin akseli on molempiin tahkoakseleihin kohtisuorassa*/
+  int akseli2 = 3-aksTahko0-ABS(ylimenoaks);
+  ij1[ind] = (ABS(akst[tahko0].a[akseli2]) == 1)? i0: j0;
+  /*vaihdetaan, jos ovat vastakkaissuuntaiset*/
+  if(akst[tahko0].a[akseli2] * akst[tahko1].a[akseli2] < 0)
+    ij1[ind] = kuutio.N-1 - ij1[ind];
+  return (int3){{tahko1, ij1[0], ij1[1]}};
 }
 
 void siirto(int puoli, char siirtokaista, char maara) {
@@ -405,10 +445,23 @@ int main(int argc, char** argv) {
   kuva.mustaOsuus = 0.05;
   kuva.paivita = 1;
   kuva.korostus = -1;
+  kuva.ruutuKorostus = (int3){{-1, kuutio.N/2, kuutio.N/2}};
+  kuva.korostusVari = VARI(80, 233, 166);
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 
   kuutio = luo_kuutio(N);
+
+  /*akselit*/
+  /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
+  i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
+  sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti)*/
+  akst[_r] =  (int3){{3, -2, -1}};
+  akst[_l] = (int3){{-3, -2, 1}};
+  akst[_u] = (int3){{1, 3, 2}};
+  akst[_d] = (int3){{1, -3, -2}};
+  akst[_f] = (int3){{1, -2, 3}};
+  akst[_b] = (int3){{-1, -2, -3}};
   
 #ifdef __KUUTION_KOMMUNIKOINTI__
   ipc = liity_muistiin();
@@ -521,6 +574,31 @@ int main(int argc, char** argv) {
 	  case SDLK_RETURN:
 	    kaantoanimaatio(_f, (koordf){{0,0,1}}, 4.0, 1.5);
 	    break;
+#define A kuva.ruutuKorostus
+#define B(i) kuva.ruutuKorostus.a[i]
+	  case SDLK_LEFT:
+	    A = hae_ruutu(B(0), B(1)-1, B(2));
+	    kuva.paivita=1;
+	    break;
+	  case SDLK_RIGHT:
+	    A = hae_ruutu(B(0), B(1)+1, B(2));
+	    kuva.paivita=1;
+	    break;
+	  case SDLK_UP:
+	    if(kuva.ruutuKorostus.a[0] < 0) {
+	      kuva.ruutuKorostus = (int3){{_f, kuutio.N/2, kuutio.N/2}};
+	      kuva.paivita=1;
+	      break;
+	    }
+	    A = hae_ruutu(B(0), B(1), B(2)-1);
+	    kuva.paivita=1;
+	    break;
+	  case SDLK_DOWN:
+	    A = hae_ruutu(B(0), B(1), B(2)+1);
+	    kuva.paivita=1;
+	    break;
+#undef A
+#undef B
 #ifdef __KUUTION_KOMMUNIKOINTI__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
