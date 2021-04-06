@@ -11,7 +11,7 @@ typedef enum {
   _b
 } sivu_e;
 
-typedef struct{ char v[3]; } vari;
+typedef struct{ unsigned char v[3]; } vari;
 typedef struct{ float a[3]; } koordf;
 typedef struct {float a[2];} koordf2;
 typedef struct {int a[3];} int3;

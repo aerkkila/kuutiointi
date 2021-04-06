@@ -94,7 +94,10 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
 void piirra_suunnikas(void* k23, int onko2vai3) {
   koordf2* ktit;
   if(onko2vai3==2) {
-    ktit = k23;
+    ktit = malloc(4*sizeof(koordf2));
+    for(int i=0; i<4; i++)
+      for(int j=0; j<2; j++)
+	ktit[i].a[j] = ((koordf2*)k23)[i].a[j];
   } else if (onko2vai3==3) {
     ktit = malloc(4*sizeof(koordf2));
     for(int i=0; i<4; i++)
@@ -104,58 +107,57 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
     fprintf(stderr, "Virhe: piirra_suunnikas kutsuttiin luvulla %i\n", onko2vai3);
     return;
   }
-  koordf2* xnurkat = jarjestaKoord2(NULL, ktit, 0,  4);
-  koordf2* ynurkat = jarjestaKoord2(ktit, ktit, 1,  4);
+  koordf2* xnurkat = jarjestaKoord2(ktit, ktit, 0,  4);
+  int xEro = (xnurkat[1].a[0] - xnurkat[0].a[0]) >= 0.5;
 
-  if(fabs(xnurkat[0].a[0] - xnurkat[1].a[0]) < 0.5) {
-    for(int i=xnurkat[0].a[0]; i<xnurkat[3].a[0]; i++)
-      for(int j=-ynurkat[3].a[1]; j<-ynurkat[0].a[1]; j++)
-	SDL_RenderDrawPoint(kuva.rend, i, j);
-    goto VALMIS;
+  volatile float *yUla, *yAla;
+  float kulmakerr1, kulmakerr2, y1, y2;
+  if(xEro) {
+    kulmakerr2 = ((xnurkat[2].a[1]-xnurkat[0].a[1]) /	\
+		  (xnurkat[2].a[0]-xnurkat[0].a[0]));
+    kulmakerr1 = ((xnurkat[1].a[1]-xnurkat[0].a[1]) /	\
+		  (xnurkat[1].a[0]-xnurkat[0].a[0]));
+    y1 = -xnurkat[0].a[1];
+    y2 = -xnurkat[0].a[1];
+    if(kulmakerr1 < kulmakerr2) {
+      yAla = &y1;
+      yUla = &y2;
+    } else {
+      yAla = &y2;
+      yUla = &y1;
+    }
+  } else { //kaksi samaa kulmakerrointa, katsotaan näistä ylempi
+    int lisa0 = xnurkat[1].a[1] > xnurkat[0].a[1];
+    int lisa1 = xnurkat[3].a[1] > xnurkat[2].a[1];
+    kulmakerr1 = ((xnurkat[2+lisa1].a[1]-xnurkat[0+lisa0].a[1]) /	\
+		  (xnurkat[2+lisa1].a[0]-xnurkat[0+lisa0].a[0]));
+    kulmakerr2 = kulmakerr1;
+    y1 = -xnurkat[lisa0].a[1];
+    yUla = &y1;
+    y2 = -xnurkat[!lisa0].a[1];
+    yAla = &y2;
   }
-  
-  /*valitaan että ymin ja ymax ovat välinurkat, näin ei välttämättä ole, jos on vaakasuoria viivoja*/
-  if(ynurkat[0].a[0] == xnurkat[0].a[0] || ynurkat[0].a[0] == xnurkat[3].a[0])
-    VAIHDA(ynurkat[0], ynurkat[1], koordf2);
-  if(ynurkat[3].a[0] == xnurkat[0].a[0] || ynurkat[3].a[0] == xnurkat[3].a[0])
-    VAIHDA(ynurkat[3], ynurkat[2], koordf2);
-  float kulmakerr1 = (ynurkat[3].a[1]-xnurkat[0].a[1]) / (ynurkat[3].a[0]-xnurkat[0].a[0]);
-  float kulmakerr2 = (ynurkat[0].a[1]-xnurkat[0].a[1]) / (ynurkat[0].a[0]-xnurkat[0].a[0]);
-  float muisti;
-
+  float muisti=0;
   /*ylä- tai alapuolen kulmakerroin vaihtuu,
     kun saavutetaan kys. puolen nurkka*/
-  float y1 = -xnurkat[0].a[1];
-  float y2 = -xnurkat[0].a[1];
-  for(int patka=0; patka<3; patka++) {
+  for(int patka=(xEro)? 0:2; patka<3; patka++) {
     int xraja = (int)(xnurkat[patka+1].a[0]);
-    for(int i=xnurkat[patka].a[0]; i<xraja; i++) {
-      for(int j=y1; j<y2; j++)
+    for(int i=xnurkat[patka*xEro].a[0]; i<xraja; i++) {
+      for(int j=*yUla; j<*yAla; j++)
 	SDL_RenderDrawPoint(kuva.rend, i, j);
       y1 -= kulmakerr1;
       y2 -= kulmakerr2;
     }
-    if(patka==0)
-      if(xnurkat[1].a[1] < xnurkat[2].a[1]) {
-	muisti = kulmakerr2;
-	kulmakerr2 = (ynurkat[0].a[1]-xnurkat[3].a[1]) / (ynurkat[0].a[0]-xnurkat[3].a[0]);
-	y2 = -xnurkat[1].a[1];
-      } else {
-	muisti = kulmakerr1;
-	kulmakerr1 = (ynurkat[3].a[1]-xnurkat[3].a[1]) / (ynurkat[3].a[0]-xnurkat[3].a[0]);
-	y1 = -xnurkat[1].a[1];
-      }
-    else
-      if(xnurkat[1].a[1] < xnurkat[2].a[1]) {
-	kulmakerr1 = muisti; //suunnikkaat ovat kivoja
-      } else {
-	kulmakerr2 = muisti;
-      }
+    if(patka==0) {
+      muisti = kulmakerr1;
+      kulmakerr1 = (xnurkat[1].a[1]-xnurkat[3].a[1]) / (xnurkat[1].a[0]-xnurkat[3].a[0]);
+      y1 = -xnurkat[1].a[1];
+    } else {
+      kulmakerr2 = muisti; //suunnikkaat ovat kivoja
+      y2 = -xnurkat[2].a[1];
+    }
   }
- VALMIS:
-  if(onko2vai3 != 2)
-    free(ktit);
-  free(xnurkat);
+  free(ktit);
 }
 
 int minKoordInd(koordf *ktit, int akseli, int pit) {
