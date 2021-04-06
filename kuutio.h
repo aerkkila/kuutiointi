@@ -31,7 +31,6 @@ typedef struct {
   koordf xyz;
   vari* varit;
   char N; //NxNxN-kuutio
-  char nakuvat;
   char ratkaistu;
 } kuutio_t;
 

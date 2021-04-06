@@ -14,17 +14,6 @@
 
 #define PI 3.14159265358979
 
-/*näkyvät sivut määritellään tavuna, jossa bitit oikealta alkaen ovat
-  ylä, etu, oikea, ala, taka, vasen;
-  esim (0x01 | 0x02) | 0x04 tarkoittaa näkyvien olevan ylä, etu ja oikea*/
-
-const char ulatavu = 0x01;
-const char etutavu = 0x02;
-const char oiktavu = 0x04;
-const char alatavu = 0x08;
-const char taktavu = 0x10;
-const char vastavu = 0x20;
-
 kuutio_t kuutio;
 kuva_t kuva;
 int3 akst[6];
@@ -38,31 +27,6 @@ void seis() { //tarvitaan virheenjäljitykseen (gdb: break seis)
   ;
 }
 
-#define RAJA 0.01
-inline void __attribute__((always_inline)) hae_nakuvuus() {
-  kuutio.nakuvat = 0;
-  /*ylä-ala*/
-  if((kuutio.xyz.a[0] > RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) ||	\
-     (kuutio.xyz.a[0] < -RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
-    kuutio.nakuvat |= ulatavu;
-  else if((kuutio.xyz.a[0] < -RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) ||	\
-	  (kuutio.xyz.a[0] > RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
-    kuutio.nakuvat |= alatavu;
-  /*oikea-vasen*/
-  if(kuutio.xyz.a[1] < -RAJA && kuutio.xyz.a[1] > -PI+RAJA)
-    kuutio.nakuvat |= oiktavu;
-  else if(kuutio.xyz.a[1] > RAJA && kuutio.xyz.a[1] < PI-RAJA)
-    kuutio.nakuvat |= vastavu;
-  /*etu-taka*/
-  if( (fabs(kuutio.xyz.a[0]) > PI/2+RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) || \
-      (fabs(kuutio.xyz.a[0]) < PI/2-RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
-    kuutio.nakuvat |= taktavu;
-  else if((fabs(kuutio.xyz.a[0]) < PI/2-RAJA && fabs(kuutio.xyz.a[1]) < PI/2-RAJA) || \
-	  (fabs(kuutio.xyz.a[0]) > PI/2+RAJA && fabs(kuutio.xyz.a[1]) > PI/2+RAJA))
-    kuutio.nakuvat |= etutavu;
-}
-#undef RAJA
-
 kuutio_t luo_kuutio(const unsigned char N) {
   vari varit[6];
   varit[_u] = VARI(255,255,255); //valkoinen
@@ -74,7 +38,6 @@ kuutio_t luo_kuutio(const unsigned char N) {
   
   kuutio.N = N;
   kuutio.xyz = (koordf){{PI/6, -PI/6, 0}};
-  hae_nakuvuus();
   kuutio.sivut = malloc(6*sizeof(char*));
   kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
   kuutio.varit = malloc(sizeof(varit));
@@ -107,19 +70,7 @@ void paivita() {
   kuva.paivita = 0;
   SDL_SetRenderDrawColor(kuva.rend, 0, 0, 0, 255);
   SDL_RenderClear(kuva.rend);
-  
-  if(kuutio.nakuvat & ulatavu)
-    piirra_kuvaksi(_u);
-  else if(kuutio.nakuvat & alatavu)
-    piirra_kuvaksi(_d);
-  if(kuutio.nakuvat & etutavu)
-    piirra_kuvaksi(_f);
-  else if(kuutio.nakuvat & taktavu)
-    piirra_kuvaksi(_b);
-  if(kuutio.nakuvat & oiktavu)
-    piirra_kuvaksi(_r);
-  else if(kuutio.nakuvat & vastavu)
-    piirra_kuvaksi(_l);
+  piirra_kuvaksi();
   if(kuva.korostus >= 0)
     korosta_tahko(kuva.korostus);
   if(kuva.ruutuKorostus.a[0] >= 0)
@@ -572,7 +523,7 @@ int main(int argc, char** argv) {
 	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
 	    break;
 	  case SDLK_RETURN:
-	    kaantoanimaatio(_f, (koordf){{0,0,1}}, 4.0, 1.5);
+	    kaantoanimaatio(_f, (koordf){{0,0,1}}, 0.5, 1);
 	    break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
@@ -697,7 +648,6 @@ int main(int argc, char** argv) {
 	  else if (kuutio.xyz.a[0] > PI)
 	    kuutio.xyz.a[0] -= 2*PI;
 	  
-	  hae_nakuvuus();
 	  tee_ruutujen_koordtit();
 	  kuva.paivita = 1;
 	}

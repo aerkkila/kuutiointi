@@ -20,13 +20,25 @@ void tee_ruutujen_koordtit() {
 }
 #undef TEE_RUUTU
 
-void piirra_kuvaksi(int tahko) {
-  for(int i=0; i<kuutio.N; i++)
-    for(int j=0; j<kuutio.N; j++) {
-      vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
-      SDL_SetRenderDrawColor(kuva.rend, vari.v[0], vari.v[1], vari.v[2], 255);
-      piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
-    }
+inline float __attribute__((always_inline)) ristitulo_z(koordf a, koordf b) {
+  return a.a[0]*b.a[1] - a.a[1]*b.a[0];
+}
+
+inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p1) {
+  return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
+}
+
+void piirra_kuvaksi() {
+  for(int tahko=0; tahko<6; tahko++)
+    for(int i=0; i<kuutio.N; i++)
+      for(int j=0; j<kuutio.N; j++) {
+	vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
+	SDL_SetRenderDrawColor(kuva.rend, vari.v[0], vari.v[1], vari.v[2], 255);
+#define A(n) (kuutio.ruudut+RUUTU(tahko,i,j)+n)
+	if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
+	  piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
+#undef A
+      }
 }
 
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
