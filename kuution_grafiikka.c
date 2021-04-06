@@ -110,7 +110,7 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
   koordf2* xnurkat = jarjestaKoord2(ktit, ktit, 0,  4);
   int xEro = (xnurkat[1].a[0] - xnurkat[0].a[0]) >= 0.5;
 
-  volatile float *yUla, *yAla;
+  float *yUla, *yAla;
   float kulmakerr1, kulmakerr2, y1, y2;
   if(xEro) {
     kulmakerr2 = ((xnurkat[2].a[1]-xnurkat[0].a[1]) /	\
@@ -400,7 +400,7 @@ void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika) {
   
   while(alku+kului/2 < loppu) {
     float askel = (kokoKulma - kulmaNyt) / (fps * (loppu-alku));
-    if(kulmaNyt+askel > kokoKulma)
+    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
       break;
     kulmaNyt += askel;
     

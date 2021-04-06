@@ -344,16 +344,34 @@ inline char __attribute__((always_inline)) onkoRatkaistu() {
 }
 
 char kontrol = 0;
+float kaantoaika;
+float kaantoaika0 = 0.2;
+double viimeKaantohetki = -1.0;
 
 inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
   kaanto(akseli, maara);
   kuva.paivita = 1;
 }
 
-inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, char maara) {
+inline void __attribute__((always_inline)) siirtoInl(int tahko, char kaista, char maara) {
   if(kontrol)
     return;
-  siirto(puoli, kaista, maara);
+  struct timeval hetki;
+  gettimeofday(&hetki, NULL);
+  double hetkiNyt = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
+  if(viimeKaantohetki > 0) {
+    double erotus = hetkiNyt - viimeKaantohetki;
+    if(erotus < kaantoaika0)
+      kaantoaika = erotus;
+    else
+      kaantoaika = kaantoaika0;
+  }
+  koordf akseli = (koordf){{(akst[tahko].a[0]/3),	\
+			    (akst[tahko].a[1]/3),	\
+			    (akst[tahko].a[2]/3)}};
+  kaantoanimaatio(tahko, akseli, maara-2, kaantoaika);
+  tee_ruutujen_koordtit();
+  siirto(tahko, kaista, maara);
   kuva.paivita = 1;
   kuutio.ratkaistu = onkoRatkaistu();
 #ifdef __KUUTION_KOMMUNIKOINTI__
@@ -365,6 +383,8 @@ inline void __attribute__((always_inline)) siirtoInl(int puoli, char kaista, cha
     viimeViesti = ipcLopeta;
   }
 #endif
+  gettimeofday(&hetki, NULL);
+  viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
 }
 
 int main(int argc, char** argv) {
@@ -402,6 +422,7 @@ int main(int argc, char** argv) {
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 
   kuutio = luo_kuutio(N);
+  kaantoaika = kaantoaika0;
 
   /*akselit*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
@@ -420,7 +441,7 @@ int main(int argc, char** argv) {
     return 1;
 #endif
 
-#define siirtoInl1(puoli, maara) siirtoInl(puoli, siirtokaista, maara)
+#define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
   
   SDL_Event tapaht;
   int xVanha, yVanha;
