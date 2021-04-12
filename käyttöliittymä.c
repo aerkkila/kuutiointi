@@ -475,43 +475,62 @@ int kaunnista() {
 	  }
 	  break;
 	case SDL_MOUSEBUTTONUP:
-	  if(alue == tarkasteluaikanappial) {
+	  switch(alue) {
+	  case tarkasteluaikanappial:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      vntaol.valittu = (vntaol.valittu+1) % 2;
 	      nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
 	      laitot |= vntalai;
 	    }
-	  } else if(alue == tuloksetal) {
-	    int tmpind = LISTARIVI(tulosol, button);
-	    if(tmpind == _ylaske_taakse(tkset.strtulos))
-	      tmpind--;
+	    break;
+	    /*tulos- ja järjestysalue johtavat samaan toimintoon
+	      järjestysalueilta luettu indeksi muunnetaan tulosalueen indeksiksi*/
+	  case tuloksetal:
+	    apuind = LISTARIVI(tulosol, button);
+	    if(apuind == _ylaske_taakse(tkset.strtulos))
+	      apuind--;
+	    goto MBUP_TULOKSIA;
+	  case jarjestus1al:
+	    apuind = LISTARIVI(jarjol1, button);
+	    goto MBUP_JARJ2;
+	  case jarjestus2al:
+	    apuind = LISTARIVI(jarjol2, button);
+	  MBUP_JARJ2:
+	    if(apuind+1 == _ylaske(SIJARJ))
+	      break;
+	    sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+	    apuind--;
+	  MBUP_TULOKSIA:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
 		/*poistetaan (ctrl + hiiri1)*/
-		poista_listoilta(&tkset, tmpind);
-		_strpoista1(_ynouda(_yalkuun(sektus), tmpind), 1);
+		poista_listoilta(&tkset, apuind);
+		_strpoista1(_ynouda(_yalkuun(sektus), apuind), 1);
 		TEE_TIEDOT;
 		alue = hae_alue(tapaht.button.x, tapaht.button.y);
 	      } else {
 		/*kopioidaan leikepöydälle (hiiri1)*/
-	        char* tmpstr = ((strlista*)_ynoudaf(STRTULOS, tmpind, 0))->str;
-		time_t aika_t = ((ilista*)_ynoudaf(HETKI, tmpind, 0))->i;
+	        char* tmpstr = ((strlista*)_ynoudaf(STRTULOS, apuind, 0))->str;
+		time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
 		/*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
-		strlista *tmpsektlis = _ynoudaf(sektus, tmpind, 0);
+		strlista *tmpsektlis = _ynoudaf(sektus, apuind, 0);
 		if(tmpsektlis) {
 		  sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsektlis->str);
 		  SDL_SetClipboardText(tmp);
 		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), tmpind);
-	      muuta_sakko(&tkset, (STRTULOS == tmpstr)? KELLO : tmp, tmpind);
+	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), apuind);
+	      muuta_sakko(&tkset, (STRTULOS == tmpstr)? KELLO : tmp, apuind);
 	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;
 	    laitot |= kellolai;
+	    break;
+	  default:
+	    break;
 	  }
 	  break;
 	case SDL_MOUSEWHEEL:
