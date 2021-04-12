@@ -37,4 +37,4 @@ void piirra_kuvaksi();
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 void korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
-void kaantoanimaatio(int tahko, koordf akseli, double maara, double aika);
+void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);

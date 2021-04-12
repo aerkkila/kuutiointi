@@ -333,6 +333,7 @@ int kaunnista() {
 		kellool.vari = kellovarit[0];
 		if(sakko==plus)
 		  alku.tv_sec -= 2;
+		strcpy(TEKSTI, "");
 		break;
 	      case tarkastelu:
 	      TARKASTELU:
@@ -342,6 +343,7 @@ int kaunnista() {
 		nostotoimi = aloita;
 		tila = tarkastelee;
 		kellool.vari = kellovarit[1];
+		strcpy(TEKSTI, "");
 		break;
 	      case ei_mitaan:
 		if(tila != kirjoitustila) //pysäytetty juuri äsken

@@ -369,7 +369,7 @@ inline void __attribute__((always_inline)) siirtoInl(int tahko, char kaista, cha
   koordf akseli = (koordf){{(akst[tahko].a[0]/3),	\
 			    (akst[tahko].a[1]/3),	\
 			    (akst[tahko].a[2]/3)}};
-  kaantoanimaatio(tahko, akseli, maara-2, kaantoaika);
+  kaantoanimaatio(tahko, kaista, akseli, maara-2, kaantoaika);
   tee_ruutujen_koordtit();
   siirto(tahko, kaista, maara);
   kuva.paivita = 1;
@@ -544,7 +544,7 @@ int main(int argc, char** argv) {
 	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
 	    break;
 	  case SDLK_RETURN:
-	    kaantoanimaatio(_f, (koordf){{0,0,1}}, 0.5, 1);
+	    kaantoanimaatio(_f, 1, (koordf){{0,1,0}}, 1.0, 1);
 	    break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
