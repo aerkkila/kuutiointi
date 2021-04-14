@@ -74,6 +74,8 @@ int* eri_sekunnit(flista* jarj, int* ia, int iapit) {
   return ia;
 }
 
+/* Strtiedot-lista kirjoitetaan listan "tietoalut" viereen eli rakenne löytyy sieltä.
+   Kys. lista taas luodaan merkkijonosta "tietoalkustr"*/
 strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
   flista* fl = tkset->ftulos;
   flista* fj = tkset->fjarj;
@@ -116,10 +118,10 @@ strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
   }
 
   /*Keskiarvo*/
-  /*karsitaan niin monta kuin on DNF:iä jättämällä erotus pois järjestyslistan alusta*/
-  int ero = _ylaske_taakse(fl) - (_ylaske(fj)-1);
-  sprintf(tmp, " = %.2lf (σ = %.2f)",		\
-	  floatmean(_ynouda(fj, ero+1), -1), floatstd(_ynouda(fj, ero+1), -1));
+  int pois = _ylaske_taakse(fl) / karsinta + 1;
+  int mukaan = _ylaske_taakse(fl) - pois*2;
+  sprintf(tmp, " = %.2lf (σ = %.2f); %i",				\
+	  floatmean(_ynouda(fj, pois+1), mukaan), floatstd(_ynouda(fj, pois+1), mukaan), karsinta);
   strtiedot = _strlisaa_kopioiden(strtiedot, tmp);
 
   /*Mediaani*/

@@ -5,13 +5,14 @@ const char ohjelman_nimi[] = "Kajastin";
 int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
 Uint32 viive = 3;
 const char ulosnimi0[] = "tulokset.txt";
-const char uloskansio[] = "/home/antterkk/kajastin/";
+const char uloskansio[] = "/home/antterkk/kuutiointi/";
 unsigned char NxN = 3;
+unsigned int karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 
-char url_valittu[] = "/home/antterkk/kajastin/kuva_valittu.bmp";
-char url_eivalittu[] = "/home/antterkk/kajastin/kuva_valittu_ei.bmp";
+char url_valittu[] = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
+char url_eivalittu[] = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";
 char tietoalkustr[] = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
+char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|karsintakuvaaja";
 
 int kellokoko = 200;
 char kellofonttied[] = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf";

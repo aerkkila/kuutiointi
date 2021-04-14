@@ -94,13 +94,15 @@ int kaunnista() {
     ulosnimiKirj,
     tulosalkuKirj,
     avaa_tiedostoKirj,
-    kuutionKokoKirj
+    kuutionKokoKirj,
+    karsintaKirj
   } kirjoituslaji = aikaKirj;
-  char* tekstialue[] = {"Ajan syöttö",\
-		       "Ulosnimen vaihto",\
-			"Tuloslistan alkukohta",\
-			"Avattava tiedosto",\
-			"Kuution koko (NxNxN)"};
+  char* tekstialue[] = {"Ajan syöttö",			\
+			"Ulosnimen vaihto",		\
+			"Tuloslistan alkukohta",	\
+			"Avattava tiedosto",		\
+			"Kuution koko (NxNxN)",		\
+			"Keskiarvon karsinta"};
   char kontrol = 0;
   ipc = NULL;
   nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
@@ -229,6 +231,11 @@ int kaunnista() {
 		  lue_tiedosto(KELLO, "");
 		  TEE_TIEDOT;
 		  laitot = kaikki_laitot;
+		  break;
+		case karsintaKirj:
+		  sscanf(KELLO, "%u", &karsinta);
+		  strcpy(TEKSTI, "");
+		  TEE_TIEDOT;
 		  break;
 		}
 		/*koskee kaikkia kirjoituslajeja*/
@@ -389,6 +396,7 @@ int kaunnista() {
 		break;
 	      case 4:
 	        lisatd = _strpoista_kaikki(lisatd);
+		KIRJOITUSLAJIKSI(karsintaKirj);
 		break;
 	      }
 	      if(tapaht.button.button == SDL_BUTTON_RIGHT) {

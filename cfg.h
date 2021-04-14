@@ -62,6 +62,7 @@ extern const char ulosnimi0[];
 extern char* ulosnimi;
 extern const char uloskansio[];
 extern unsigned char NxN;
+extern unsigned int karsinta;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;
