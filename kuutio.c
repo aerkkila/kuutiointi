@@ -79,17 +79,19 @@ void paivita() {
 }
 
 /*esim _u, 3, 0 (3x3x3-kuutio) --> _r, 2, 0:
-  palauttaa oikean ruudun koordinaatit, kun yksi indeksi menee alunperin yhden yli tahkolta*/
+  palauttaa oikean ruudun koordinaatit, kun yksi indeksi menee alunperin yli tahkolta*/
 int3 hae_ruutu(int tahko0, int i0, int j0) {
+  int IvaiJ = (i0<0)? -1: (i0>=kuutio.N)? 1: (j0<0)? -2: (j0>=kuutio.N)? 2: 0;
+  if(!IvaiJ)
+    return (int3){{tahko0, i0, j0}};
+  
   int aksTahko0;
+  int3 ruutu0 = (int3){{tahko0, i0, j0}};
   for(aksTahko0=0; aksTahko0<3; aksTahko0++)
     if(ABS(akst[tahko0].a[aksTahko0]) == 3)
       break;
   if((i0 < 0 || i0 >= kuutio.N) && (j0 < 0 || j0 >= kuutio.N))
     return (int3){{-1, -1, -1}};
-  int IvaiJ = (i0<0)? -1: (i0>=kuutio.N)? 1: (j0<0)? -2: (j0>=kuutio.N)? 2: 0;
-  if(!IvaiJ)
-    return (int3){{tahko0, i0, j0}};
   int ylimenoaks;
   for(ylimenoaks=0; ylimenoaks<3; ylimenoaks++)
     if(ABS(akst[tahko0].a[ylimenoaks]) == ABS(IvaiJ)) //akseli, jolta kys tahko menee yli
@@ -104,7 +106,10 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
     myös, että tullaanko i- vai j-akselin suunnasta*/
   int tulo = akst[tahko1].a[aksTahko0] * SIGN(akst[tahko0].a[aksTahko0]);
   ind = ABS(tulo)-1; //±1->0->i, ±2->1->j
-  ij1[ind] = (tulo<0)? 0: kuutio.N-1; //negat --> tullaan negatiiviselta suunnalta
+#define A ruutu0.a[ABS(IvaiJ)]
+  int lisa = (A<0)? -A-1: A-kuutio.N;
+  ij1[ind] = (tulo<0)? 0 + lisa : kuutio.N-1 - lisa ; //negat --> tullaan negatiiviselta suunnalta
+#undef A
   ind = (ind+1)%2;
   /*toisen indeksin akseli on molempiin tahkoakseleihin kohtisuorassa*/
   int akseli2 = 3-aksTahko0-ABS(ylimenoaks);
@@ -112,7 +117,7 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
   /*vaihdetaan, jos ovat vastakkaissuuntaiset*/
   if(akst[tahko0].a[akseli2] * akst[tahko1].a[akseli2] < 0)
     ij1[ind] = kuutio.N-1 - ij1[ind];
-  return (int3){{tahko1, ij1[0], ij1[1]}};
+  return hae_ruutu(tahko1, ij1[0], ij1[1]);
 }
 
 void siirto(int puoli, char siirtokaista, char maara) {
@@ -557,12 +562,12 @@ int main(int argc, char** argv) {
 	    kuva.paivita=1;
 	    break;
 	  case SDLK_UP:
-	    if(kuva.ruutuKorostus.a[0] < 0) {
-	      kuva.ruutuKorostus = (int3){{_f, kuutio.N/2, kuutio.N/2}};
-	      kuva.paivita=1;
-	      break;
-	    }
-	    A = hae_ruutu(B(0), B(1), B(2)-1);
+	    if(A.a[0] < 0)
+	      A = (int3){{_f, kuutio.N/2, kuutio.N/2}};
+	    else if(kontrol)
+	      A.a[0] = -1;
+	    else
+	      A = hae_ruutu(B(0), B(1), B(2)-1);
 	    kuva.paivita=1;
 	    break;
 	  case SDLK_DOWN:
