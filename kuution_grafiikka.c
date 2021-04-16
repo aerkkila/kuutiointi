@@ -254,6 +254,29 @@ void korosta_ruutu(void* ktit, int onko2vai3) {
   }
 }
 
+void korosta_siivu(int tahko, int kaista) {
+  if(tahko < 0 || tahko > 5 || kaista >= kuutio.N)
+    return;
+  const int paksuus = 15;
+  aseta_vari(kuva.korostusVari);
+  int akseli = 0;
+  int suunta = 0;
+  for(int i=0; i<3; i++) {
+    if(akst[tahko].a[i] % 3)
+      continue;
+    akseli = i;
+    suunta = SIGN(akst[tahko].a[i]);
+    break;
+  }
+  int3 ruutu0 = hae_ruutu(tahko, kuutio.N+kaista, 0);
+  int3 ruutu1 = hae_ruutu(tahko, kuutio.N+kaista, kuutio.N-1);
+#define K(arg) kuutio.ruudut+RUUTUINT3(arg)
+  piirra_viiva(K(ruutu0), K(ruutu1), 3, paksuus);
+  ruutu1 = hae_ruutu(tahko, -1-kaista, 0);
+  piirra_viiva(K(ruutu0), K(ruutu1), 3, paksuus);
+#undef K
+}
+
 /*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
   int h2 = paksuus/2;
