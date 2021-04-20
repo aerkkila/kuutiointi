@@ -24,6 +24,7 @@ typedef struct {int a[3];} int3;
     a = b;					\
     b = apu;					\
   }
+#define HAE_RUUTUint3(A) hae_ruutu((A).a[0], (A).a[1], (A).a[2])
 
 typedef struct {
   char** sivut;

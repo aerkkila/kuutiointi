@@ -3,9 +3,6 @@
 #ifndef __KUUTION_GRAFIIKKA__
 #define __KUUTION_GRAFIIKKA__
 
-#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
-#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
-
 inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
   /*x-pyöräytys*/
   float x = xyz.a[0], y = xyz.a[1], z = xyz.a[2];
@@ -26,6 +23,10 @@ inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
 inline void __attribute((always_inline)) aseta_vari(vari v) {
   SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
 }
+
+#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
+
 #endif
 
 void tee_ruutujen_koordtit();

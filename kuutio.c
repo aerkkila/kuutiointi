@@ -120,151 +120,47 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
   return hae_ruutu(tahko1, ij1[0], ij1[1]);
 }
 
-void siirto(int puoli, char siirtokaista, char maara) {
+void siirto(int tahko, char siirtokaista, char maara) {
   if(maara == 0)
     return;
   char N = kuutio.N;
-  if(siirtokaista < 1 || siirtokaista > N)
+  if(siirtokaista < 0 || siirtokaista >= N)
     return;
-  else if(siirtokaista == N) {
+  else if(siirtokaista == N-1) {
     maara = (maara+2) % 4;
-    puoli = (puoli+3) % 6;
-    siirtokaista = 1;
+    tahko = (tahko+3) % 6;
+    siirtokaista = 0;
   }
-  struct i4 {int i[4];} jarj;
-  struct i4 kaistat;
-  int a,b; //kaistat kahdelta eri puolelta katsottuna
-  int kaista1,kaista2;
   char apu[N*N];
-  char *sivu1, *sivu2;
 
-  a = N-siirtokaista;
-  b = (N-1)-a;
-  
-  /*toiminta jaetaan kääntöakselin perusteella*/
-  switch(puoli) {
-  case _r:
-  case _l:
-    if(puoli == _r) {
-      kaistat = (struct i4){{a,a,a,b}};
-      jarj = (struct i4){{_u, _f, _d, _b}};
-    } else {
-      jarj = (struct i4){{_u, _b, _d, _f}};
-      kaistat = (struct i4){{b,a,b,b}};
+  /*siirretään kuin old-pochman-menetelmässä:
+    vaihdetaan ensin sivut 0,1, sitten 0,2 jne*/
+  int iakseli;
+  for(iakseli=0; iakseli<3; iakseli++)
+    if(ABS(akst[tahko].a[iakseli]) == 1)
+      break;
+  int3 ruutu0 = hae_ruutu(tahko, 0, -1-siirtokaista);
+  int IvaiJ = akst[ruutu0.a[0]].a[iakseli];
+  for(int j=1; j<4; j++) {
+    for(int i=0; i<N; i++) {
+      ruutu0 = hae_ruutu(tahko, i, -1-siirtokaista);
+      int etumerkki = SIGN(IvaiJ) * SIGN(akst[tahko].a[iakseli]);
+      int3 ruutu1 = hae_ruutu(ruutu0.a[0],				\
+			      ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki, \
+			      ruutu0.a[2] + (ABS(IvaiJ)-1) * j*N * etumerkki);
+      VAIHDA(kuutio.sivut[ruutu0.a[0]][ruutu0.a[1]*N + ruutu0.a[2]],	\
+	     kuutio.sivut[ruutu1.a[0]][ruutu1.a[1]*N + ruutu1.a[2]], char);
     }
-    sivu1 = kuutio.sivut[jarj.i[0]];
-    /*1. sivu talteen*/
-    for(int i=0; i<N; i++)
-      apu[i] = sivu1[N*kaistat.i[0]+i];
-    /*siirretään*/
-    for(int j=0; j<3; j++) {
-      sivu1 = kuutio.sivut[jarj.i[j]];
-      sivu2 = kuutio.sivut[jarj.i[j+1]];
-      kaista1 = kaistat.i[j];
-      kaista2 = kaistat.i[j+1];
-      if( (j<2 && puoli == _l) || (j>=2 && puoli == _r) )
-	for(int i=0; i<N; i++)
-	  sivu1[N*kaista1+i] = sivu2[N*kaista2 + N-1-i];
-      else
-	for(int i=0; i<N; i++)
-	  sivu1[N*kaista1+i] = sivu2[N*kaista2+i];
-    }
-    /*viimeinen*/
-    sivu1 = kuutio.sivut[jarj.i[3]];
-    if(puoli == _r)
-      for(int i=0; i<N; i++)
-	sivu1[N*kaistat.i[3]+i] = apu[N-1-i];
-    else
-      for(int i=0; i<N; i++)
-	sivu1[N*kaistat.i[3]+i] = apu[i];
-    break;
-
-  case _d:
-  case _u:
-    if(puoli == _d) {
-      kaistat = (struct i4){{a,a,a,a}};
-      jarj = (struct i4){{_f, _l, _b, _r}};
-    } else {
-      jarj = (struct i4){{_f, _r, _b, _l}};
-      kaistat = (struct i4){{b,b,b,b}};
-    }
-    sivu1 = kuutio.sivut[jarj.i[0]];
-    /*1. sivu talteen*/
-    for(int i=0; i<N; i++)
-      apu[i] = sivu1[N*i + kaistat.i[0]];
-    /*siirretään*/
-    for(int j=0; j<3; j++) {
-      sivu1 = kuutio.sivut[jarj.i[j]];
-      sivu2 = kuutio.sivut[jarj.i[j+1]];
-      kaista1 = kaistat.i[j];
-      kaista2 = kaistat.i[j+1];
-      for(int i=0; i<N; i++)
-	sivu1[N*i + kaista1] = sivu2[N*i + kaista2];
-    }
-    /*viimeinen*/
-    sivu1 = kuutio.sivut[jarj.i[3]];
-    for(int i=0; i<N; i++)
-      sivu1[N*i+kaistat.i[3]] = apu[i];
-    break;
-
-  case _f:
-  case _b:
-    if(puoli == _f) {
-      kaistat = (struct i4){{a,a,b,b}};
-      jarj = (struct i4){{_u, _l, _d, _r}};
-    } else {
-      kaistat = (struct i4){{b,a,a,b}};
-      jarj = (struct i4){{_u, _r, _d, _l}};
-    }
-    sivu1 = kuutio.sivut[jarj.i[0]];
-    /*1. sivu talteen*/
-    for(int i=0; i<N; i++)
-      apu[i] = sivu1[N*i + kaistat.i[0]];
-    /*siirretään, tässä vuorottelee, mennäänkö i- vai j-suunnassa*/
-    for(int j=0; j<3; j++) {
-      sivu1 = kuutio.sivut[jarj.i[j]];
-      sivu2 = kuutio.sivut[jarj.i[j+1]];
-      kaista1 = kaistat.i[j];
-      kaista2 = kaistat.i[j+1];
-      if(j % 2 == 0) //u tai d alussa
-	if(puoli == _f) {
-	  for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
-	    sivu1[N*i + kaista1] = sivu2[N*kaista2 + N-1-i];
-	} else {
-	  for(int i=0; i<N; i++) //1: i-suunta, 2: j-suunta
-	    sivu1[N*i + kaista1] = sivu2[N*kaista2 + i];
-	}
-      else
-	if(puoli == _b) {
-	  for(int i=0; i<N; i++) //1: j-suunta, 2:i-suunta
-	    sivu1[N*kaista1 + i] = sivu2[N*(N-1-i) + kaista2];
-	} else {
-	  for(int i=0; i<N; i++) //1: j-suunta, 2:i-suunta
-	    sivu1[N*kaista1 + i] = sivu2[N*i + kaista2];
-	}
-    }
-    /*viimeinen*/
-    sivu1 = kuutio.sivut[jarj.i[3]];
-    if(puoli == _f)
-      for(int i=0; i<N; i++)
-	sivu1[N*kaistat.i[3]+i] = apu[i];
-    else
-      for(int i=0; i<N; i++)
-	sivu1[N*kaistat.i[3]+i] = apu[N-1-i];
-    break;
-  default:
-    break;
   }
-
   /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
-  if(siirtokaista > 1 && siirtokaista < N) {
-    siirto(puoli, siirtokaista, maara-1);
+  if(siirtokaista > 0 && siirtokaista < N-1) {
+    siirto(tahko, siirtokaista, maara-1);
     return;
   }
   
   /*käännetään käännetty sivu*/
   int sivuInd;
-  switch(puoli) {
+  switch(tahko) {
   case _r:
     sivuInd = _r;
     if(siirtokaista == N)
@@ -304,12 +200,12 @@ void siirto(int puoli, char siirtokaista, char maara) {
     apu[i] = sivu[i];
 
   /*nyt käännetään: */
-#define arvo(sivu,j,i) sivu[i*N+j]
+#define arvo(sivu,j,i) sivu[(i)*N+(j)]
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       arvo(sivu,j,i) = arvo(apu,N-1-i,j);
 #undef arvo
-  siirto(puoli, siirtokaista, maara-1);
+  siirto(tahko, siirtokaista, maara-1);
 }
 
 void kaanto(char akseli, char maara) {
@@ -331,7 +227,7 @@ void kaanto(char akseli, char maara) {
   default:
     return;
   }
-  for(char i=1; i<=kuutio.N; i++)
+  for(char i=0; i<kuutio.N; i++)
     siirto(sivu, i, 1);
   
   kaanto(akseli, maara-1);
@@ -451,7 +347,7 @@ int main(int argc, char** argv) {
   SDL_Event tapaht;
   int xVanha, yVanha;
   char hiiri_painettu = 0;
-  char siirtokaista = 1;
+  char siirtokaista = 0;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -509,31 +405,31 @@ int main(int argc, char** argv) {
 	  siirtoInl1(_b, 1);
 	  break;
 	case SDL_SCANCODE_U:
-	  for(int kaista=2; kaista<N; kaista++)
+	  for(int kaista=1; kaista<N-1; kaista++)
 	    siirtoInl(_r, kaista, 1);
 	  break;
 	case SDL_SCANCODE_R:
-	  for(int kaista=2; kaista<N; kaista++)
+	  for(int kaista=1; kaista<N-1; kaista++)
 	    siirtoInl(_l, kaista, 1);
 	  break;
 	  /*käytetään kääntämisten määrässä siirtokaistaa*/
 	case SDL_SCANCODE_H:
-	  kaantoInl('y', (3*siirtokaista) % 4);
+	  kaantoInl('y', (3*(siirtokaista+1)) % 4);
 	  break;
 	case SDL_SCANCODE_G:
-	  kaantoInl('y', (1*siirtokaista) % 4);
+	  kaantoInl('y', (1*(siirtokaista+1)) % 4);
 	  break;
 	case SDL_SCANCODE_N:
-	  kaantoInl('x', (1*siirtokaista) % 4);
+	  kaantoInl('x', (1*(siirtokaista+1)) % 4);
 	  break;
 	case SDL_SCANCODE_V:
-	  kaantoInl('x', (3*siirtokaista) % 4);
+	  kaantoInl('x', (3*(siirtokaista+1)) % 4);
 	  break;
 	case SDL_SCANCODE_COMMA:
-	  kaantoInl('z', (1*siirtokaista) % 4);
+	  kaantoInl('z', (1*(siirtokaista+1)) % 4);
 	  break;
 	case SDL_SCANCODE_C:
-	  kaantoInl('z', (3*siirtokaista) % 4);
+	  kaantoInl('z', (3*(siirtokaista+1)) % 4);
 	  break;
 	default:
 	  switch(tapaht.key.keysym.sym) {
@@ -549,7 +445,7 @@ int main(int argc, char** argv) {
 	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
 	    break;
 	  case SDLK_RETURN:
-	    kaantoanimaatio(_f, 1, (koordf){{0,1,0}}, 1.0, 1);
+	    kaantoanimaatio(_f, 0, (koordf){{0,1,0}}, 1.0, 1);
 	    break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
@@ -632,7 +528,7 @@ int main(int argc, char** argv) {
 	switch(tapaht.key.keysym.sym) {
 	case SDLK_RSHIFT:
 	case SDLK_LSHIFT:
-	  siirtokaista = 1;
+	  siirtokaista = 0;
 	  break;
 	case SDLK_RCTRL:
 	case SDLK_LCTRL:
@@ -642,7 +538,7 @@ int main(int argc, char** argv) {
 	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	    siirtokaista = 1;
 	  else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
-	    siirtokaista = 1;
+	    siirtokaista = 0;
 	  break;
 	}
 	break;

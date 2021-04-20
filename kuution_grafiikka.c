@@ -409,7 +409,7 @@ inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf
 
 #define PI 3.14159265
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
-  if(kaista != 1)
+  if(kaista)
     return;
   int3 paikka;
   float siirto = kuva.resKuut/2 + kuva.sij0;
