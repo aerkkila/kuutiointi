@@ -20,14 +20,6 @@ void tee_ruutujen_koordtit() {
 }
 #undef TEE_RUUTU
 
-inline float __attribute__((always_inline)) ristitulo_z(koordf a, koordf b) {
-  return a.a[0]*b.a[1] - a.a[1]*b.a[0];
-}
-
-inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p1) {
-  return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
-}
-
 void piirra_kuvaksi() {
   for(int tahko=0; tahko<6; tahko++)
     for(int i=0; i<kuutio.N; i++)
@@ -217,9 +209,9 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
   return ret;
 }
 
-void korosta_tahko(int tahko) {
+int korosta_tahko(int tahko) {
   if(tahko < 0 || tahko > 5)
-    return;
+    return 0;
   int paksuus = 15;
   aseta_vari(kuva.korostusVari);
   piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
@@ -234,6 +226,7 @@ void korosta_tahko(int tahko) {
   piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
 	       kuutio.ruudut+RUUTU(tahko, 0, kuutio.N-1)+3,	\
 	       3, paksuus);
+  return 1;
 }
 
 void korosta_ruutu(void* ktit, int onko2vai3) {

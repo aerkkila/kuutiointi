@@ -49,12 +49,22 @@ typedef struct {
   vari korostusVari;
 } kuva_t;
 
+inline float __attribute__((always_inline)) ristitulo_z(koordf a, koordf b) {
+  return a.a[0]*b.a[1] - a.a[1]*b.a[0];
+}
+
+inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p1) {
+  return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
+}
+
 #endif
 
 extern kuutio_t kuutio;
 extern kuva_t kuva;
 extern int3 akst[6];
 
+int mika_tahko(int x, int y);
+int piste_alueella(float x, float y, int n, ...);
 void siirto(int puoli, char kaista, char maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);
 void paivita();

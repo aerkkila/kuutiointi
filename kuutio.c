@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
 #include "muistin_jako.h"
@@ -118,6 +119,58 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
   if(akst[tahko0].a[akseli2] * akst[tahko1].a[akseli2] < 0)
     ij1[ind] = kuutio.N-1 - ij1[ind];
   return hae_ruutu(tahko1, ij1[0], ij1[1]);
+}
+
+inline float __attribute__((always_inline)) vektpituus(koordf a) {
+  return sqrt(pow(a.a[0],2) + pow(a.a[1],2));
+}
+
+inline float __attribute__((always_inline)) pistetulo(koordf a, koordf b) {
+  return a.a[0]*b.a[0] + a.a[1]*b.a[1];
+}
+
+/*alueella, jos kierrosluku ≠ 0 eli ääriviivat kiertävät pisteen*/
+int piste_alueella(float x, float y, int n, ...) {
+  va_list argl;
+  va_start(argl, n);
+  float kl = 0;
+  koordf sv1, sv2, a1, a2;
+  koordf p = (koordf){{x, -y, 0}};
+  a1 = va_arg(argl, koordf);
+  for(int i=1; i<=n; i++) {
+    if(i==n)
+      va_start(argl,n); //ympäri asti eli viimeisenä ensimmäinen
+    a2 = va_arg(argl, koordf);
+    sv1 = suuntavektori(&p, &a1);
+    sv2 = suuntavektori(&p, &a2);
+    float tmp = vektpituus(sv1);
+    tmp = vektpituus(sv2);
+    tmp = pistetulo(sv1,sv2);
+    kl += (acosf( pistetulo(sv1,sv2) / (vektpituus(sv1)*vektpituus(sv2)) ) * \
+	   SIGN(ristitulo_z(sv1,sv2)));
+    a1 = a2;
+  }
+  return round(kl);
+}
+
+int mika_tahko(int x, int y) {
+  int tahko;
+  for(tahko=0; tahko<7; tahko++) {
+    /*näkyykö tahko*/
+    if(ristitulo_z(suuntavektori(kuutio.ruudut+RUUTU(tahko,0,0),	\
+				 kuutio.ruudut+RUUTU(tahko,0,kuutio.N-1)), \
+		   suuntavektori(kuutio.ruudut+RUUTU(tahko,0,0),	\
+				 kuutio.ruudut+RUUTU(tahko,kuutio.N-1,0))) <= 0)
+      continue;
+    /*näkyy, mutta onko oikea*/
+    if(piste_alueella((float)x, (float)y, 4,				\
+		      kuutio.ruudut[RUUTU(tahko,0,0)],			\
+		      kuutio.ruudut[RUUTU(tahko,kuutio.N-1,0)+1],	\
+		      kuutio.ruudut[RUUTU(tahko,kuutio.N-1,kuutio.N-1)+2], \
+		      kuutio.ruudut[RUUTU(tahko,0,kuutio.N-1)+3]))
+      return tahko;
+  }
+  return -1;
 }
 
 void siirto(int tahko, char siirtokaista, char maara) {
@@ -348,6 +401,8 @@ int main(int argc, char** argv) {
   int xVanha, yVanha;
   char hiiri_painettu = 0;
   char siirtokaista = 0;
+  int korosta_hiirella = 0;
+  int raahattiin = 0;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -470,6 +525,9 @@ int main(int argc, char** argv) {
 	    A = hae_ruutu(B(0), B(1), B(2)+1);
 	    kuva.paivita=1;
 	    break;
+	  case SDLK_ESCAPE:
+	    korosta_hiirella = 0;
+	    break;
 #undef A
 #undef B
 #ifdef __KUUTION_KOMMUNIKOINTI__
@@ -546,12 +604,14 @@ int main(int argc, char** argv) {
 	xVanha = tapaht.button.x;
 	yVanha = tapaht.button.y;
 	hiiri_painettu = 1;
+	raahattiin = 0;
 	if(tapaht.button.button == SDL_BUTTON_RIGHT)
 	  hiiri_painettu = 2;
 	break;
       case SDL_MOUSEMOTION:;
 	/*pyöritetään, raahauksesta hiirellä*/
 	if(hiiri_painettu) {
+	  raahattiin = 1;
 	  float xEro = tapaht.motion.x - xVanha; //vasemmalle negatiivinen
 	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
 	  xVanha = tapaht.motion.x;
@@ -572,10 +632,18 @@ int main(int argc, char** argv) {
 	  
 	  tee_ruutujen_koordtit();
 	  kuva.paivita = 1;
+	  break;
+	} else if(korosta_hiirella) {
+	  /*korostetaan hiiren mahdollisesti osoittama tahko tai siivu*/
+	  kuva.korostus = mika_tahko(tapaht.motion.x, tapaht.motion.y);
+	  kuva.paivita = 1;
+	  break;
 	}
 	break;
       case SDL_MOUSEBUTTONUP:
 	hiiri_painettu = 0;
+	if(!raahattiin)
+	  korosta_hiirella = 1;
 	break;
       }
     } //while poll_event
