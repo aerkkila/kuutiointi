@@ -76,6 +76,8 @@ void paivita() {
     korosta_tahko(kuva.korostus);
   if(kuva.ruutuKorostus.a[0] >= 0)
     korosta_ruutu(kuutio.ruudut+RUUTUINT3(kuva.ruutuKorostus), 3);
+  if(kuva.siivuKorostus.a[0] >= 0)
+    korosta_siivu(kuva.siivuKorostus);
   SDL_RenderPresent(kuva.rend);
 }
 
@@ -135,7 +137,7 @@ int piste_alueella(float x, float y, int n, ...) {
   va_start(argl, n);
   float kl = 0;
   koordf sv1, sv2, a1, a2;
-  koordf p = (koordf){{x, -y, 0}};
+  koordf p = (koordf){{x, y, 0}};
   a1 = va_arg(argl, koordf);
   for(int i=1; i<=n; i++) {
     if(i==n)
@@ -143,9 +145,6 @@ int piste_alueella(float x, float y, int n, ...) {
     a2 = va_arg(argl, koordf);
     sv1 = suuntavektori(&p, &a1);
     sv2 = suuntavektori(&p, &a2);
-    float tmp = vektpituus(sv1);
-    tmp = vektpituus(sv2);
-    tmp = pistetulo(sv1,sv2);
     kl += (acosf( pistetulo(sv1,sv2) / (vektpituus(sv1)*vektpituus(sv2)) ) * \
 	   SIGN(ristitulo_z(sv1,sv2)));
     a1 = a2;
@@ -163,7 +162,7 @@ int mika_tahko(int x, int y) {
 				 kuutio.ruudut+RUUTU(tahko,kuutio.N-1,0))) <= 0)
       continue;
     /*näkyy, mutta onko oikea*/
-    if(piste_alueella((float)x, (float)y, 4,				\
+    if(piste_alueella((float)x, (float)(-y), 4,				\
 		      kuutio.ruudut[RUUTU(tahko,0,0)],			\
 		      kuutio.ruudut[RUUTU(tahko,kuutio.N-1,0)+1],	\
 		      kuutio.ruudut[RUUTU(tahko,kuutio.N-1,kuutio.N-1)+2], \
@@ -171,6 +170,71 @@ int mika_tahko(int x, int y) {
       return tahko;
   }
   return -1;
+}
+
+int3 mika_ruutu(int x, int y) {
+  int tahko = mika_tahko(x,y);
+  if(tahko < 0)
+    goto EI_LOUTUNUT;
+  float xf = x, yf = -y;
+  float rMaks = 1.41421*kuva.resKuut/kuutio.N; //ruudun nurkan osuessa kauemmas hylätään heti
+  for(int i=0; i<kuutio.N; i++)
+    for(int j=0; j<kuutio.N; j++) {
+      koordf* tr = kuutio.ruudut+RUUTU(tahko,i,j);
+      if(fabs(tr->a[0]-xf) > rMaks)
+	continue;
+      if(fabs(tr->a[1]-yf) > rMaks)
+	continue;
+      if(piste_alueella(xf, yf, 4, tr[0], tr[1], tr[2], tr[3]))
+	return (int3){{tahko,i,j}};
+    }
+ EI_LOUTUNUT:
+  return (int3){{-1,-1,-1}};
+}
+
+int3 hae_siivu(int3 ruutu) {
+  int akseli, siivu, suunta, tahkoaks, rsuunta_xyz, rsuunta_ij;
+  int3 akslt = akst[ruutu.a[0]];
+  /*normaaliakseli on jäljelle jäävä: tahkon akseli ja reunapalan suunta on käytetty*/
+
+  /*ruudun suunta ij*/
+  for(rsuunta_ij=1; rsuunta_ij<=2; rsuunta_ij++) {
+    if( ruutu.a[rsuunta_ij] % (kuutio.N-1) )
+      continue;
+    goto JATKA; //suunta löytyi
+  }
+  return (int3){{-1,-1,-1}}; //ruutu ei ollut reunalla
+  
+ JATKA:
+  /*ruudun suunta xyz*/
+  for(rsuunta_xyz=0; rsuunta_xyz<3; rsuunta_xyz++)
+    if( ABS(akslt.a[rsuunta_xyz]) == rsuunta_ij )
+      break;
+
+  /*tahkon akseli*/
+  for(tahkoaks=0; tahkoaks<3; tahkoaks++)
+    if( !(akslt.a[tahkoaks] % 3) )
+      break;
+
+  akseli = 3 - rsuunta_xyz - tahkoaks;
+  
+  int IvaiJ = (rsuunta_ij==1)? 2: 1;
+  if(akslt.a[akseli] < 0)
+    siivu = ruutu.a[IvaiJ];
+  else
+    siivu = kuutio.N-1 - ruutu.a[IvaiJ];
+
+  /*ainoastaan ristitulon merkillä on väliä*/
+  int3 tahkovkt = (int3){{0,0,0}};
+  int3 suuntavkt = (int3){{0,0,0}};
+  tahkovkt.a[tahkoaks] = akslt.a[tahkoaks]; //oikeaan kohtaan posi- tai negatiivinen luku
+  suuntavkt.a[rsuunta_xyz] = akslt.a[rsuunta_xyz];
+  int3 rtulo = RISTITULO(tahkovkt, suuntavkt, int3); //kaksi kolmesta ovat nollia
+  suunta = 0;
+  for(int i=0; i<3; i++)
+    suunta -= rtulo.a[i]; //miinus koska ristitulo kiertää vastapäivään
+  
+  return (int3){{akseli, siivu, suunta}};
 }
 
 void siirto(int tahko, char siirtokaista, char maara) {
@@ -196,7 +260,7 @@ void siirto(int tahko, char siirtokaista, char maara) {
   int IvaiJ = akst[ruutu0.a[0]].a[iakseli];
   for(int j=1; j<4; j++) {
     for(int i=0; i<N; i++) {
-      ruutu0 = hae_ruutu(tahko, i, -1-siirtokaista);
+      ruutu0 = hae_ruutu(tahko, i, -1-siirtokaista); //alkukohdaksi valitaan j-akselin alimeno
       int etumerkki = SIGN(IvaiJ) * SIGN(akst[tahko].a[iakseli]);
       int3 ruutu1 = hae_ruutu(ruutu0.a[0],				\
 			      ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki, \
@@ -371,6 +435,7 @@ int main(int argc, char** argv) {
   kuva.paivita = 1;
   kuva.korostus = -1;
   kuva.ruutuKorostus = (int3){{-1, kuutio.N/2, kuutio.N/2}};
+  kuva.siivuKorostus = (int3){{-1, -1, -1}};
   kuva.korostusVari = VARI(80, 233, 166);
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
@@ -382,7 +447,7 @@ int main(int argc, char** argv) {
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
   i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
   sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti)*/
-  akst[_r] =  (int3){{3, -2, -1}};
+  akst[_r] = (int3){{3, -2, -1}};
   akst[_l] = (int3){{-3, -2, 1}};
   akst[_u] = (int3){{1, 3, 2}};
   akst[_d] = (int3){{1, -3, -2}};
@@ -502,6 +567,9 @@ int main(int argc, char** argv) {
 	  case SDLK_RETURN:
 	    kaantoanimaatio(_f, 0, (koordf){{0,1,0}}, 1.0, 1);
 	    break;
+	  case SDLK_ESCAPE:
+	    korosta_hiirella = 0;
+	    break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
 	  case SDLK_LEFT:
@@ -524,9 +592,6 @@ int main(int argc, char** argv) {
 	  case SDLK_DOWN:
 	    A = hae_ruutu(B(0), B(1), B(2)+1);
 	    kuva.paivita=1;
-	    break;
-	  case SDLK_ESCAPE:
-	    korosta_hiirella = 0;
 	    break;
 #undef A
 #undef B
@@ -635,15 +700,19 @@ int main(int argc, char** argv) {
 	  break;
 	} else if(korosta_hiirella) {
 	  /*korostetaan hiiren mahdollisesti osoittama tahko tai siivu*/
-	  kuva.korostus = mika_tahko(tapaht.motion.x, tapaht.motion.y);
+	  kuva.siivuKorostus = hae_siivu(mika_ruutu(tapaht.motion.x, tapaht.motion.y));
 	  kuva.paivita = 1;
 	  break;
 	}
 	break;
       case SDL_MOUSEBUTTONUP:
 	hiiri_painettu = 0;
-	if(!raahattiin)
-	  korosta_hiirella = 1;
+	if(!raahattiin) {
+	  if(!korosta_hiirella) {
+	    korosta_hiirella = 1;
+	    break;
+	  }
+	}
 	break;
       }
     } //while poll_event
@@ -651,7 +720,7 @@ int main(int argc, char** argv) {
     if(savelPtr) {
       static char suunta = 1;
       static double savLoppuHetki = 1.0;
-      register float savel = *savelPtr;
+      float savel = *savelPtr;
       if(savel < 0) {
 	if(savLoppuHetki < 0) { //sävel päättyi juuri
 	  struct timeval hetki;

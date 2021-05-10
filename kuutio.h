@@ -25,6 +25,8 @@ typedef struct {int a[3];} int3;
     b = apu;					\
   }
 #define HAE_RUUTUint3(A) hae_ruutu((A).a[0], (A).a[1], (A).a[2])
+#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
 
 typedef struct {
   char** sivut;
@@ -46,6 +48,7 @@ typedef struct {
   char paivita;
   int korostus;
   int3 ruutuKorostus;
+  int3 siivuKorostus; //akseli, siivuluku, kääntösuunta
   vari korostusVari;
 } kuva_t;
 
@@ -57,6 +60,7 @@ inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p
   return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
 }
 
+#define RISTITULO(v1,v2,tyyppi) (tyyppi){{v1.a[1]*v2.a[2] - v1.a[2]*v2.a[1], v1.a[2]*v2.a[0] - v1.a[0]*v2.a[2], v1.a[0]*v2.a[1] - v2.a[0]*v1.a[1]}}
 #endif
 
 extern kuutio_t kuutio;
@@ -69,3 +73,4 @@ void siirto(int puoli, char kaista, char maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);
 void paivita();
 int3 hae_ruutu(int tahko, int i0, int j0);
+int3 hae_siivu(int3 ruutu);

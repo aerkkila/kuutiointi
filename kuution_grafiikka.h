@@ -24,9 +24,6 @@ inline void __attribute((always_inline)) aseta_vari(vari v) {
   SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
 }
 
-#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
-#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
-
 #endif
 
 void tee_ruutujen_koordtit();
@@ -38,5 +35,5 @@ void piirra_kuvaksi();
 void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 int korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
-void korosta_siivu(int tahko, int kaista);
+void korosta_siivu(int3 siivu);
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);

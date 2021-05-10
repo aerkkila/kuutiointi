@@ -247,27 +247,85 @@ void korosta_ruutu(void* ktit, int onko2vai3) {
   }
 }
 
-void korosta_siivu(int tahko, int kaista) {
-  if(tahko < 0 || tahko > 5 || kaista >= kuutio.N)
+int nurkan_haku(int3 siivu, int3 ruutu, int mika) {
+  static int nurkka1=-1, nurkka2=-1, IvaiJ=-1;
+  if(mika == 2)
+    return nurkka2;
+  else if(mika == 3)
+    return IvaiJ;
+  /*suunta, johon viiva piirretään; a:n ja b:n normaali tahkolla*/
+  IvaiJ = (ABS(akst[ruutu.a[0]].a[siivu.a[0]]) == 1)? 2: 1;
+  if(ruutu.a[IvaiJ] == 0) {
+    if(IvaiJ == 1)
+      nurkka1 = 3; //i-suunnalla vasemmalla
+    else
+      nurkka1 = 0; //j-suunnalla ylhäällä
+  } else {
+    if(IvaiJ == 1)
+      nurkka1 = 1; //i-suunnalla oikealla
+    else
+      nurkka1 = 2; //j-suunnalla alhaalla
+  }
+  nurkka2 = (nurkka1+1) % 4;
+  /*a olkoon aina negatiivisemmalla akselilla;
+    0 ja 1 ovat seuraavaa negatiivisemmalla i- tai j-puolella*/
+  if(akst[ruutu.a[0]].a[siivu.a[0]] < 0 && nurkka1 < 2)
+    VAIHDA(nurkka1, nurkka2, int);
+  return nurkka1;
+}
+
+void korosta_siivu(int3 siivu) {
+  if(siivu.a[0] < 0)
     return;
   const int paksuus = 15;
   aseta_vari(kuva.korostusVari);
-  int akseli = 0;
-  int suunta = 0;
-  for(int i=0; i<3; i++) {
-    if(akst[tahko].a[i] % 3)
-      continue;
-    akseli = i;
-    suunta = SIGN(akst[tahko].a[i]);
-    break;
+  koordf2 a1,b1,a2,b2; //kaksi viivaa kiertävät siivun molemmat reunat
+  koordf* apukoord;
+  int3 ruutu[3];
+  int nurkka1, nurkka2, IvaiJ, tahko0, kumpi;
+  for(tahko0=0; tahko0<6; tahko0++)
+    if(akst[tahko0].a[siivu.a[0]] == 3)
+      break;
+  ruutu[0] = hae_ruutu(tahko0, -1-siivu.a[1], 0); //valitaan 0. ruuduksi alimeno i:ltä
+  ruutu[1] = ruutu[0];
+  
+  /*mitkä 4:stä nurkasta ovat kaksi oikeaa*/
+  nurkka1 = nurkan_haku(siivu, ruutu[1], 1);
+  nurkka2 = nurkan_haku(siivu, ruutu[1], 2);
+  IvaiJ   = nurkan_haku(siivu, ruutu[1], 3);
+  apukoord = kuutio.ruudut+RUUTUINT3(ruutu[1]);
+  a1 = (koordf2){{(apukoord+nurkka1)->a[0], (apukoord+nurkka1)->a[1]}};
+  b1 = (koordf2){{(apukoord+nurkka2)->a[0], (apukoord+nurkka2)->a[1]}};
+  
+  /*piirretäänkö viivat ruutu[1]:n vai ruutu2:n osoittamalle tahkolle*/
+  ruutu[2] = hae_ruutu(ruutu[1].a[0], ruutu[1].a[1] + (2-IvaiJ), ruutu[1].a[2] + (IvaiJ-1));
+  if(ruutu[2].a[0] == ruutu[1].a[0])
+    kumpi = 1; //tahko ei vaihtunut, siirryttäessä vain yhden ruudun verran
+  else
+    kumpi = 2;
+
+  for(int i=1; i<=4; i++) {
+    /*viivan päätepisteet*/
+    ruutu[2] = hae_ruutu(ruutu[0].a[0],					\
+		       ruutu[0].a[1] + (2-IvaiJ) * i*kuutio.N,		\
+		       ruutu[0].a[2] + (IvaiJ-1) * i*kuutio.N);
+    nurkka1 = nurkan_haku(siivu, ruutu[2], 1);
+    nurkka2 = nurkan_haku(siivu, ruutu[2], 2);
+    apukoord = kuutio.ruudut+RUUTUINT3(ruutu[2]);
+    a2 = (koordf2){{(apukoord+nurkka1)->a[0], (apukoord+nurkka1)->a[1]}};
+    b2 = (koordf2){{(apukoord+nurkka2)->a[0], (apukoord+nurkka2)->a[1]}};
+    /*piirretään viiva, jos tahko on näkyvillä*/
+    apukoord = kuutio.ruudut+RUUTUINT3(ruutu[kumpi]);
+    if(ristitulo_z(suuntavektori(apukoord+0, apukoord+3),		\
+		   suuntavektori(apukoord+0, apukoord+1)) > 0) {
+      piirra_viiva(&a1, &a2, 2, paksuus);
+      piirra_viiva(&b1, &b2, 2, paksuus);
+    }
+    /*päätepisteistä uudet alkupisteet*/
+    ruutu[1] = ruutu[2];
+    a1 = a2;
+    b1 = b2;
   }
-  int3 ruutu0 = hae_ruutu(tahko, kuutio.N+kaista, 0);
-  int3 ruutu1 = hae_ruutu(tahko, kuutio.N+kaista, kuutio.N-1);
-#define K(arg) kuutio.ruudut+RUUTUINT3(arg)
-  piirra_viiva(K(ruutu0), K(ruutu1), 3, paksuus);
-  ruutu1 = hae_ruutu(tahko, -1-kaista, 0);
-  piirra_viiva(K(ruutu0), K(ruutu1), 3, paksuus);
-#undef K
 }
 
 /*jos k2 == NULL, k1, on taulukko, jossa on molemmat*/
