@@ -3,20 +3,7 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <listat.h>
-
-typedef struct {
-  char* teksti;
-  char ttflaji; //mitä ttf-kirjaston funktiota käytetään (katso laita_teksti_ttf())
-  TTF_Font* font;
-  int fonttikoko;
-  char* fonttied;
-  SDL_Rect* sij; //tälle varattu maksimitila
-  SDL_Rect* toteutuma; //mikä tila oikeasti käytetään
-  SDL_Color vari;
-  short alku; //koskee vain listoja, ensimmäisen näytetyn indeksi, 'r'
-  short rullaus; //koskee vain listoja, 'w'
-  char numerointi; //koskee vain listoja;
-} tekstiolio_s;
+#include <tekstigraf.h>
 
 typedef struct {
   SDL_Texture* valittu;
