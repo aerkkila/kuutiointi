@@ -2,9 +2,9 @@ all: kajastin kuutio
 
 tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c muistin_jako.c cfg.c
 kuutiotied=kuutio.c kuution_grafiikka.c kuution_kommunikointi.c muistin_jako.c python_savel.c
-incdir=-I/usr/include/SDL2 -I/home/antterkk/c/include
-libdir=-L/home/antterkk/c/kirjastot
-libs=-lSDL2 -lSDL2_ttf -llistat -llista_math -ltekstigraf -lm
+incdir=-I/usr/include/SDL2 -I/home/antterkk/c
+libdir=-L/home/antterkk/c
+libs=-lSDL2 -lSDL2_ttf -llistat -llista_math -lm
 
 kajastin: ${tiedostot} cfg.h
 	gcc -gdwarf-2 -g3 -Wall -o kajastin ${tiedostot} ${incdir} ${libdir} ${libs}
