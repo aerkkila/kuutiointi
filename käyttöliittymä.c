@@ -40,16 +40,12 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
-#define STRTULOS (tkset.strtulos)
-#define FTULOS (tkset.ftulos)
-#define HETKI (tkset.tuloshetki)
-#define SJARJ (tkset.strjarj)
-#define SIJARJ (tkset.sijarj)
+#define HETKI tuloshetki
 #define MUUTA_TULOS laitot |= muuta_tulos;
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
 				     (tapaht.tapahtlaji.y - (nimi).toteutuma->y) / \
 				     TTF_FontLineSkip((nimi).font))
-#define TEE_TIEDOT tiedot = tee_tiedot(tiedot, &tkset, avgind);
+#define TEE_TIEDOT tiedot = tee_tiedot(tiedot, avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
     SDL_SetTextInputRect(kellool.sij);			   \
@@ -132,7 +128,7 @@ int kaunnista() {
 	    LOPETA:
 	      if(tila == juoksee) {
 		tila = seis;
-		lisaa_listoille(&tkset, KELLO, nyt.tv_sec);
+		lisaa_listoille(KELLO, nyt.tv_sec);
 		sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		TEE_TIEDOT;
 		MUUTA_TULOS;
@@ -151,7 +147,7 @@ int kaunnista() {
 		break;
 	      if(kontrol) {
 		sprintf(tmp, "%s/%s", uloskansio, ulosnimi);
-		if(tallenna(&tkset, tmp))
+		if(tallenna(tmp))
 		  sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
 		else
 		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", ulosnimi);
@@ -161,12 +157,12 @@ int kaunnista() {
 	      }
 	      break;
 	    case SDLK_BACKSPACE:
-	      if(tila == seis && STRTULOS) {
+	      if(tila == seis && strtulos) {
 		sektus = _strpoista1(sektus, -1);
-		int ind = _ylaske(_yalkuun(FTULOS))-1;
-		poista_listoilta(&tkset, ind);
-		if(tkset.strtulos)
-		  strcpy(KELLO, tkset.strtulos->str);
+		int ind = _ylaske(_yalkuun(ftulos))-1;
+		poista_listoilta(ind);
+		if(strtulos)
+		  strcpy(KELLO, strtulos->str);
 		TEE_TIEDOT;
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
@@ -200,7 +196,7 @@ int kaunnista() {
 		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		  while((apucp = strstr(KELLO, ".")))
 		    *apucp = ',';
-		  lisaa_listoille(&tkset, KELLO, time(NULL));
+		  lisaa_listoille(KELLO, time(NULL));
 		  TEE_TIEDOT;
 		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
 		  MUUTA_TULOS;
@@ -214,7 +210,7 @@ int kaunnista() {
 		  break;
 		case tulosalkuKirj:
 		  sscanf(KELLO, "%i", &apuind);
-		  if(apuind <= _ylaske_taakse(STRTULOS)) {
+		  if(apuind <= _ylaske_taakse(strtulos)) {
 		    tulosol.rullaus += tulosol.alku - (apuind-1);
 		    strcpy(TEKSTI, "");
 		  } else {
@@ -239,8 +235,8 @@ int kaunnista() {
 		  break;
 		}
 		/*koskee kaikkia kirjoituslajeja*/
-		if(tkset.ftulos)
-		  float_kelloksi(KELLO, tkset.ftulos->f);
+		if(ftulos)
+		  float_kelloksi(KELLO, ftulos->f);
 		break;
 	      }
 	    case SDLK_END:
@@ -252,7 +248,7 @@ int kaunnista() {
 		break;
 	      case jarjestus1al:;
 		int mahtuu = jarjol1.sij->h / TTF_FontLineSkip(jarjol1.font);
-		jarjol1.rullaus = -(_ylaske(SIJARJ)-1 - mahtuu);
+		jarjol1.rullaus = -(_ylaske(sijarj)-1 - mahtuu);
 		laitot |= jarjlai;
 		break;
 	      case jarjestus2al:
@@ -292,8 +288,8 @@ int kaunnista() {
 		SDL_StopTextInput();
 		tila = seis;
 		nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
-		if(tkset.strtulos)
-		  strcpy(KELLO, tkset.strtulos->str);
+		if(strtulos)
+		  strcpy(KELLO, strtulos->str);
 		TEKSTI[0] = '\0';
 		laitot |= tkstallai;
 		laitot |= kellolai;
@@ -307,8 +303,8 @@ int kaunnista() {
 		SDL_RenderSetScale(rend, skaala, skaala);
 		laitot = kaikki_laitot;
 	      } else if(tila != kirjoitustila) {
-		int tmpind = _ylaske(_yalkuun(STRTULOS)) - 1;
-		muuta_sakko(&tkset, KELLO, tmpind);
+		int tmpind = _ylaske(_yalkuun(strtulos)) - 1;
+		muuta_sakko(KELLO, tmpind);
 		TEE_TIEDOT;
 		laitot |= kellolai;
 		MUUTA_TULOS;
@@ -387,12 +383,12 @@ int kaunnista() {
 	      case 0:
 	      case 1:
 	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(&tkset, sektus1, avgind[sarake]-4, 5);
+		lisatd = tee_lisatiedot(sektus1, avgind[sarake]-4, 5);
 		break;
 	      case 2:
 	      case 3:
 	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(&tkset, sektus1, avgind[sarake+3]-11, 12);
+		lisatd = tee_lisatiedot(sektus1, avgind[sarake+3]-11, 12);
 		break;
 	      case 4:
 	        lisatd = _strpoista_kaikki(lisatd);
@@ -435,7 +431,7 @@ int kaunnista() {
 	      laita_eri_sekunnit(tmp);
 	    } else if(!strcmp(tmpstr, "kuvaaja")) {
 	      FILE *f = fopen(".kuvaaja.bin", "wb");
-	      flista* tmpfl = _yalkuun(tkset.ftulos);
+	      flista* tmpfl = _yalkuun(ftulos);
 	      while(tmpfl) {
 		fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
 		tmpfl = tmpfl->seur;
@@ -495,7 +491,7 @@ int kaunnista() {
 	      järjestysalueilta luettu indeksi muunnetaan tulosalueen indeksiksi*/
 	  case tuloksetal:
 	    apuind = LISTARIVI(tulosol, button);
-	    if(apuind == _ylaske_taakse(tkset.strtulos))
+	    if(apuind == _ylaske_taakse(strtulos))
 	      apuind--;
 	    goto MBUP_TULOKSIA;
 	  case jarjestus1al:
@@ -504,21 +500,21 @@ int kaunnista() {
 	  case jarjestus2al:
 	    apuind = LISTARIVI(jarjol2, button);
 	  MBUP_JARJ2:
-	    if(apuind+1 == _ylaske(SIJARJ))
+	    if(apuind+1 == _ylaske(sijarj))
 	      break;
-	    sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+	    sscanf(((strlista*)_ynouda(sijarj, apuind+1))->str, "%i", &apuind);
 	    apuind--;
 	  MBUP_TULOKSIA:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
 		/*poistetaan (ctrl + hiiri1)*/
-		poista_listoilta(&tkset, apuind);
+		poista_listoilta(apuind);
 		_strpoista1(_ynouda(_yalkuun(sektus), apuind), 1);
 		TEE_TIEDOT;
 		alue = hae_alue(tapaht.button.x, tapaht.button.y);
 	      } else {
 		/*kopioidaan leikepöydälle (hiiri1)*/
-	        char* tmpstr = ((strlista*)_ynoudaf(STRTULOS, apuind, 0))->str;
+	        char* tmpstr = ((strlista*)_ynoudaf(strtulos, apuind, 0))->str;
 		time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
@@ -530,8 +526,8 @@ int kaunnista() {
 		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      strlista* tmpstr = _ynouda(_yalkuun(STRTULOS), apuind);
-	      muuta_sakko(&tkset, (STRTULOS == tmpstr)? KELLO : tmp, apuind);
+	      strlista* tmpstr = _ynouda(_yalkuun(strtulos), apuind);
+	      muuta_sakko((strtulos == tmpstr)? KELLO : tmp, apuind);
 	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;
@@ -619,8 +615,8 @@ int kaunnista() {
 	  case jarjestus2al:;
 	    if(alue != jarjestus1al)
 	      apuind = LISTARIVI(jarjol2, motion);
-	    if(apuind+1 < _ylaske(SIJARJ)) {
-	      sscanf(((strlista*)_ynouda(SIJARJ, apuind+1))->str, "%i", &apuind);
+	    if(apuind+1 < _ylaske(sijarj)) {
+	      sscanf(((strlista*)_ynouda(sijarj, apuind+1))->str, "%i", &apuind);
 	      apuind--;
 	      goto LAITA_AIKA_NAKUVIIN;
 	    }
@@ -629,7 +625,7 @@ int kaunnista() {
 	  case tuloksetal:;
 	    /*laitetaan aika näkyviin*/
 	    apuind = LISTARIVI(tulosol, motion);
-	    if(apuind < _ylaske_taakse(tkset.tuloshetki)) {
+	    if(apuind < _ylaske_taakse(tuloshetki)) {
 	    LAITA_AIKA_NAKUVIIN:;
 	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
 	      struct tm *aika = localtime(&aika_t);
@@ -879,10 +875,10 @@ char* sekoitus(char* s) {
 }
 
 inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
-  int *ia = eri_sekunnit(tkset.fjarj->seur, NULL, 0);
+  int *ia = eri_sekunnit(fjarj->seur, NULL, 0);
   int tmp=0;
-  int hyv = _ylaske(tkset.fjarj->seur);
-  int yht = _ylaske(_yalkuun(tkset.ftulos));
+  int hyv = _ylaske(fjarj->seur);
+  int yht = _ylaske(_yalkuun(ftulos));
   int dnf = yht - hyv;
   lisatd = _strpoista_kaikki(_yalkuun(lisatd));
   lisatd = _strlisaa_kopioiden(lisatd, "aika  määrä");
@@ -925,7 +921,7 @@ inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* s
 
 char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
   int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
-  if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) ||	\
+  if((o->alku + riveja == _ylaske(sijarj)-1 && tapaht.wheel.y < 0) ||	\
      (o->rullaus == 0 && tapaht.wheel.y > 0))
     return 0;
   o->rullaus += tapaht.wheel.y;

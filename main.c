@@ -91,12 +91,12 @@ int main(int argc, char** argv) {
 
   SDL_DestroyTexture(tarknap.kuvat.valittu);
   SDL_DestroyTexture(tarknap.kuvat.ei_valittu);
-  _strpoista_kaikki(_yalkuun(tkset.strtulos));
-  _yrma(_yalkuun(tkset.ftulos));
-  _yrma(_yalkuun(tkset.tuloshetki));
-  _yrma(_yalkuun(tkset.fjarj));
-  _strpoista_kaikki(_yalkuun(tkset.strjarj));
-  _strpoista_kaikki(_yalkuun(tkset.sijarj));
+  _strpoista_kaikki(_yalkuun(strtulos));
+  _yrma(_yalkuun(ftulos));
+  _yrma(_yalkuun(tuloshetki));
+  _yrma(_yalkuun(fjarj));
+  _strpoista_kaikki(_yalkuun(strjarj));
+  _strpoista_kaikki(_yalkuun(sijarj));
   _strpoista_kaikki(_yalkuun(tietoalut));
   _strpoista_kaikki(_yalkuun(sektus));
   _strpoista_kaikki(_yalkuun(tiedot));

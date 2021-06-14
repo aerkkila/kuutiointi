@@ -69,7 +69,7 @@ void piirra() {
     laitot &= ~sektuslai;
   }
   if(laitot & tuloslai) {
-    laita_oikealle(&kellool, 10, _yalkuun(tkset.strtulos), 1, &tulosol, rend);
+    laita_oikealle(&kellool, 10, _yalkuun(strtulos), 1, &tulosol, rend);
     laitot &= ~tuloslai;
   }
   if(laitot & tkstallai) {
@@ -77,8 +77,8 @@ void piirra() {
     laitot &= ~tkstallai;
   }
   if(laitot & jarjlai) {
-    strlista* a = _ynouda(_yalkuun(tkset.sijarj), 1);
-    strlista* b = _ynouda(_yalkuun(tkset.strjarj), 1);
+    strlista* a = _ynouda(_yalkuun(sijarj), 1);
+    strlista* b = _ynouda(_yalkuun(strjarj), 1);
     int n = laita_pari_oikealle(&tulosol, 20, a, b, 0, &jarjol1, rend);
     a = _ynouda(a, n);
     b = _ynouda(b, n);

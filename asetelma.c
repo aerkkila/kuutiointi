@@ -149,7 +149,6 @@ int avaa_fontit(int n, ...) {
   return 0;
 }
 
-tkset_s tkset;
 SDL_Renderer* rend;
 SDL_Window* ikkuna;
 strlista* muut_b;

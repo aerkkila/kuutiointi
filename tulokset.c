@@ -76,9 +76,9 @@ int* eri_sekunnit(flista* jarj, int* ia, int iapit) {
 
 /* Strtiedot-lista kirjoitetaan listan "tietoalut" viereen eli rakenne löytyy sieltä.
    Kys. lista taas luodaan merkkijonosta "tietoalkustr"*/
-strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
-  flista* fl = tkset->ftulos;
-  flista* fj = tkset->fjarj;
+strlista* tee_tiedot(strlista* strtiedot, int* avgind) {
+  flista* fl = ftulos;
+  flista* fj = fjarj;
   avgtulos at;
   char *tmp;
   tmp = calloc(200, 1);
@@ -133,18 +133,18 @@ strlista* tee_tiedot(strlista* strtiedot, tkset_s* tkset, int* avgind) {
 }
 
 /*laittaa yhden suurimman ja pienimmän sulkeisiin*/
-strlista* tee_lisatiedot(tkset_s* t, strlista* sektus, int alkuind, int n) {
+strlista* tee_lisatiedot(strlista* sektus, int alkuind, int n) {
   strlista* r = NULL;
   char tmp[150];
   char aikastr[100];
-  strlista* sl = _ynouda(_yalkuun(t->strtulos), alkuind);
-  flista* fl = _ynouda(_yalkuun(t->ftulos), alkuind);
+  strlista* sl = _ynouda(_yalkuun(strtulos), alkuind);
+  flista* fl = _ynouda(_yalkuun(ftulos), alkuind);
   if(sektus) sektus = _ynouda(_yalkuun(sektus), alkuind);
   if(!sl)
     return NULL;
 
   /*tehdään aikastring*/
-  time_t aika_t = ((ilista*)_ynouda(_yalkuun(t->tuloshetki), alkuind+n-1))->i;
+  time_t aika_t = ((ilista*)_ynouda(_yalkuun(tuloshetki), alkuind+n-1))->i;
   struct tm *aika = localtime(&aika_t);
   strftime(aikastr, 150, "%A %d.%m.%Y klo %H.%M", aika);
 
@@ -193,14 +193,14 @@ int hae_silistalta(strlista* l, int i) {
 }
 
 /*i on tuloksen indeksi nollasta alkaen järjestämättä*/
-int poista_jarjlistalta(int i, tkset_s* t) {
-  int paikka = hae_silistalta(_yalkuun(t->sijarj), i+1);
+int poista_jarjlistalta(int i) {
+  int paikka = hae_silistalta(_yalkuun(sijarj), i+1);
   if(paikka < 0)
     return paikka;; //kyseistä ei ollut jarjlistalla ensinkään
   char palsuunta = (paikka == 0)? 1 : -1;
-  _strpoista1(_ynouda(_yalkuun(t->sijarj), paikka), palsuunta);
-  _strpoista1(_ynouda(_yalkuun(t->strjarj), paikka), palsuunta);
-  _yrm1(_ynouda(t->fjarj, paikka), palsuunta);
+  _strpoista1(_ynouda(_yalkuun(sijarj), paikka), palsuunta);
+  _strpoista1(_ynouda(_yalkuun(strjarj), paikka), palsuunta);
+  _yrm1(_ynouda(fjarj, paikka), palsuunta);
   return paikka;
 }
 
@@ -220,33 +220,33 @@ void numerointi_miinus_miinus(strlista* l, int alku) {
   } while((l = l->seur));
 }
 
-void lisaa_listoille(tkset_s* t, char* kello, time_t hetki) {
+void lisaa_listoille(char* kello, time_t hetki) {
   char tmp[10];
-  t->strtulos = _strlisaa_kopioiden(t->strtulos, kello);
-  t->ftulos = _flisaa(t->ftulos, lue_kellosta(kello));
-  t->tuloshetki = _ilisaa(t->tuloshetki, hetki);
-  int paikka = hae_paikka(t->ftulos->f, t->fjarj) - 1; //0. elementti on kansilehti
-  flista* tmpfl = t->fjarj;
-  if( (tmpfl = _ynouda(t->fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
-    _flisaa(tmpfl, t->ftulos->f);
-    _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), t->strtulos->str);
-    sprintf(tmp, "%i. ", _ylaske(_yalkuun(t->ftulos)));
-    _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
+  strtulos = _strlisaa_kopioiden(strtulos, kello);
+  ftulos = _flisaa(ftulos, lue_kellosta(kello));
+  tuloshetki = _ilisaa(tuloshetki, hetki);
+  int paikka = hae_paikka(ftulos->f, fjarj) - 1; //0. elementti on kansilehti
+  flista* tmpfl = fjarj;
+  if( (tmpfl = _ynouda(fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+    _flisaa(tmpfl, ftulos->f);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(strjarj), paikka), strtulos->str);
+    sprintf(tmp, "%i. ", _ylaske(_yalkuun(ftulos)));
+    _strlisaa_kopioiden(_ynouda(_yalkuun(sijarj), paikka), tmp);
   }
 }
 
-void poista_listoilta(tkset_s* t, int ind) {
-  if(ind+1 == _ylaske(_yalkuun(t->strtulos))) {
-    t->strtulos = _strpoista1(t->strtulos, -1);
-    t->ftulos = _yrm1(t->ftulos, -1);
-    t->tuloshetki = _yrm1(t->tuloshetki, -1);
+void poista_listoilta(int ind) {
+  if(ind+1 == _ylaske(_yalkuun(strtulos))) {
+    strtulos = _strpoista1(strtulos, -1);
+    ftulos = _yrm1(ftulos, -1);
+    tuloshetki = _yrm1(tuloshetki, -1);
   } else {
-    _strpoista1(_ynouda(_yalkuun(t->strtulos), ind), 1);
-    _yrm1(_ynouda(_yalkuun(t->ftulos), ind), 1);
-    _yrm1(_ynouda(_yalkuun(t->tuloshetki), ind), 1);
+    _strpoista1(_ynouda(_yalkuun(strtulos), ind), 1);
+    _yrm1(_ynouda(_yalkuun(ftulos), ind), 1);
+    _yrm1(_ynouda(_yalkuun(tuloshetki), ind), 1);
   }
   poista_jarjlistalta(ind, t);
-  numerointi_miinus_miinus(_yalkuun(t->sijarj), ind+1);
+  numerointi_miinus_miinus(_yalkuun(sijarj), ind+1);
 }
 
 float lue_kellosta(char* s) {
@@ -261,9 +261,9 @@ float lue_kellosta(char* s) {
   return min*60 + fsek;
 }
 
-char tallenna(tkset_s* t, char* tiednimi) {
-  flista* ft = _yalkuun(t->ftulos);
-  ilista* th = _yalkuun(t->tuloshetki);
+char tallenna(char* tiednimi) {
+  flista* ft = _yalkuun(ftulos);
+  ilista* th = _yalkuun(tuloshetki);
   if(!ft)
     return 0;
   
@@ -342,9 +342,9 @@ char lue_tiedosto(char* tiednimi, char* rajaus) {
       fprintf(stderr, "Virhe, tiedostosta \"%s\" ei luettu arvoa\n", tiednimi);
       goto LUETTU;
     }
-    tkset.ftulos = _flisaa(tkset.ftulos, faika);
-    tkset.tuloshetki = _ilisaa(tkset.tuloshetki, i);
-    tkset.strtulos = _strlisaa_kopioiden(tkset.strtulos, float_kelloksi(kello, faika));
+    ftulos = _flisaa(ftulos, faika);
+    tuloshetki = _ilisaa(tuloshetki, i);
+    strtulos = _strlisaa_kopioiden(strtulos, float_kelloksi(kello, faika));
   }
  LUETTU:
   /*rajataan*/
@@ -367,7 +367,7 @@ char lue_tiedosto(char* tiednimi, char* rajaus) {
     if(loppu < alku)
       goto TEE_LISTA;
     int *poist;
-    int pit = _ylaske(_yalkuun(tkset.ftulos));
+    int pit = _ylaske(_yalkuun(ftulos));
     if(alku < 0)
       alku += pit;
     if(loppu < 0)
@@ -382,14 +382,14 @@ char lue_tiedosto(char* tiednimi, char* rajaus) {
     if(ind != kpl)
       fprintf(stderr, "Virhe poistossa: %i ≠ %i\n", kpl, ind);
     if(poist) {
-      tkset.ftulos = _yloppuun(_yrm(_yalkuun(tkset.ftulos), poist, kpl));
-      tkset.tuloshetki = _yloppuun(_yrm(_yalkuun(tkset.tuloshetki), poist, kpl));
-      tkset.strtulos = _yloppuun(_strpoista(_yalkuun(tkset.strtulos), poist, kpl));
+      ftulos = _yloppuun(_yrm(_yalkuun(ftulos), poist, kpl));
+      tuloshetki = _yloppuun(_yrm(_yalkuun(tuloshetki), poist, kpl));
+      strtulos = _yloppuun(_strpoista(_yalkuun(strtulos), poist, kpl));
       free(poist);
     }
   }
  TEE_LISTA:
-  tee_jarjlista(&tkset);
+  tee_jarjlista();
   fclose(f);
   return 0;
 }
@@ -408,27 +408,24 @@ char* float_kelloksi(char* kello, float f) {
   return kello;
 }
 
-void tee_jarjlista(tkset_s* t) {
+void tee_jarjlista() {
   char str[50];
-  flista* ft = _yalkuun(t->ftulos);
-  flista* fj = t->fjarj;
-  strlista* sj = t->strjarj;
-  strlista* sij = t->sijarj;
+  flista* ft = _yalkuun(ftulos);
   flista* apuf;
   strlista* apus;
   int i=1;
   while(ft) {
-    int jarji = hae_paikka(ft->f, fj)-1;
-    apuf = _ynouda(fj, jarji); //fjarj
+    int jarji = hae_paikka(ft->f, fjarj)-1;
+    apuf = _ynouda(fjarj, jarji);
     if(!apuf) {
       ft = ft->seur; //ei löydy, jos on inf
       i++;
       continue;
     }
     _flisaa(apuf, ft->f);
-    apus = _ynouda(sj, jarji); //strjarj
+    apus = _ynouda(strjarj, jarji);
     _strlisaa_kopioiden(apus, float_kelloksi(str, ft->f));
-    apus = _ynouda(sij, jarji); //sijarj
+    apus = _ynouda(sijarj, jarji);
     sprintf(str, "%i. ", i++);
     _strlisaa_kopioiden(apus, str);
     ft = ft->seur;
@@ -437,11 +434,11 @@ void tee_jarjlista(tkset_s* t) {
 
 
 /*teksti voi olla kello tai turha*/
-void muuta_sakko(tkset_s* t, char* teksti, int ind) {
-  strlista* sl = _ynouda(_yalkuun(t->strtulos), ind);
+void muuta_sakko(char* teksti, int ind) {
+  strlista* sl = _ynouda(_yalkuun(strtulos), ind);
   if(!sl)
     return;
-  float* fp = &( ((flista*)_ynouda(_yalkuun(t->ftulos), ind))->f );
+  float* fp = &( ((flista*)_ynouda(_yalkuun(ftulos), ind))->f );
   int min=0;
   sakko_e sakko = hae_sakko(sl->str);
 
@@ -494,14 +491,14 @@ void muuta_sakko(tkset_s* t, char* teksti, int ind) {
     *fp = INFINITY;
 
   /*järjestyslistat*/
-  int paikka = hae_paikka(*fp, t->fjarj) - 1; //0. elementti on kansilehti
-  flista* ftmp = t->fjarj;
-  if( (ftmp = _ynouda(t->fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
+  int paikka = hae_paikka(*fp, fjarj) - 1; //0. elementti on kansilehti
+  flista* ftmp = fjarj;
+  if( (ftmp = _ynouda(fjarj, paikka)) ) { //noutaminen epäonnistuu, jos f on inf
     _flisaa(ftmp, *fp);
-    _strlisaa_kopioiden(_ynouda(_yalkuun(t->strjarj), paikka), teksti);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(strjarj), paikka), teksti);
     char tmp[15];
     sprintf(tmp, "%i. ", ind+1);
-    _strlisaa_kopioiden(_ynouda(_yalkuun(t->sijarj), paikka), tmp);
+    _strlisaa_kopioiden(_ynouda(_yalkuun(sijarj), paikka), tmp);
   }
 }
 
