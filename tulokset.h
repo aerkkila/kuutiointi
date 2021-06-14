@@ -2,7 +2,23 @@
 #define __TULOKSET__
 
 #include <listat.h>
-#include "cfg.h"
+
+typedef struct {
+  float nyt;
+  float min;
+  int minind;
+  float max;
+  int maxind;
+} avgtulos;
+
+#endif
+
+extern strlista* strtulos;
+extern flista* ftulos;
+extern ilista* tuloshetki; //unix-aika tuloksen saamishetkellä
+extern strlista* sijarj;
+extern flista* fjarj;
+extern strlista* strjarj;
 
 avgtulos avgn(flista* l, int n, int pois);
 int* eri_sekunnit(flista* jarj, int* ia, int iapit);
@@ -21,5 +37,3 @@ void tee_jarjlista(tkset_s* t);
 char* float_kelloksi(char* kello, float f);
 void muuta_sakko(tkset_s* t, char* teksti, int ind);
 sakko_e hae_sakko(char*);
-
-#endif

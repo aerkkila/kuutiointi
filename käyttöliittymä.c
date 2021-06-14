@@ -11,7 +11,7 @@
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "muistin_jako.h"
-#include "cfg.h"
+#include "asetelma.h"
 #include <math.h>
 #include <lista_math.h>
 
@@ -924,7 +924,7 @@ inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* s
 }
 
 char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
-  int riveja = o->toteutuma->h / TTF_FontLineSkip(o->font);
+  int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
   if((o->alku + riveja == _ylaske(SIJARJ)-1 && tapaht.wheel.y < 0) ||	\
      (o->rullaus == 0 && tapaht.wheel.y > 0))
     return 0;

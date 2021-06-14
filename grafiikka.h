@@ -1,8 +1,36 @@
 #ifndef __grafiikka__
 #define __grafiikka__
 
+#include <SDL_ttf.h>
 #include <listat.h>
-#include "cfg.h"
+
+typedef struct {
+  char* teksti;
+  char ttflaji; //mitä ttf-kirjaston funktiota käytetään (katso laita_teksti_ttf())
+  TTF_Font* font;
+  int fonttikoko;
+  char* fonttied;
+  SDL_Rect sij; //tälle varattu maksimitila
+  SDL_Rect toteutuma; //mikä tila oikeasti käytetään
+  SDL_Color vari;
+  short alku; //koskee vain listoja, ensimmäisen näytetyn indeksi, 'r'
+  short rullaus; //koskee vain listoja, 'w'
+  char numerointi; //koskee vain listoja;
+} tekstiolio_s;
+
+typedef struct {
+  SDL_Texture* valittu;
+  SDL_Texture* ei_valittu;
+  SDL_Rect sij;
+} kuvarakenne;
+
+typedef struct {
+  tekstiolio_s teksti;
+  kuvarakenne kuvat;
+  char valittu;
+} vnta_s;
+
+#endif
 
 extern unsigned short laitot;
 extern const unsigned short kellolai;
@@ -29,5 +57,3 @@ void laita_tiedot(strlista* a, tekstiolio_s* oa,			\
 void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_Renderer* r);
 void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r);
 void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, SDL_Renderer* r);
-
-#endif

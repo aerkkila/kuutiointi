@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "cfg.h"
+#include "asetelma.h"
 #include "tulokset.h"
 
 avgtulos avgn(flista* l, int n, int pois) {
