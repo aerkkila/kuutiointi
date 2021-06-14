@@ -38,8 +38,7 @@ tekstiolio_s jarjol1 = {.ttflaji = 1,					\
 			.vari = {140, 150, 170, 255},			\
 			.sij = {0, 30, 200, 550}};
 
-tekstiolio_s jarjol2 = {.ttflaji = 1,			\
-			.vari = {170, 100, 110, 255}};
+tekstiolio_s jarjol2 = {.vari = {170, 100, 110, 255}};
 
 float jarjsuhde = 0.70;
 
@@ -97,12 +96,15 @@ int asetelma() {
   kellool.teksti = malloc(90);
   kellool.teksti[0] = 0;
   kellool.vari = kellovarit[0];
+
+  SDL_Color vtmp = jarjol2.vari;
+  jarjol2 = jarjol1;
   
   jarjol1.sij.h *= jarjsuhde;
   
-  jarjol2.sij = jarjol1.sij;
   jarjol2.sij.h *= (1-jarjsuhde);
   jarjol2.sij.y += jarjol1.sij.h;
+  jarjol2.vari = vtmp;
 
   tluvutol = tiedotol;
 
