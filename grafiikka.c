@@ -4,6 +4,7 @@
 #include <listat.h>
 #include "asetelma.h"
 #include "grafiikka.h"
+#include "tulokset.h"
 
 #define PYYHI(olio) SDL_RenderFillRect(rend, &olio.toteutuma)
 #define KELLO (kellool.teksti)

@@ -15,6 +15,13 @@ int kaunnista();
 /*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
 
+strlista* strtulos;
+flista* ftulos;
+ilista* tuloshetki;
+strlista* sijarj;
+flista* fjarj;
+strlista* strjarj;
+
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "fi_FI.utf8");
   chdir(uloskansio);
@@ -36,7 +43,8 @@ int main(int argc, char** argv) {
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
 
-  asetelma();
+  if(asetelma())
+    goto EI_FONTTI;
   
   /*valintaolion kuvat*/
   SDL_Surface* kuva;

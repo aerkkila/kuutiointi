@@ -1,17 +1,10 @@
 #ifndef __ASETELMA__
 #define __ASETELMA__
-#include <SDL.h>
-#include <SDL_ttf.h>
-#include <listat.h>
-#include "grafiikka.h"
-
-typedef enum {
-  ei = 0,
-  plus,
-  dnf
-} sakko_e;
-
 #endif
+
+#include <SDL.h>
+#include <strlista.h>
+#include "grafiikka.h"
 
 extern const char ohjelman_nimi[];
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
@@ -36,6 +29,8 @@ extern tekstiolio_s sektusol;
 extern tekstiolio_s muutol;
 extern tekstiolio_s tkstalol;
 extern vnta_s tarknap;
+
+extern SDL_Color kellovarit[];
 
 extern strlista* tietoalut;
 extern strlista* sektus;

@@ -245,7 +245,7 @@ void poista_listoilta(int ind) {
     _yrm1(_ynouda(_yalkuun(ftulos), ind), 1);
     _yrm1(_ynouda(_yalkuun(tuloshetki), ind), 1);
   }
-  poista_jarjlistalta(ind, t);
+  poista_jarjlistalta(ind);
   numerointi_miinus_miinus(_yalkuun(sijarj), ind+1);
 }
 
@@ -463,7 +463,7 @@ void muuta_sakko(char* teksti, int ind) {
   min = (int)(*fp+0.00001) / 60;
   
   if(sakko != dnf) //järjestyslistalta poisto ennen sakon muuttamista
-    poista_jarjlistalta(ind, t);
+    poista_jarjlistalta(ind);
   
   sakko = (sakko + 1) % 3;
   

@@ -110,15 +110,15 @@ int asetelma() {
   tkstalol.teksti[0] = 0;
 
   int rvali = TTF_FontLineSkip(tarknap.teksti.font);
-  const int d = (int)(rvali*1.2);
+  int d = (int)(rvali*1.2);
   int valipituus;
   TTF_GlyphMetrics(tarknap.teksti.font, ' ', NULL,NULL,NULL,NULL, &valipituus);
   
-  tarknap.teksti.sij = {tarknapsij.x + d + 3*valipituus,      \
-			tarknapsij.y + (d - rvali) / 2,	      \
-			tarknapsij.w - d - 3*valipituus,      \
-			rvali};
-  tarknap.kuvat.sij = {tarknapsij.x, tarknapsij.y, d, d};
+  tarknap.teksti.sij = (SDL_Rect) {tarknapsij.x + d + 3*valipituus,	\
+				   tarknapsij.y + (d - rvali) / 2,	\
+				   tarknapsij.w - d - 3*valipituus,	\
+				   rvali};
+  tarknap.kuvat.sij = (SDL_Rect) {tarknapsij.x, tarknapsij.y, d, d};
   
   return 0;
 }

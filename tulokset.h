@@ -11,6 +11,12 @@ typedef struct {
   int maxind;
 } avgtulos;
 
+typedef enum {
+  ei = 0,
+  plus,
+  dnf
+} sakko_e;
+
 #endif
 
 extern strlista* strtulos;

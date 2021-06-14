@@ -43,12 +43,12 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
 #define HETKI tuloshetki
 #define MUUTA_TULOS laitot |= muuta_tulos;
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
-				     (tapaht.tapahtlaji.y - (nimi).toteutuma->y) / \
+				     (tapaht.tapahtlaji.y - (nimi).toteutuma.y) / \
 				     TTF_FontLineSkip((nimi).font))
 #define TEE_TIEDOT tiedot = tee_tiedot(tiedot, avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
-    SDL_SetTextInputRect(kellool.sij);			   \
+    SDL_SetTextInputRect(&kellool.sij);			   \
     tila = kirjoitustila;				   \
     kirjoituslaji = laji;				   \
     nostotoimi = ei_mitaan;				   \
@@ -101,7 +101,7 @@ int kaunnista() {
 			"Keskiarvon karsinta"};
   char kontrol = 0;
   ipc = NULL;
-  nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+  nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
   alue_e alue = muual;
   sakko_e sakko;
   SDL_Cursor* kursori;
@@ -182,7 +182,7 @@ int kaunnista() {
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
 	        tila = seis;
-	        nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+	        nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
 		switch((int)kirjoituslaji) {
 		case aikaKirj:
 		  /*tällä voi kysyä SDL-version*/
@@ -247,7 +247,7 @@ int kaunnista() {
 		laitot |= tuloslai;
 		break;
 	      case jarjestus1al:;
-		int mahtuu = jarjol1.sij->h / TTF_FontLineSkip(jarjol1.font);
+		int mahtuu = jarjol1.sij.h / TTF_FontLineSkip(jarjol1.font);
 		jarjol1.rullaus = -(_ylaske(sijarj)-1 - mahtuu);
 		laitot |= jarjlai;
 		break;
@@ -287,7 +287,7 @@ int kaunnista() {
 	      if(tila == kirjoitustila) {
 		SDL_StopTextInput();
 		tila = seis;
-		nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+		nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
 		if(strtulos)
 		  strcpy(KELLO, strtulos->str);
 		TEKSTI[0] = '\0';
@@ -350,7 +350,7 @@ int kaunnista() {
 		break;
 	      case ei_mitaan:
 		if(tila != kirjoitustila) //pysäytetty juuri äsken
-		  nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+		  nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
 		    break;
 	      }
 	    case SDLK_LCTRL:
@@ -372,10 +372,10 @@ int kaunnista() {
 	  case tietoalue:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 	       tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      char rivi = ((tapaht.button.y - tluvutol.toteutuma->y) / \
+	      char rivi = ((tapaht.button.y - tluvutol.toteutuma.y) / \
 			   TTF_FontLineSkip(tluvutol.font));
-	      int sarake = ((tapaht.button.x - tluvutol.toteutuma->x) / \
-			    (tluvutol.toteutuma->w / 6));
+	      int sarake = ((tapaht.button.x - tluvutol.toteutuma.x) / \
+			    (tluvutol.toteutuma.w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
 	      lisatd = _strpoista_kaikki(_yalkuun(lisatd));
 	      strlista* sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
@@ -482,8 +482,8 @@ int kaunnista() {
 	  switch(alue) {
 	  case tarkasteluaikanappial:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	      vntaol.valittu = (vntaol.valittu+1) % 2;
-	      nostotoimi = (vntaol.valittu)? tarkastelu : aloita;
+	      tarknap.valittu = (tarknap.valittu+1) % 2;
+	      nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
 	      laitot |= vntalai;
 	    }
 	    break;
@@ -752,26 +752,26 @@ char piste_alueella(int x, int y, SDL_Rect* alue) {
 }
 
 alue_e hae_alue(int x, int y) {
-  if(piste_alueella(x, y, kellool.toteutuma))
+  if(piste_alueella(x, y, &kellool.toteutuma))
     return kelloal;
-  if(piste_alueella(x, y, tulosol.toteutuma))
+  if(piste_alueella(x, y, &tulosol.toteutuma))
     return tuloksetal;
-  if(piste_alueella(x, y, jarjol1.toteutuma))
+  if(piste_alueella(x, y, &jarjol1.toteutuma))
     return jarjestus1al;
-  if(piste_alueella(x, y, jarjol2.toteutuma))
+  if(piste_alueella(x, y, &jarjol2.toteutuma))
     return jarjestus2al;
-  if(piste_alueella(x, y, tiedotol.toteutuma))
+  if(piste_alueella(x, y, &tiedotol.toteutuma))
     return tiedotal;
-  if(piste_alueella(x, y, sektusol.toteutuma))
+  if(piste_alueella(x, y, &sektusol.toteutuma))
     return sektusal;
-  if(piste_alueella(x, y, vntaol.kuvat->sij))
+  if(piste_alueella(x, y, &tarknap.kuvat.sij))
     return tarkasteluaikanappial;
-  if(piste_alueella(x, y, muutol.toteutuma))
+  if(piste_alueella(x, y, &muutol.toteutuma))
     return muutal;
-  if(piste_alueella(x, y, lisaol.toteutuma))
+  if(piste_alueella(x, y, &lisaol.toteutuma))
     return lisatdal;
-  if(piste_alueella(x, y, tluvutol.toteutuma)) {
-    if(((x - tluvutol.toteutuma->x) / (tluvutol.toteutuma->w / 6)) % 2)
+  if(piste_alueella(x, y, &tluvutol.toteutuma)) {
+    if(((x - tluvutol.toteutuma.x) / (tluvutol.toteutuma.w / 6)) % 2)
       return tietoalue;
   }
   return muual;
