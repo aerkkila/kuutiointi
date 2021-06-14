@@ -12,8 +12,8 @@ extern Uint32 viive;
 extern const char ulosnimi0[];
 extern char* ulosnimi;
 extern const char uloskansio[];
-extern unsigned char NxN;
-extern unsigned int karsinta;
+extern unsigned NxN;
+extern unsigned karsinta;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;

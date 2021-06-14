@@ -7,8 +7,8 @@ int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
 Uint32 viive = 3;
 const char ulosnimi0[] = "tulokset.txt";
 const char uloskansio[] = "/home/antterkk/kuutiointi/";
-unsigned char NxN = 3;
-unsigned int karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
+unsigned NxN = 3;
+unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 
 const char url_valittu[] = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
 const char url_eivalittu[] = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";

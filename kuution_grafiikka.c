@@ -212,7 +212,7 @@ koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit) {
 int korosta_tahko(int tahko) {
   if(tahko < 0 || tahko > 5)
     return 0;
-  int paksuus = 15;
+  const int paksuus = 15;
   aseta_vari(kuva.korostusVari);
   piirra_viiva(kuutio.ruudut+RUUTU(tahko, 0, 0),		\
 	       kuutio.ruudut+RUUTU(tahko, kuutio.N-1, 0)+1,	\
@@ -230,7 +230,7 @@ int korosta_tahko(int tahko) {
 }
 
 void korosta_ruutu(void* ktit, int onko2vai3) {
-  int paksuus = 10;
+  const int paksuus = 10;
   aseta_vari(kuva.korostusVari);
   if(onko2vai3 == 2) {
     koordf2* k = ktit;
@@ -464,7 +464,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
     return;
   int3 paikka;
   float siirto = kuva.resKuut/2 + kuva.sij0;
-  double fps = 30.0;
+  const double fps = 30.0;
   double kokoKulma = PI/2*maara;
   double kulmaNyt = 0.0;
   struct timeval hetki;

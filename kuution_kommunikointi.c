@@ -5,7 +5,6 @@
 #include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
 #include "kuutio.h"
-#include "cfg.h"
 
 extern kuutio_t kuutio;
 extern kuva_t kuva;

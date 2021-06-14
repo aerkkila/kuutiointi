@@ -218,7 +218,7 @@ int kaunnista() {
 		  }
 		  break;
 		case kuutionKokoKirj:
-		  sscanf(KELLO, "%hhu", &NxN);
+		  sscanf(KELLO, "%u", &NxN);
 		  strcpy(TEKSTI, "");
 		  sektus = _strpoista1(sektus, -1);
 		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
@@ -464,7 +464,7 @@ int kaunnista() {
 		if(pid2 > 0)
 		  _exit(0);
 		else if(!pid2) {
-		  sprintf(tmp, "./kuutio %hhu", NxN);
+		  sprintf(tmp, "./kuutio %u", NxN);
 		  system(tmp);
 		  exit(0);
 		}
@@ -783,7 +783,7 @@ char* sekoitus(char* s) {
     pit = 9;
   else
     pit = (NxN-2)*20;
-  char paksuus = NxN/2;
+  unsigned paksuus = NxN/2;
   const char pinnat[] = "RLUDFBrludfb";
   const char suunnat[] = " '2";
   char akseli, viimeakseli=10, paks;
@@ -857,9 +857,9 @@ char* sekoitus(char* s) {
     /*tulostus*/
     if(NxN > 5 && paks)
       if(i==0) {
-	sprintf(s, "%hhu%c%c", paks, pinnat[pinta], suunnat[rand() % 3]);
+	sprintf(s, "%u%c%c", paks, pinnat[pinta], suunnat[rand() % 3]);
       } else {
-	sprintf(s, "%s %hhu%c%c", s, paks, pinnat[pinta], suunnat[rand() % 3]);
+	sprintf(s, "%s %u%c%c", s, paks, pinnat[pinta], suunnat[rand() % 3]);
       }
     else
       if(i==0) {

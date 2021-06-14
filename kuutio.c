@@ -28,7 +28,7 @@ void seis() { //tarvitaan virheenjäljitykseen (gdb: break seis)
   ;
 }
 
-kuutio_t luo_kuutio(const unsigned char N) {
+kuutio_t luo_kuutio(int N) {
   vari varit[6];
   varit[_u] = VARI(255,255,255); //valkoinen
   varit[_f] = VARI(0,  220,  0); //vihreä
@@ -154,7 +154,7 @@ int piste_alueella(float x, float y, int n, ...) {
 
 int mika_tahko(int x, int y) {
   int tahko;
-  for(tahko=0; tahko<7; tahko++) {
+  for(tahko=0; tahko<6; tahko++) {
     /*näkyykö tahko*/
     if(ristitulo_z(suuntavektori(kuutio.ruudut+RUUTU(tahko,0,0),	\
 				 kuutio.ruudut+RUUTU(tahko,0,kuutio.N-1)), \
@@ -237,10 +237,10 @@ int3 hae_siivu(int3 ruutu) {
   return (int3){{akseli, siivu, suunta}};
 }
 
-void siirto(int tahko, char siirtokaista, char maara) {
+void siirto(int tahko, int siirtokaista, int maara) {
   if(maara == 0)
     return;
-  char N = kuutio.N;
+  int N = kuutio.N;
   if(siirtokaista < 0 || siirtokaista >= N)
     return;
   else if(siirtokaista == N-1) {
@@ -248,7 +248,7 @@ void siirto(int tahko, char siirtokaista, char maara) {
     tahko = (tahko+3) % 6;
     siirtokaista = 0;
   }
-  char apu[N*N];
+  int apu[N*N];
 
   /*siirretään kuin old-pochman-menetelmässä:
     vaihdetaan ensin sivut 0,1, sitten 0,2 jne*/
@@ -325,7 +325,7 @@ void siirto(int tahko, char siirtokaista, char maara) {
   siirto(tahko, siirtokaista, maara-1);
 }
 
-void kaanto(char akseli, char maara) {
+void kaanto(char akseli, int maara) {
   if(!maara)
     return;
   if(maara < 0)
@@ -344,7 +344,7 @@ void kaanto(char akseli, char maara) {
   default:
     return;
   }
-  for(char i=0; i<kuutio.N; i++)
+  for(int i=0; i<kuutio.N; i++)
     siirto(sivu, i, 1);
   
   kaanto(akseli, maara-1);
@@ -366,12 +366,12 @@ float kaantoaika;
 float kaantoaika0 = 0.2;
 double viimeKaantohetki = -1.0;
 
-inline void __attribute__((always_inline)) kaantoInl(char akseli, char maara) {
+inline void __attribute__((always_inline)) kaantoInl(char akseli, int maara) {
   kaanto(akseli, maara);
   kuva.paivita = 1;
 }
 
-inline void __attribute__((always_inline)) siirtoInl(int tahko, char kaista, char maara) {
+inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int maara) {
   if(kontrol)
     return;
   struct timeval hetki;
@@ -411,12 +411,12 @@ int main(int argc, char** argv) {
   int ikkuna_y = 300;
   int ikkuna_w = 500;
   int ikkuna_h = 500;
-  char N;
+  int N;
   char oli_sdl = 0;
   if(argc < 2)
     N = 3;
   else
-    sscanf(argv[1], "%hhu", &N);
+    sscanf(argv[1], "%i", &N);
   
   if(!SDL_WasInit(SDL_INIT_VIDEO))
     SDL_Init(SDL_INIT_VIDEO);
@@ -465,7 +465,7 @@ int main(int argc, char** argv) {
   SDL_Event tapaht;
   int xVanha, yVanha;
   char hiiri_painettu = 0;
-  char siirtokaista = 0;
+  int siirtokaista = 0;
   int korosta_hiirella = 0;
   int raahattiin = 0;
   while(1) {
@@ -609,6 +609,7 @@ int main(int argc, char** argv) {
 	      ipc->viesti = ipcAloita;
 	      viimeViesti = ipcAloita;
 	    }
+	    break;
 #endif
 #ifdef __PYTHON_SAVEL__
 	  case SDLK_F2:; //käynnistää tai sammuttaa sävelkuuntelijan
