@@ -411,28 +411,29 @@ char* float_kelloksi(char* kello, float f) {
 
 void tee_jarjlista() {
   char str[50];
-  flista* ft = _yalkuun(ftulos);
-  flista* apuf;
-  strlista* apus;
-  int i=1;
-  while(ft) {
-    int jarji = hae_paikka(ft->f, fjarj)-1;
-    apuf = _ynouda(fjarj, jarji);
-    if(!apuf) {
-      ft = ft->seur; //ei löydy, jos on inf
-      i++;
-      continue;
-    }
-    _flisaa(apuf, ft->f);
-    apus = _ynouda(strjarj, jarji);
-    _strlisaa_kopioiden(apus, float_kelloksi(str, ft->f));
-    apus = _ynouda(sijarj, jarji);
-    sprintf(str, "%i. ", i++);
-    _strlisaa_kopioiden(apus, str);
-    ft = ft->seur;
-  }
-}
+  _yrma(fjarj->seur);
+  _strpoista_kaikki(strjarj->seur);
+  _strpoista_kaikki(sijarj->seur);
 
+  _ylsvlms(fjarj, _fkopioi_palauta_alku(_yalkuun(ftulos), -1)); //fjarj kopioituna järjestämättä
+  unsigned pit = _ylaske_taakse(ftulos);
+  unsigned* jarjtaul = malloc(pit*sizeof(unsigned));
+  float_lomitusjarj_jarj_pit(fjarj->seur, jarjtaul, pit); //fjarj järjestettynä
+  
+  flista* fjuoksu=fjarj;
+  strlista *strjuoksu=strjarj, *sijuoksu=sijarj;
+  for(unsigned i=0; i<pit; i++) {
+    fjuoksu=fjuoksu->seur;
+    if(fjuoksu->f == INFINITY) {
+      _yrma(fjuoksu);
+      break;
+    }
+    strjuoksu = _strlisaa_kopioiden(strjuoksu, float_kelloksi(str, fjuoksu->f)); //strjarj
+    sprintf(str, "%u. ", jarjtaul[i]+1);
+    sijuoksu = _strlisaa_kopioiden(sijuoksu, str); //sijarj
+  }
+  free(jarjtaul);
+}
 
 /*teksti voi olla kello tai turha*/
 void muuta_sakko(char* teksti, int ind) {
