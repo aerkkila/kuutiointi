@@ -24,10 +24,11 @@ avgtulos avgn(flista* l, int n, int pois) {
 
 double sigma(flista* fl, int n, int pois) {
   flista* l = _yalkuun(_fkopioi(fl, n));
-  if(_ylaske(l) != n)
+  unsigned pit = _ylaske(l);
+  if(pit != n)
     return NAN;
   flista* alku = l;
-  floatjarjesta(l, floatmin, NULL, -1);
+  float_lomitusjarj_pit(l, pit);
   for(int i=0; i<pois && l; i++)
     l = l->seur;
   double r = floatstd(l, n-(pois*2));
