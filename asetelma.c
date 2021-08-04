@@ -2,18 +2,18 @@
 #include <SDL.h>
 #include "asetelma.h"
 
-const char ohjelman_nimi[] = "Kajastin";
 int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
 Uint32 viive = 3;
-const char ulosnimi0[] = "tulokset.txt";
-const char uloskansio[] = "/home/antterkk/kuutiointi/";
 unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 
-const char url_valittu[] = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
-const char url_eivalittu[] = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";
-const char tietoalkustr[] = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char muut_a_str[] = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|karsintakuvaaja";
+const char* ohjelman_nimi = "Kajastin";
+const char* ulosnimi0 = "tulokset.txt";
+const char* uloskansio = "/home/antterkk/kuutiointi/";
+const char* url_valittu = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
+const char* url_eivalittu = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";
+const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
+const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|karsintakuvaaja";
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
@@ -21,9 +21,9 @@ tekstiolio_s kellool = {.ttflaji = 1,					\
 			.sij = {0, 100, 1000, 300}};
 
 SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
-			  (SDL_Color){0, 255, 0, 255},		\
-			  (SDL_Color){255, 0, 0, 255},		\
-			  (SDL_Color){200, 80, 100, 255}};
+			  (SDL_Color){0,   255, 0,   255},	\
+			  (SDL_Color){255, 0,   0,   255},	\
+			  (SDL_Color){200, 80,  100, 255}}; 
 
 tekstiolio_s tulosol = {.ttflaji = 2,					\
 			.sij = {820, 30, 200, 550},			\
@@ -59,7 +59,7 @@ tekstiolio_s lisaol = {.ttflaji = 2,					\
 		       .sij = {920, 230, 800, 500}};
 
 tekstiolio_s sektusol = {.ttflaji = 0,					\
-			 .fonttikoko = 17,				\
+			 .fonttikoko = 20,				\
 			 .fonttied = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf", \
 			 .vari = {255, 255, 255, 255},			\
 			 .sij = {0, 390, 1500, 200},			\

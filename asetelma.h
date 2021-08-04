@@ -6,14 +6,18 @@
 #include <strlista.h>
 #include "grafiikka.h"
 
-extern const char ohjelman_nimi[];
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
 extern Uint32 viive;
-extern const char ulosnimi0[];
-extern char* ulosnimi;
-extern const char uloskansio[];
 extern unsigned NxN;
 extern unsigned karsinta;
+
+extern const char* ohjelman_nimi;
+extern const char* ulosnimi0;
+extern const char* uloskansio;
+extern const char* url_valittu;
+extern const char* url_eivalittu;
+extern const char* tietoalkustr;
+extern const char* muut_a_str;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;
@@ -38,10 +42,6 @@ extern strlista* tiedot;
 extern strlista* lisatd;
 extern strlista* muut_a;
 extern strlista* muut_b;
-
-extern const char url_valittu[];
-extern const char url_eivalittu[];
-extern const char tietoalkustr[];
-extern const char muut_a_str[];
+extern char* ulosnimi;
 
 int asetelma();
