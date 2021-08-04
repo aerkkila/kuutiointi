@@ -1,9 +1,8 @@
 #ifndef __ASETELMA__
 #define __ASETELMA__
-#endif
 
 #include <SDL.h>
-#include <strlista.h>
+#include "listat.h"
 #include "grafiikka.h"
 
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
@@ -18,6 +17,7 @@ extern const char* url_valittu;
 extern const char* url_eivalittu;
 extern const char* tietoalkustr;
 extern const char* muut_a_str;
+extern char* ulosnimi;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;
@@ -36,12 +36,18 @@ extern vnta_s tarknap;
 
 extern SDL_Color kellovarit[];
 
-extern strlista* tietoalut;
-extern strlista* sektus;
-extern strlista* tiedot;
-extern strlista* lisatd;
-extern strlista* muut_a;
-extern strlista* muut_b;
-extern char* ulosnimi;
+extern slista* muut_a;
+extern slista* muut_b;
+extern slista* tietoalut;
+extern slista* tietoloput;
+extern slista* lisatd;
+
+extern slista* sektus;
+extern slista* stulos;
+extern flista* ftulos;
+extern ilista* thetki;
+extern ilista* jarjes;
 
 int asetelma();
+
+#endif

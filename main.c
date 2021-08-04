@@ -5,22 +5,13 @@
 #include <unistd.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
-#include <listat.h>
 #include <time.h>
 #include "asetelma.h"
-#include "tulokset.h"
 
 int kaunnista();
 
 /*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
-
-strlista* strtulos;
-flista* ftulos;
-ilista* tuloshetki;
-strlista* sijarj;
-flista* fjarj;
-strlista* strjarj;
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "fi_FI.utf8");
@@ -61,19 +52,6 @@ int main(int argc, char** argv) {
   tarknap.kuvat.ei_valittu = SDL_CreateTextureFromSurface(rend, kuva);
   SDL_FreeSurface(kuva);
   
-  sijarj = _strlisaa_kopioiden(NULL, "");
-  fjarj = _flisaa(NULL, -INFINITY);
-  strjarj = _strlisaa_kopioiden(NULL, "");
-
-  /*kiinnittämättömät*/
-  tietoalut = _yalkuun(_strlistaksi(tietoalkustr, "|"));
-  sektus = NULL;
-  tiedot = NULL;
-  lisatd = NULL;
-  muut_a = _yalkuun(_strlistaksi(muut_a_str, "|"));
-  muut_b = _strlisaa_kopioiden(muut_b, ulosnimi0);
-  ulosnimi = muut_b->str;
-
   time_t t;
   srand((unsigned) time(&t));
   strcpy(kellool.teksti, " ");
@@ -99,17 +77,19 @@ int main(int argc, char** argv) {
 
   SDL_DestroyTexture(tarknap.kuvat.valittu);
   SDL_DestroyTexture(tarknap.kuvat.ei_valittu);
-  _strpoista_kaikki(_yalkuun(strtulos));
-  _yrma(_yalkuun(ftulos));
-  _yrma(_yalkuun(tuloshetki));
-  _yrma(_yalkuun(fjarj));
-  _strpoista_kaikki(_yalkuun(strjarj));
-  _strpoista_kaikki(_yalkuun(sijarj));
-  _strpoista_kaikki(_yalkuun(tietoalut));
-  _strpoista_kaikki(_yalkuun(sektus));
-  _strpoista_kaikki(_yalkuun(tiedot));
-  _strpoista_kaikki(_yalkuun(muut_a));
-  _strpoista_kaikki(_yalkuun(muut_b));
+  tuhoa_slista(&sektus);
+  tuhoa_slista(&stulos);
+  tuhoa_lista(&ftulos);
+  tuhoa_lista(&thetki);
+  tuhoa_lista(&jarjes);
+  
+  tuhoa_slista(&muut_a);
+  tuhoa_slista(&muut_b);
+  tuhoa_slista(&tietoalut);
+  tuhoa_slista(&tietoloput);
+  if(lisatd)
+    tuhoa_slista(&lisatd);
+  
   free(kellool.teksti);
   free(tkstalol.teksti);
  EI_KUVAA:

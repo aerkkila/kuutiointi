@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include <flista.h>
-#include <strlista.h>
+//#include <flista.h>
+//#include <strlista.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -13,7 +13,7 @@
 #include "muistin_jako.h"
 #include "asetelma.h"
 #include <math.h>
-#include <lista_math.h>
+//#include <lista_math.h>
 
 typedef enum {
   kelloal,
@@ -112,13 +112,12 @@ int kaunnista() {
 
   TEE_TIEDOT;
   SDL_StopTextInput();
-  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
+  slistalle_kopioiden(sektus, sekoitus(tmp));
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type)
 	{
 	case SDL_QUIT:
-	  _strpoista_kaikki(_yalkuun(lisatd));
 	  SDL_FreeCursor(kursori);
 	  return 0;
 	case SDL_KEYDOWN:
@@ -129,7 +128,7 @@ int kaunnista() {
 	      if(tila == juoksee) {
 		tila = seis;
 		lisaa_listoille(KELLO, nyt.tv_sec);
-		sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
+		slistalle_kopioiden(sektus, sekoitus(tmp));
 		TEE_TIEDOT;
 		MUUTA_TULOS;
 	      }
@@ -158,11 +157,9 @@ int kaunnista() {
 	      break;
 	    case SDLK_BACKSPACE:
 	      if(tila == seis && strtulos) {
-		sektus = _strpoista1(sektus, -1);
-		int ind = _ylaske(_yalkuun(ftulos))-1;
-		poista_listoilta(ind);
-		if(strtulos)
-		  strcpy(KELLO, strtulos->str);
+		poista_listoilta_viimeinen();
+		if(stulos->pit)
+		  strcpy(KELLO, *VIIMEINEN(stulos));
 		TEE_TIEDOT;
 	        MUUTA_TULOS;
 	      } else if (tila == kirjoitustila) {
@@ -198,15 +195,15 @@ int kaunnista() {
 		    *apucp = ',';
 		  lisaa_listoille(KELLO, time(NULL));
 		  TEE_TIEDOT;
-		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
+		  slistalle_kopioiden(sektus, sekoitus(tmp));
 		  MUUTA_TULOS;
 		  break;
 		case ulosnimiKirj:
 		  /*vaihdetaan ulosnimi ja kelloon taas aika*/
-		  muut_b = _strlisaa_kopioiden(muut_b, KELLO);
-		  strcpy(TEKSTI, "");
-		  _strpoista1(muut_b->edel, 1);
-		  ulosnimi = muut_b->str;
+		  poista_slistalta_viimeinen(muut_b);
+		  slistalle_kopioiden(muut_b, KELLO);
+		  ulosnimi = muut_b->taul[0];
+		  TEKSTI[0] = '\0';
 		  break;
 		case tulosalkuKirj:
 		  sscanf(KELLO, "%i", &apuind);
@@ -220,8 +217,8 @@ int kaunnista() {
 		case kuutionKokoKirj:
 		  sscanf(KELLO, "%u", &NxN);
 		  strcpy(TEKSTI, "");
-		  sektus = _strpoista1(sektus, -1);
-		  sektus = _strlisaa_kopioiden(sektus, sekoitus(tmp));
+		  poistia_slistalta_viimeinen(sektus);
+		  slistalle_kopioiden(sektus, sekoitus(tmp));
 		  break;
 		case avaa_tiedostoKirj:
 		  lue_tiedosto(KELLO, "");
@@ -236,7 +233,7 @@ int kaunnista() {
 		}
 		/*koskee kaikkia kirjoituslajeja*/
 		if(ftulos)
-		  float_kelloksi(KELLO, ftulos->f);
+		  float_kelloksi(KELLO, *VIIMEINEN(ftulos));
 		break;
 	      }
 	    case SDLK_END:
@@ -248,7 +245,7 @@ int kaunnista() {
 		break;
 	      case jarjestus1al:;
 		int mahtuu = jarjol1.sij.h / TTF_FontLineSkip(jarjol1.font);
-		jarjol1.rullaus = -(_ylaske(sijarj)-1 - mahtuu);
+		jarjol1.rullaus = -(stulos->pit-1 - mahtuu);
 		laitot |= jarjlai;
 		break;
 	      case jarjestus2al:
@@ -289,7 +286,7 @@ int kaunnista() {
 		tila = seis;
 		nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
 		if(strtulos)
-		  strcpy(KELLO, strtulos->str);
+		  strcpy(KELLO, *VIIMEINEN(stulos));
 		TEKSTI[0] = '\0';
 		laitot |= tkstallai;
 		laitot |= kellolai;
@@ -303,8 +300,7 @@ int kaunnista() {
 		SDL_RenderSetScale(rend, skaala, skaala);
 		laitot = kaikki_laitot;
 	      } else if(tila != kirjoitustila) {
-		int tmpind = _ylaske(_yalkuun(strtulos)) - 1;
-		muuta_sakko(KELLO, tmpind);
+		muuta_sakko(KELLO, stulos->pit-1);
 		TEE_TIEDOT;
 		laitot |= kellolai;
 		MUUTA_TULOS;
@@ -377,33 +373,30 @@ int kaunnista() {
 	      int sarake = ((tapaht.button.x - tluvutol.toteutuma.x) / \
 			    (tluvutol.toteutuma.w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
-	      lisatd = _strpoista_kaikki(_yalkuun(lisatd));
-	      strlista* sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
+	      tuhjenna_slista(lisatd);
+	      slista* sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
 	      switch (rivi) {
 	      case 0:
 	      case 1:
-	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(sektus1, avgind[sarake]-4, 5);
+	        tuhjenna_slista(lisatd);
+		tee_lisatiedot(sektus1, avgind[sarake]-4, 5);
 		break;
 	      case 2:
 	      case 3:
-	        lisatd = _strpoista_kaikki(lisatd);
-		lisatd = tee_lisatiedot(sektus1, avgind[sarake+3]-11, 12);
+	        tuhjenna_slista(lisatd);
+		tee_lisatiedot(sektus1, avgind[sarake+3]-11, 12);
 		break;
 	      case 4:
-	        lisatd = _strpoista_kaikki(lisatd);
+	        tuhjenna_slista(lisatd);
 		KIRJOITUSLAJIKSI(karsintaKirj);
 		break;
 	      }
 	      if(tapaht.button.button == SDL_BUTTON_RIGHT) {
 		int pit = 0;
-		strlista* apu = lisatd;
-		while(apu) {
-		  pit += strlen(apu->str)+1;
-		  apu = apu->seur;
-		}
+		FOR_LISTA(lisatd)
+		  pit += strlen(*NYT_OLEVA(lisatd))+1; //rivinvaihdosta tulee +1
 		char tmp_oikea[pit+1];
-		_strstulostaf(tmp_oikea, "%s\n", lisatd);
+		slista_sprintf(tmp_oikea, "%s\n", lisatd);
 		SDL_SetClipboardText(tmp_oikea);
 		lisatd = _strpoista_kaikki(lisatd);
 	      } else {
@@ -424,18 +417,15 @@ int kaunnista() {
 	    int rivi = LISTARIVI(muutol, button);
 	    if(rivi == _ylaske(muut_a))
 	      rivi--;
-	    char* tmpstr = ((strlista*)(_ynouda(muut_a, rivi)))->str;
+	    char* tmpstr = muut_a->taul[rivi];
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
 	      laita_eri_sekunnit(tmp);
 	    } else if(!strcmp(tmpstr, "kuvaaja")) {
 	      FILE *f = fopen(".kuvaaja.bin", "wb");
-	      flista* tmpfl = _yalkuun(ftulos);
-	      while(tmpfl) {
-		fwrite(&(tmpfl->f), 1, sizeof(tmpfl->f), f);
-		tmpfl = tmpfl->seur;
-	      }
+	      FOR_LISTA(ftulos)
+		fwrite(NYT_OLEVA(ftulos), 1, sizeof(ftulos->taul[0]), f);
 	      fclose(f);
 	      pid_t pid1, pid2;
 	      if( (pid1 = fork()) < 0 )
@@ -491,7 +481,7 @@ int kaunnista() {
 	      järjestysalueilta luettu indeksi muunnetaan tulosalueen indeksiksi*/
 	  case tuloksetal:
 	    apuind = LISTARIVI(tulosol, button);
-	    if(apuind == _ylaske_taakse(strtulos))
+	    if(apuind == stulos->pit)
 	      apuind--;
 	    goto MBUP_TULOKSIA;
 	  case jarjestus1al:

@@ -236,7 +236,20 @@ void lisaa_listoille(char* kello, time_t hetki) {
   }
 }
 
-void poista_listoilta(int ind) {
+void poista_listoilta_viimeinen() {
+  if(!sektus->pit)
+    return;
+  int id = sektus->pit-1;
+  free(sektus->taul[id]);
+  free(stulos->taul[id]);
+  sektus->pit--;
+  stulos->pit--;
+  ftulos->pit--;
+  thetki->pit--;
+  jarjes->pit--;
+}
+
+void poista_listoilta(int ind) { //turha
   if(ind+1 == _ylaske(_yalkuun(strtulos))) {
     strtulos = _strpoista1(strtulos, -1);
     ftulos = _yrm1(ftulos, -1);

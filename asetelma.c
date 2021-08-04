@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <string.h>
 #include <SDL.h>
 #include "asetelma.h"
 
@@ -87,9 +88,38 @@ vnta_s tarknap = {.valittu = 1,						\
 
 SDL_Rect tarknapsij = {60, 10, 800, 90};
 
+slista* muut_b;
+slista* muut_a;
+slista* tietoalut;
+slista* tietoloput;
+slista* lisatd;
+
+slista* sektus;
+slista* stulos;
+flista* ftulos;
+ilista* thetki;
+ilista* jarjes;
+
+char* ulosnimi;
+
 int avaa_fontit(int n, ...);
 
+#define tulospatka 10
 int asetelma() {
+  muut_a     = slistaksi(muut_a_str);
+  muut_b     = slistalle_kopioiden(ulosnimi0);
+  tietoalut  = slistaksi(tietoalkustr);
+  tietoloput = alusta_lista(tietoalut->pit, char*);
+  lisatd     = alusta_lista(13, char*);
+  
+  sektus = alusta_lista(tulospatka, char*);
+  stulos = alusta_lista(tulospatka, char*);
+  ftulos = alusta_lista(tulospatka, float);
+  thetki = alusta_lista(tulospatka, int);
+  jarjes = alusta_lista(tulospatka, int);
+
+  ulosnimi = muut_b->taul[0];
+  
   if(avaa_fontit(9, &kellool, &tulosol, &jarjol1, &tiedotol, &lisaol, &sektusol, &muutol, &tkstalol, &tarknap.teksti))
     return 1;
   
@@ -153,10 +183,3 @@ int avaa_fontit(int n, ...) {
 
 SDL_Renderer* rend;
 SDL_Window* ikkuna;
-strlista* muut_b;
-strlista* muut_a;
-strlista* sektus;
-strlista* tietoalut;
-strlista* tiedot;
-strlista* lisatd;
-char* ulosnimi;

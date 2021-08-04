@@ -35,6 +35,7 @@ int hae_silistalta(strlista* l, int i);
 int poista_jarjlistalta(int i);
 void numerointi_miinus_miinus(strlista*, int);
 void lisaa_listoille(char* kello, time_t hetki);
+void poista_listoilta_viimeinen();
 void poista_listoilta(int);
 float lue_kellosta(char* s);
 char tallenna(char* tiednimi);
