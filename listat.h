@@ -51,5 +51,7 @@ void tuhoa_lista(lista**);
 
 void slistalle_kopioiden(slista* restrict, const char* restrict);
 void poista_slistalta_viimeinen(slista* restrict);
+void poista_slistalta(slista* restrict, int);
+void poista_listalta(lista* restrict, int);
 void tuhjenna_slista(slista* restrict);
 #endif

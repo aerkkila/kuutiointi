@@ -249,18 +249,11 @@ void poista_listoilta_viimeinen() {
   jarjes->pit--;
 }
 
-void poista_listoilta(int ind) { //turha
-  if(ind+1 == _ylaske(_yalkuun(strtulos))) {
-    strtulos = _strpoista1(strtulos, -1);
-    ftulos = _yrm1(ftulos, -1);
-    tuloshetki = _yrm1(tuloshetki, -1);
-  } else {
-    _strpoista1(_ynouda(_yalkuun(strtulos), ind), 1);
-    _yrm1(_ynouda(_yalkuun(ftulos), ind), 1);
-    _yrm1(_ynouda(_yalkuun(tuloshetki), ind), 1);
-  }
-  poista_jarjlistalta(ind);
-  numerointi_miinus_miinus(_yalkuun(sijarj), ind+1);
+void poista_listoilta(int ind) {
+  poista_slistalta(sektus, ind);
+  poista_slistalta(stulos, ind);
+  poista_listalta(ftulos, ind);
+  poista_listalta(thetki, ind);
 }
 
 float lue_kellosta(char* s) {

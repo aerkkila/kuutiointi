@@ -490,34 +490,31 @@ int kaunnista() {
 	  case jarjestus2al:
 	    apuind = LISTARIVI(jarjol2, button);
 	  MBUP_JARJ2:
-	    if(apuind+1 == _ylaske(sijarj))
+	    if(apuind+1 == jarjes->pit)
 	      break;
-	    sscanf(((strlista*)_ynouda(sijarj, apuind+1))->str, "%i", &apuind);
-	    apuind--;
+	    apuind = jarjes->taul[apuind];
 	  MBUP_TULOKSIA:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
 		/*poistetaan (ctrl + hiiri1)*/
 		poista_listoilta(apuind);
-		_strpoista1(_ynouda(_yalkuun(sektus), apuind), 1);
 		TEE_TIEDOT;
 		alue = hae_alue(tapaht.button.x, tapaht.button.y);
 	      } else {
 		/*kopioidaan leikepöydälle (hiiri1)*/
-	        char* tmpstr = ((strlista*)_ynoudaf(strtulos, apuind, 0))->str;
-		time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
+	        char* tmpstr = stulos->taul[apuind];
+		time_t aika_t = thetki->taul[apuind];
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
 		/*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
-		strlista *tmpsektlis = _ynoudaf(sektus, apuind, 0);
-		if(tmpsektlis) {
-		  sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, tmpsektlis->str);
+		if(sektus->taul[apuind]) {
+		  sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, sektus->taul[apuind]);
 		  SDL_SetClipboardText(tmp);
 		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	      strlista* tmpstr = _ynouda(_yalkuun(strtulos), apuind);
-	      muuta_sakko((strtulos == tmpstr)? KELLO : tmp, apuind);
+	      muuta_sakko((apuind==stulos->pit-1)? KELLO: tmp, apuind);
 	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;
@@ -605,9 +602,8 @@ int kaunnista() {
 	  case jarjestus2al:;
 	    if(alue != jarjestus1al)
 	      apuind = LISTARIVI(jarjol2, motion);
-	    if(apuind+1 < _ylaske(sijarj)) {
-	      sscanf(((strlista*)_ynouda(sijarj, apuind+1))->str, "%i", &apuind);
-	      apuind--;
+	    if(apuind+1 < jarjes->pit) {
+	      apuind = jarjes->taul[apuind];
 	      goto LAITA_AIKA_NAKUVIIN;
 	    }
 	    laitot |= tkstallai;
@@ -615,9 +611,9 @@ int kaunnista() {
 	  case tuloksetal:;
 	    /*laitetaan aika näkyviin*/
 	    apuind = LISTARIVI(tulosol, motion);
-	    if(apuind < _ylaske_taakse(tuloshetki)) {
+	    if(apuind < thetki->pit) {
 	    LAITA_AIKA_NAKUVIIN:;
-	      time_t aika_t = ((ilista*)_ynoudaf(HETKI, apuind, 0))->i;
+	      time_t aika_t = thetki->taul[apuind];
 	      struct tm *aika = localtime(&aika_t);
 	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
 	      laitot |= tkstallai;
@@ -675,7 +671,7 @@ int kaunnista() {
       seuraavaksi tarkistetaan mahdollisen kuution tapahtumat*/ 
     switch(ipc->viesti) {
     case ipcAnna_sekoitus:
-      laita_sekoitus(ipc, sektus->str);
+      laita_sekoitus(ipc, *VIIMEINEN(sektus));
       break;
     case ipcTarkastelu:
       ipc->viesti = 0;
@@ -870,8 +866,8 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
   int hyv = _ylaske(fjarj->seur);
   int yht = _ylaske(_yalkuun(ftulos));
   int dnf = yht - hyv;
-  lisatd = _strpoista_kaikki(_yalkuun(lisatd));
-  lisatd = _strlisaa_kopioiden(lisatd, "aika  määrä");
+  tuhjenna_slista(lisatd);
+  slistalle_kopioiden(lisatd, "aika  määrä");
   float osuus;
   float kertuma = 0;
   while(ia[tmp] != -1) {

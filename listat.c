@@ -42,6 +42,20 @@ void poista_slistalta_viimeinen(slista* restrict sl) {
   sl->pit--;
 }
 
+void poista_slistalta(slista* restrict sl, int id) {
+  for(; id<sl->pit-1; id++)
+    sl->taul[id] = sl->taul[id+1];
+  poista_slistalta_viimeinen(sl);
+}
+
+void poista_listalta(lista* restrict ll, int id) {
+  const size_t k = ll->koko;
+  id *= k;
+  for(; id<ll->(pit-1)*k; id+=k)
+    memcpy(ll->taul+id, sl->taul+id+k, k);
+  ll->pit--;
+}
+
 void tuhjenna_slista(slista* restrict sl) {
   FOR_LISTA(sl)
     free(*NYT_OLEVA(sl));
