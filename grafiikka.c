@@ -1,7 +1,5 @@
 #include <stdio.h>
-#include <SDL.h>
-#include <SDL_ttf.h>
-#include <listat.h>
+#include <SDL2/SDL.h>
 #include "asetelma.h"
 #include "grafiikka.h"
 #include "tulokset.h"

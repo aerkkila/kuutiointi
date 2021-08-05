@@ -1,7 +1,7 @@
 #ifndef __ASETELMA__
 #define __ASETELMA__
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "listat.h"
 #include "grafiikka.h"
 

@@ -65,3 +65,10 @@ void tuhjenna_slista(slista* restrict sl) {
     sl->tilaa = sl->patka;
   }
 }
+
+void slista_sprintf(char* kohde, const char* restrict muoto, const slista* restrict lis) {
+  FOR_LISTA(lis) {
+    sprintf(kohde, muoto, *NYT_OLEVA(lis));
+    kohde += strlen(kohde);
+  }
+}

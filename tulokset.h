@@ -1,7 +1,7 @@
 #ifndef __TULOKSET__
 #define __TULOKSET__
 
-#include <listat.h>
+#include "listat.h"
 
 typedef struct {
   float nyt;
@@ -17,23 +17,22 @@ typedef enum {
   dnf
 } sakko_e;
 
-#endif
 
-extern strlista* strtulos;
+extern slista* strtulos;
 extern flista* ftulos;
 extern ilista* tuloshetki; //unix-aika tuloksen saamishetkellä
-extern strlista* sijarj;
+extern slista* sijarj;
 extern flista* fjarj;
-extern strlista* strjarj;
+extern slista* strjarj;
 
 avgtulos avgn(flista* l, int n, int pois);
-int* eri_sekunnit(flista* jarj, int* ia, int iapit);
-strlista* tee_tiedot(strlista* tiedot, int* avgind);
-strlista* tee_lisatiedot(strlista* sektus, int alkuind, int n);
+int* eri_sekunnit(const flista* restrict);
+slista* tee_tiedot(slista* tiedot, int* avgind);
+slista* tee_lisatiedot(slista* sektus, int alkuind, int n);
 int hae_paikka(float f, flista* l);
-int hae_silistalta(strlista* l, int i);
+int hae_silistalta(slista* l, int i);
 int poista_jarjlistalta(int i);
-void numerointi_miinus_miinus(strlista*, int);
+void numerointi_miinus_miinus(slista*, int);
 void lisaa_listoille(char* kello, time_t hetki);
 void poista_listoilta_viimeinen();
 void poista_listoilta(int);
@@ -44,3 +43,5 @@ void tee_jarjlista();
 char* float_kelloksi(char* kello, float f);
 void muuta_sakko(char* teksti, int ind);
 sakko_e hae_sakko(char*);
+
+#endif

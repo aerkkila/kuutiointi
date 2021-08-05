@@ -54,4 +54,6 @@ void poista_slistalta_viimeinen(slista* restrict);
 void poista_slistalta(slista* restrict, int);
 void poista_listalta(lista* restrict, int);
 void tuhjenna_slista(slista* restrict);
+
+void slista_sprintf(char* kohde, const char* restrict muoto, const slista* restrict lis);
 #endif

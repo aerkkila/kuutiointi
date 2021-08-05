@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SDL.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <time.h>
 #include "asetelma.h"
 

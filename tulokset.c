@@ -38,41 +38,32 @@ double sigma(flista* fl, int n, int pois) {
 
 /*palauttaa listan, montako tulosta on kullakin kokonaissekunnilla
   esim. 15, 4, 16, 6, -1 tarkoittaisi 4 15:n sekunnin ja 6 16:n sekunnin tulosta
-  -1 merkitsee loppua
-  tarvittaessa ia:an alustetaan lisää tilaa*/
-int* eri_sekunnit(flista* jarj, int* ia, int iapit) {
+  -1 merkitsee loppua ja (int)inf << 0 eli aina loppuu negatiiviseen
+  jos loppuu DNF:än, ei laiteta enää -1:tä*/
+int* eri_sekunnit(const flista* restrict ftul) {
+  fluo_jarjestus(ftul, jarjes);
   /*lasketaan ja alustetaan tarvittavien sekuntien määrä*/
   int n = 0;
   int vanha_sek = -1;
-  if(!ia && jarj)
-    ia = malloc(1);
-  flista* jarj0 = jarj;
-  while(jarj) {
-    if(vanha_sek != (int)(jarj->f)) {
-      vanha_sek = (int)(jarj->f);
+#define ID *NYT_OLEVA(jarjes)
+  FOR_LISTA(jarjes)
+    if( vanha_sek != (int)(ftul->taul[ID]) ) {
+      vanha_sek = (int)(ftul->taul[ID]);
       n++;
     }
-    jarj = jarj->seur;
-  }
-  jarj = jarj0;
-  if(iapit < n*2+1)
-    ia = realloc(ia, (n*2+1)*sizeof(int));
-
+  int *erisek = calloc(n*2+1, sizeof(int));
+  
   /*tehdään lista*/
-  for(int i=0; i<n; i++) {
-    int sek = (int)(jarj->f);
-    ia[i*2] = sek;
-    ia[i*2+1] = 0;
-    while((int)(jarj->f) == sek) {
-      ia[i*2+1]++;
-      if( !(jarj = jarj->seur) ) {
-	ia[(i+1)*2] = -1;
-	return ia;
-      }
-    }
+  int sek = -1, i = -1;
+  FOR_LISTA(jarjes) {
+    int vanha = sek;
+    if(vanha == (sek = ftul->taul[ID])) //sama sekunti kuin viime kerralla
+      erisek[i*2+1]++;
+    else
+      erisek[++i*2] = sek;
   }
-  printf("\"eri_sekunnit\"-funktio ei loppunut asianmukaisesti\n");
-  return ia;
+#undef ID
+  return erisek;
 }
 
 /* Strtiedot-lista kirjoitetaan listan "tietoalut" viereen eli rakenne löytyy sieltä.

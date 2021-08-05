@@ -1,8 +1,8 @@
 #ifndef __grafiikka__
 #define __grafiikka__
 
-#include <SDL_ttf.h>
-#include <listat.h>
+#include <SDL2/SDL_ttf.h>
+#include "listat.h"
 
 typedef struct {
   char* teksti;
@@ -47,13 +47,13 @@ extern const unsigned short kaikki_laitot;
 
 void piirra();
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
-int laita_tekstilista(strlista*, int, tekstiolio_s*, SDL_Renderer*);
+int laita_tekstilista(slista*, int, tekstiolio_s*, SDL_Renderer*);
 int laita_pari_oikealle(tekstiolio_s* ov, int vali,		\
-			strlista* a, strlista* b, int alku,	\
+			slista* a, slista* b, int alku,	\
 			tekstiolio_s* o, SDL_Renderer* rend);
 void laita_valinta(vnta_s* o, SDL_Renderer *rend);
-void laita_tiedot(strlista* a, tekstiolio_s* oa,			\
-		  strlista* b, tekstiolio_s* ob, SDL_Renderer* r);
-void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_Renderer* r);
-void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r);
+void laita_tiedot(slista* a, tekstiolio_s* oa,			\
+		  slista* b, tekstiolio_s* ob, SDL_Renderer* r);
+void laita_vierekkain(slista* a, slista* b, int alku, tekstiolio_s* o, SDL_Renderer* r);
+void laita_oikealle(tekstiolio_s* ov, short vali, slista* l, int alku, tekstiolio_s* o, SDL_Renderer* r);
 void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, SDL_Renderer* r);

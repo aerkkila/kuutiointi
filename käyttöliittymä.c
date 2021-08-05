@@ -1,19 +1,16 @@
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-//#include <flista.h>
-//#include <strlista.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <math.h>
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "muistin_jako.h"
 #include "asetelma.h"
-#include <math.h>
-//#include <lista_math.h>
 
 typedef enum {
   kelloal,
@@ -45,7 +42,7 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
 				     (tapaht.tapahtlaji.y - (nimi).toteutuma.y) / \
 				     TTF_FontLineSkip((nimi).font))
-#define TEE_TIEDOT tiedot = tee_tiedot(tiedot, avgind);
+#define TEE_TIEDOT tee_tiedot(tietoloput, avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
     SDL_SetTextInputRect(&kellool.sij);			   \
@@ -207,7 +204,7 @@ int kaunnista() {
 		  break;
 		case tulosalkuKirj:
 		  sscanf(KELLO, "%i", &apuind);
-		  if(apuind <= _ylaske_taakse(strtulos)) {
+		  if(apuind <= stulos->pit) {
 		    tulosol.rullaus += tulosol.alku - (apuind-1);
 		    strcpy(TEKSTI, "");
 		  } else {
@@ -217,7 +214,7 @@ int kaunnista() {
 		case kuutionKokoKirj:
 		  sscanf(KELLO, "%u", &NxN);
 		  strcpy(TEKSTI, "");
-		  poistia_slistalta_viimeinen(sektus);
+		  poista_slistalta_viimeinen(sektus);
 		  slistalle_kopioiden(sektus, sekoitus(tmp));
 		  break;
 		case avaa_tiedostoKirj:
@@ -398,7 +395,7 @@ int kaunnista() {
 		char tmp_oikea[pit+1];
 		slista_sprintf(tmp_oikea, "%s\n", lisatd);
 		SDL_SetClipboardText(tmp_oikea);
-		lisatd = _strpoista_kaikki(lisatd);
+		tuhjenna_slista(lisatd);
 	      } else {
 		laitot |= lisatdlai;
 	      }
@@ -415,7 +412,7 @@ int kaunnista() {
 	    break;
 	  case muutal:;
 	    int rivi = LISTARIVI(muutol, button);
-	    if(rivi == _ylaske(muut_a))
+	    if(rivi == muut_a->pit)
 	      rivi--;
 	    char* tmpstr = muut_a->taul[rivi];
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
@@ -513,7 +510,6 @@ int kaunnista() {
 		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      strlista* tmpstr = _ynouda(_yalkuun(strtulos), apuind);
 	      muuta_sakko((apuind==stulos->pit-1)? KELLO: tmp, apuind);
 	      TEE_TIEDOT;
 	    }
@@ -861,31 +857,26 @@ char* sekoitus(char* s) {
 }
 
 inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
-  int *ia = eri_sekunnit(fjarj->seur, NULL, 0);
-  int tmp=0;
-  int hyv = _ylaske(fjarj->seur);
-  int yht = _ylaske(_yalkuun(ftulos));
-  int dnf = yht - hyv;
-  tuhjenna_slista(lisatd);
-  slistalle_kopioiden(lisatd, "aika  määrä");
+  int *erisek = eri_sekunnit(ftulos);
   float osuus;
   float kertuma = 0;
-  while(ia[tmp] != -1) {
-    osuus = ia[tmp+1]/(float)yht;
+  int i;
+  tuhjenna_slista(lisatd);
+  slistalle_kopioiden(lisatd, "aika  määrä");
+  for(i=0; erisek[i] >= 0; i+=2) { //erisek päättyy negatiiviseen ja dnf merkitään -2:lla
+    osuus = erisek[i+1]/(float)ftulos->pit; //tmp on sekunti, tmp+1 on näitten määrä
     kertuma += osuus;
     sprintf(tmps, "%i    %i    %.3f    %.3f",		\
-	    ia[tmp], ia[tmp+1], osuus, kertuma);
-    lisatd = _strlisaa_kopioiden(lisatd, tmps);
-    tmp+=2;
+	    erisek[i], erisek[i+1], osuus, kertuma);
+    slistalle_kopioiden(lisatd, tmps);
   }
-  if(dnf) {
-    osuus = dnf/(float)yht;
+  if(erisek[i] == -2) {
+    osuus = erisek[i+1]/(float)ftulos->pit;
     kertuma += osuus;
-    sprintf(tmps, "DNF  %i    %.3f    %.3f", dnf, osuus, kertuma);
-    lisatd = _strlisaa_kopioiden(lisatd, tmps);
+    sprintf(tmps, "DNF  %i    %.3f    %.3f", erisek[i+1], osuus, kertuma);
+    slistalle_kopioiden(lisatd, tmps);
   }
-  free(ia);
-  lisatd = _yalkuun(lisatd);
+  free(erisek);
   laitot |= lisatdlai;
   return;
 }
@@ -907,7 +898,7 @@ inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* s
 
 char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
   int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
-  if((o->alku + riveja == _ylaske(sijarj)-1 && tapaht.wheel.y < 0) ||	\
+  if((o->alku + riveja == ftulos->pit-1 && tapaht.wheel.y < 0) ||	\
      (o->rullaus == 0 && tapaht.wheel.y > 0))
     return 0;
   o->rullaus += tapaht.wheel.y;
