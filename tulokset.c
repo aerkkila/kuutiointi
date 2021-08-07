@@ -121,13 +121,14 @@ int* eri_sekunnit(const flista* restrict ftul) {
 
 /*laittaa yhden suurimman ja pienimmän sulkeisiin*/
 void tee_lisatiedot(char** sektus, int alkuind, int n) {
-  if(alkuind+n >= ftulos->pit)
+  if(alkuind+n > ftulos->pit)
     return;
   float *karstaul = malloc(n*sizeof(float));
   float* arr = ftulos->taul+alkuind;
   karstaulkot(&karstaul, arr, n, n, 1, 1);
 
-  struct tm *aika = localtime((time_t*)(thetki->taul + alkuind+n-1));
+  time_t aikatmp = thetki->taul[alkuind+n-1];
+  struct tm *aika = localtime(&aikatmp);
   strftime(apuc+500, 200, "%A %d.%m.%Y klo %H.%M", aika);
 
   float ka = keskiarvo(karstaul, n-2);
