@@ -47,6 +47,7 @@ extern slista* stulos;
 extern flista* ftulos;
 extern ilista* thetki;
 extern ilista* jarjes;
+extern flista* fjarje;
 
 int asetelma();
 

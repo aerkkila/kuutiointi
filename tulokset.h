@@ -1,15 +1,13 @@
-#ifndef __TULOKSET__
-#define __TULOKSET__
+#ifndef __tulokset_h__
+#define __tulokset_h__
 
 #include "listat.h"
 
-typedef struct {
-  float nyt;
-  float min;
-  int minind;
-  float max;
-  int maxind;
-} avgtulos;
+#define VAIHDA(a, b, tyyppi) do {		\
+    tyyppi makroapu1234 = a;			\
+    a = b;					\
+    b = makroapu1234;				\
+  } while(0);
 
 typedef enum {
   ei = 0,
@@ -17,31 +15,16 @@ typedef enum {
   dnf
 } sakko_e;
 
-
-extern slista* strtulos;
-extern flista* ftulos;
-extern ilista* tuloshetki; //unix-aika tuloksen saamishetkellä
-extern slista* sijarj;
-extern flista* fjarj;
-extern slista* strjarj;
-
-avgtulos avgn(flista* l, int n, int pois);
-int* eri_sekunnit(const flista* restrict);
-slista* tee_tiedot(slista* tiedot, int* avgind);
-slista* tee_lisatiedot(slista* sektus, int alkuind, int n);
-int hae_paikka(float f, flista* l);
-int hae_silistalta(slista* l, int i);
-int poista_jarjlistalta(int i);
-void numerointi_miinus_miinus(slista*, int);
-void lisaa_listoille(char* kello, time_t hetki);
-void poista_listoilta_viimeinen();
-void poista_listoilta(int);
-float lue_kellosta(char* s);
-char tallenna(char* tiednimi);
-char lue_tiedosto(char* tiednimi, char* rajaus);
-void tee_jarjlista();
+slista* tee_tiedot(int* avgind);
+int* eri_sekunnit(const flista* restrict ftul);
+void tee_lisatiedot(char** sektus, int alkuind, int n);
+void lisaa_listoille(const char* restrict kello, time_t hetki);
+void poista_listoilta(int n);
+#define poista_listoilta_viimeinen() poista_listoilta(ftulos->pit-1)
+float lue_kellosta(const char* restrict s);
 char* float_kelloksi(char* kello, float f);
+int lue_tiedosto(const char* tiednimi, char* rajaus);
 void muuta_sakko(char* teksti, int ind);
-sakko_e hae_sakko(char*);
+int tallenna(const char* restrict tiednimi);
 
 #endif

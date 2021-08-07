@@ -64,11 +64,11 @@ void piirra() {
     laitot &= ~muutlai;
   }
   if(laitot & sektuslai) {
-    laita_tekstilista(_yalkuun(sektus), 1, &sektusol, rend);
+    laita_tekstilista(sektus, 1, &sektusol, rend);
     laitot &= ~sektuslai;
   }
   if(laitot & tuloslai) {
-    laita_oikealle(&kellool, 10, _yalkuun(strtulos), 1, &tulosol, rend);
+    laita_oikealle(&kellool, 10, stulos, 1, &tulosol, rend);
     laitot &= ~tuloslai;
   }
   if(laitot & tkstallai) {
@@ -76,25 +76,17 @@ void piirra() {
     laitot &= ~tkstallai;
   }
   if(laitot & jarjlai) {
-    strlista* a = _ynouda(_yalkuun(sijarj), 1);
-    strlista* b = _ynouda(_yalkuun(strjarj), 1);
-    int n = laita_pari_oikealle(&tulosol, 20, a, b, 0, &jarjol1, rend);
-    a = _ynouda(a, n);
-    b = _ynouda(b, n);
-    laita_pari_oikealle(&tulosol, 20, a, b, 1, &jarjol2, rend);
-    jarjol2.alku += n; //listaa ei ollut annettu alusta asti
-    if(jarjol1.toteutuma.w < jarjol2.toteutuma.w)
-      jarjol1.toteutuma.w = jarjol2.toteutuma.w;
+    laita_jarjlista();
     laitot &= ~jarjlai;
   }
   if(laitot & tiedtlai) {
     /*tässä muuttujien nimet ovat aivan epäloogiset*/
     laita_oikealle(&jarjol1, 25, tietoalut, 1, &tiedotol, rend);
-    laita_oikealle(&tiedotol, 0, _yalkuun(tiedot), 1, &tluvutol, rend);
+    laita_oikealle(&tiedotol, 0, tietoloput, 1, &tluvutol, rend);
     laitot &= ~tiedtlai;
   }
   if(laitot & lisatdlai) {
-    laita_oikealle(&jarjol1, 20, _yalkuun(lisatd), 0, &lisaol, rend);
+    laita_oikealle(&jarjol1, 20, lisatd, 0, &lisaol, rend);
     laitot &= ~lisatdlai;
   }
   SDL_RenderPresent(rend);
@@ -149,40 +141,36 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
 
 /*antamalla aluksi (alku) 0:n lista tulostetaan alkupäästä, muuten loppupäästä
   palauttaa, montako laitettiin*/
-int laita_tekstilista(strlista* l, int alku, tekstiolio_s *o, SDL_Renderer *rend) {
-  if(!l) {
+int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend) {
+  if(!sl) {
     o->toteutuma.w = 0;
     o->toteutuma.h = 0;
     return 0;
   }
   int rvali = TTF_FontLineSkip(o->font);
   int mahtuu = o->sij.h / rvali;
-  int yht = _ylaske(l) - o->rullaus;
+  int yht = sl->pit - o->rullaus;
   /*tässä toteutumaksi tulee maksimit*/
   int maksw = 0;
-  int montako = 0;
   
   /*laitetaan niin monta jäsentä kuin mahtuu*/
   if(alku) //laitetaan lopusta
-    alku = (mahtuu > yht)? 0 : (yht - mahtuu);
+    o->alku = (mahtuu < yht)*(yht - mahtuu); //jos erotus on negatiivinen, kerrotaan 0:lla
   else //laitetaan alusta
-    alku = -o->rullaus;
-  o->alku = alku;
-  l = _ynouda(l, alku);
+    o->alku = -o->rullaus;
   int oy = o->sij.y;
-  for(int i=0; i<mahtuu && l; i++) {
+  int raja = (mahtuu < yht)? mahtuu : yht;
+  for(int i=0; i<raja; i++) {
     if(o->numerointi) {
-      o->teksti = malloc(strlen(l->str)+10);
-      sprintf(o->teksti, "%i. %s", alku+1+i, l->str);
+      o->teksti = malloc(strlen( sl->taul[o->alku+i] )+10);
+      sprintf(o->teksti, "%i. %s", o->alku+1+i, sl->taul[o->alku+i]);
     } else {
-      o->teksti = l->str;
+      o->teksti = sl->taul[o->alku+i];
     }
     laita_teksti_ttf(o, rend);
-    montako++;
     if(o->toteutuma.w > maksw)
       maksw = o->toteutuma.w;
-    (o->sij.y) += rvali;
-    l = l->seur;
+    o->sij.y += rvali;
     if(o->numerointi)
       free(o->teksti);
   }
@@ -191,28 +179,11 @@ int laita_tekstilista(strlista* l, int alku, tekstiolio_s *o, SDL_Renderer *rend
   o->toteutuma.w = maksw;
   o->toteutuma.h = o->sij.y - oy;
   o->sij.y = oy;
-  return montako;
+  return raja;
 }
 
-/*olion oikealle laitetaan kaksi listaa yhdessä (erikseen numerointi ja ajat)*/
-int laita_pari_oikealle(tekstiolio_s* ov, int vali,		\
-			   strlista* l1, strlista* l2, int alku,	\
-			   tekstiolio_s* o, SDL_Renderer* rend) {
-  SDL_Rect sij0 = o->sij;
-  SDL_Rect tot1;
-  int uusi_x = ov->toteutuma.x + ov->toteutuma.w + vali;
-  if(o->sij.x < uusi_x)
-    o->sij.x = uusi_x;
-  
-  int montako = laita_tekstilista(l1, alku, o, rend);
-  tot1 = o->toteutuma;
-  o->sij.x = o->toteutuma.x + o->toteutuma.w;
-  o->sij.w -= o->toteutuma.w;
-  laita_tekstilista(l2, alku, o, rend);
-  o->sij = sij0;
-  o->toteutuma.x = tot1.x;
-  o->toteutuma.w += tot1.w;
-  return montako;
+void laita_jarjlista() {
+  ;
 }
 
 void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
@@ -224,19 +195,8 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
   return;
 }
 
-void laita_tiedot(strlista* a, tekstiolio_s* oa,			\
-		  strlista* b, tekstiolio_s* ob, SDL_Renderer* r) {
-  laita_tekstilista(a, 1, oa, r);
-  ob->sij.x = oa->toteutuma.x + oa->toteutuma.w;
-  ob->sij.y = oa->toteutuma.y;
-  ob->sij.w = oa->sij.w - oa->toteutuma.w;
-  ob->sij.h = oa->toteutuma.h;
-  laita_tekstilista(_yalkuun(b), 1, ob, r);
-  return;
-}
-
 /*tämä palauttaa toteutumaksi näitten yhteisen alueen*/
-void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_Renderer* r) {
+void laita_vierekkain(slista* a, slista* b, int alku, tekstiolio_s* o, SDL_Renderer* r) {
   laita_tekstilista(a, alku, o, r);
   SDL_Rect sij0 = o->sij;
   SDL_Rect tot0 = o->toteutuma;
@@ -255,7 +215,7 @@ void laita_vierekkain(strlista* a, strlista* b, int alku, tekstiolio_s* o, SDL_R
     o->toteutuma.h = tot0.h;
 }
 
-void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {
+void laita_oikealle(tekstiolio_s* ov, short vali, slista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {
   if(!o)
     o = ov;
   int vanha_x = o->sij.x;
@@ -268,10 +228,8 @@ void laita_oikealle(tekstiolio_s* ov, short vali, strlista* l, int alku, tekstio
 }
 
 void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, SDL_Renderer* r) {
-  if(!strcmp(o->teksti, ""))
+  if(!o || !o->teksti || !strcmp(o->teksti, ""))
     return;
-  if(!o)
-    o = ov;
   SDL_Surface *pinta;
   switch(o->ttflaji) {
   case 0:

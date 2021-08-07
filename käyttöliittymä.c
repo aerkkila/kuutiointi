@@ -42,7 +42,7 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
 				     (tapaht.tapahtlaji.y - (nimi).toteutuma.y) / \
 				     TTF_FontLineSkip((nimi).font))
-#define TEE_TIEDOT tee_tiedot(tietoloput, avgind);
+#define TEE_TIEDOT tee_tiedot(avgind);
 #define KIRJOITUSLAJIKSI(laji) {			   \
     SDL_StartTextInput();				   \
     SDL_SetTextInputRect(&kellool.sij);			   \
@@ -56,6 +56,7 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
   }
 
 extern float skaala;
+extern char* apuc;
 shmRak_s* ipc;
 
 int kaunnista() {
@@ -63,7 +64,6 @@ int kaunnista() {
   struct timeval alku, nyt;
   short min, sek, csek;
   double dalku, dnyt;
-  char tmp[1000];
   int avgind[6];
   int apuind;
   enum hiirilaji {
@@ -109,7 +109,7 @@ int kaunnista() {
 
   TEE_TIEDOT;
   SDL_StopTextInput();
-  slistalle_kopioiden(sektus, sekoitus(tmp));
+  slistalle_kopioiden(sektus, sekoitus(apuc));
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type)
@@ -125,7 +125,7 @@ int kaunnista() {
 	      if(tila == juoksee) {
 		tila = seis;
 		lisaa_listoille(KELLO, nyt.tv_sec);
-		slistalle_kopioiden(sektus, sekoitus(tmp));
+		slistalle_kopioiden(sektus, sekoitus(apuc));
 		TEE_TIEDOT;
 		MUUTA_TULOS;
 	      }
@@ -142,8 +142,8 @@ int kaunnista() {
 	      if(tila != seis)
 		break;
 	      if(kontrol) {
-		sprintf(tmp, "%s/%s", uloskansio, ulosnimi);
-		if(tallenna(tmp))
+		sprintf(apuc, "%s/%s", uloskansio, ulosnimi);
+		if(!tallenna(apuc))
 		  sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
 		else
 		  sprintf(TEKSTI, "Ei tallennettu \"%s\"", ulosnimi);
@@ -153,7 +153,7 @@ int kaunnista() {
 	      }
 	      break;
 	    case SDLK_BACKSPACE:
-	      if(tila == seis && strtulos) {
+	      if(tila == seis && stulos->pit>0) {
 		poista_listoilta_viimeinen();
 		if(stulos->pit)
 		  strcpy(KELLO, *VIIMEINEN(stulos));
@@ -192,7 +192,7 @@ int kaunnista() {
 		    *apucp = ',';
 		  lisaa_listoille(KELLO, time(NULL));
 		  TEE_TIEDOT;
-		  slistalle_kopioiden(sektus, sekoitus(tmp));
+		  slistalle_kopioiden(sektus, sekoitus(apuc));
 		  MUUTA_TULOS;
 		  break;
 		case ulosnimiKirj:
@@ -215,7 +215,7 @@ int kaunnista() {
 		  sscanf(KELLO, "%u", &NxN);
 		  strcpy(TEKSTI, "");
 		  poista_slistalta_viimeinen(sektus);
-		  slistalle_kopioiden(sektus, sekoitus(tmp));
+		  slistalle_kopioiden(sektus, sekoitus(apuc));
 		  break;
 		case avaa_tiedostoKirj:
 		  lue_tiedosto(KELLO, "");
@@ -282,7 +282,7 @@ int kaunnista() {
 		SDL_StopTextInput();
 		tila = seis;
 		nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
-		if(strtulos)
+		if(stulos->pit>0)
 		  strcpy(KELLO, *VIIMEINEN(stulos));
 		TEKSTI[0] = '\0';
 		laitot |= tkstallai;
@@ -371,7 +371,7 @@ int kaunnista() {
 			    (tluvutol.toteutuma.w / 6));
 	      sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
 	      tuhjenna_slista(lisatd);
-	      slista* sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus;
+	      char** sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus->taul;
 	      switch (rivi) {
 	      case 0:
 	      case 1:
@@ -418,7 +418,7 @@ int kaunnista() {
 	    if(!strcmp(tmpstr, "ulosnimi:")) {
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);
 	    } else if(!strcmp(tmpstr, "eri_sekunnit")) {
-	      laita_eri_sekunnit(tmp);
+	      laita_eri_sekunnit(apuc);
 	    } else if(!strcmp(tmpstr, "kuvaaja")) {
 	      FILE *f = fopen(".kuvaaja.bin", "wb");
 	      FOR_LISTA(ftulos)
@@ -451,8 +451,8 @@ int kaunnista() {
 		if(pid2 > 0)
 		  _exit(0);
 		else if(!pid2) {
-		  sprintf(tmp, "./kuutio %u", NxN);
-		  system(tmp);
+		  sprintf(apuc, "./kuutio %u", NxN);
+		  system(apuc);
 		  exit(0);
 		}
 	      }
@@ -505,12 +505,12 @@ int kaunnista() {
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
 		/*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
 		if(sektus->taul[apuind]) {
-		  sprintf(tmp, "%s; %s\n%s", tmpstr, TEKSTI, sektus->taul[apuind]);
-		  SDL_SetClipboardText(tmp);
+		  sprintf(apuc, "%s; %s\n%s", tmpstr, TEKSTI, sektus->taul[apuind]);
+		  SDL_SetClipboardText(apuc);
 		}
 	      }
 	    } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
-	      muuta_sakko((apuind==stulos->pit-1)? KELLO: tmp, apuind);
+	      muuta_sakko((apuind==stulos->pit-1)? KELLO: apuc, apuind);
 	      TEE_TIEDOT;
 	    }
 	    MUUTA_TULOS;

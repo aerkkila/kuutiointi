@@ -9,9 +9,12 @@
 #include "asetelma.h"
 
 int kaunnista();
+int lue_tiedosto(const char* tiednimi, char* rajaus);
 
 /*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
+
+char* apuc;
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "fi_FI.utf8");
@@ -34,6 +37,7 @@ int main(int argc, char** argv) {
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
 
+  apuc = malloc(1500);
   if(asetelma())
     goto EI_FONTTI;
   
@@ -82,6 +86,7 @@ int main(int argc, char** argv) {
   tuhoa_lista(&ftulos);
   tuhoa_lista(&thetki);
   tuhoa_lista(&jarjes);
+  tuhoa_lista(&fjarje);
   
   tuhoa_slista(&muut_a);
   tuhoa_slista(&muut_b);
@@ -89,6 +94,7 @@ int main(int argc, char** argv) {
   tuhoa_slista(&tietoloput);
   if(lisatd)
     tuhoa_slista(&lisatd);
+  free(apuc);
   
   free(kellool.teksti);
   free(tkstalol.teksti);

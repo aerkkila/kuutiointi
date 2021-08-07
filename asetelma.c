@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include <string.h>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "asetelma.h"
 
 int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
@@ -99,6 +99,7 @@ slista* stulos;
 flista* ftulos;
 ilista* thetki;
 ilista* jarjes;
+flista* fjarje;
 
 char* ulosnimi;
 
@@ -106,9 +107,10 @@ int avaa_fontit(int n, ...);
 
 #define tulospatka 10
 int asetelma() {
-  muut_a     = slistaksi(muut_a_str);
-  muut_b     = slistalle_kopioiden(ulosnimi0);
-  tietoalut  = slistaksi(tietoalkustr);
+  muut_a     = slistaksi(muut_a_str, "|");
+  muut_b     = alusta_lista(1, char*);
+  slistalle_kopioiden(muut_b, ulosnimi0);
+  tietoalut  = slistaksi(tietoalkustr, "|");
   tietoloput = alusta_lista(tietoalut->pit, char*);
   lisatd     = alusta_lista(13, char*);
   
@@ -117,6 +119,7 @@ int asetelma() {
   ftulos = alusta_lista(tulospatka, float);
   thetki = alusta_lista(tulospatka, int);
   jarjes = alusta_lista(tulospatka, int);
+  fjarje = alusta_lista(tulospatka, float);
 
   ulosnimi = muut_b->taul[0];
   
