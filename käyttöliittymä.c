@@ -31,9 +31,9 @@ alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
-inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek);
-inline char __attribute__((always_inline)) rullaustapahtuma_alusta(tekstiolio_s*, SDL_Event);
-inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
+void laita_sekoitus(shmRak_s* ipc, char* sek);
+void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
+void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -555,28 +555,28 @@ int kaunnista() {
 	  } else {
 	    switch(alue) {
 	    case tuloksetal:
-	      if(rullaustapahtuma_lopusta(&tulosol, tapaht))
-		laitot |= tuloslai;
+	      rullaustapahtuma_lopusta(&tulosol, tapaht);
+	      laitot |= tuloslai;
 	      break;
 	    case sektusal:
-	      if(rullaustapahtuma_lopusta(&sektusol, tapaht))
-		laitot |= sektuslai;
+	      rullaustapahtuma_lopusta(&sektusol, tapaht);
+	      laitot |= sektuslai;
 	      break;
 	    case jarjestus1al: //laitetaan alusta, joten rullaus ≤ 0
-	      if(rullaustapahtuma_alusta(&jarjol1, tapaht))
-		laitot |= jarjlai;
+	      rullaustapahtuma_alusta(&jarjol1, ftulos->pit, tapaht);
+	      laitot |= jarjlai;
 	      break;
 	    case jarjestus2al:
-	      if(rullaustapahtuma_lopusta(&jarjol2, tapaht))
-		laitot |= jarjlai;
+	      rullaustapahtuma_lopusta(&jarjol2, tapaht);
+	      laitot |= jarjlai;
 	      break;
 	    case lisatdal:
-	      if(rullaustapahtuma_alusta(&lisaol, tapaht))
-		laitot |= lisatdlai;
+	      rullaustapahtuma_alusta(&lisaol, lisatd->pit, tapaht);
+	      laitot |= lisatdlai;
 	      break;
 	    case muutal:
-	      if(rullaustapahtuma_alusta(&muutol, tapaht))
-		laitot |= muutlai;
+	      rullaustapahtuma_alusta(&muutol, muut_a->pit, tapaht);
+	      laitot |= muutlai;
 	      break;
 	    default:
 	      break;
@@ -903,20 +903,20 @@ inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* s
 }
 
 /*rullaus <= 0*/
-char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
+void rullaustapahtuma_alusta(tekstiolio_s* o, int pit, SDL_Event tapaht) {
   int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
-  if((o->alku + riveja >= ftulos->pit-1 && tapaht.wheel.y < 0) ||	\
-     (o->rullaus >= 0 && tapaht.wheel.y > 0))
-    return 0;
   o->rullaus += tapaht.wheel.y;
-  return 1;
+  o->rullaus *= o->rullaus <= 0; //if(tämä > 0) tämä = 0;
+  if(-o->rullaus + riveja > pit)
+    o->rullaus = -pit+riveja;
 }
 
 /*rullaus >= 0*/
-char rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
+void rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
   if((o->alku <= 0 && tapaht.wheel.y > 0) ||	\
      (o->rullaus <= 0 && tapaht.wheel.y < 0))
-    return 0;
+    return;
   o->rullaus += tapaht.wheel.y;
-  return 1;
+  o->rullaus *= o->rullaus >= 0;
+  return;
 }

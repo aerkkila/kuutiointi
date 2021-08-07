@@ -150,13 +150,13 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
   }
   int rvali = TTF_FontLineSkip(o->font);
   int mahtuu = o->sij.h / rvali;
-  int yht = sl->pit - o->rullaus;
+  int yht = sl->pit;
   /*tässä toteutumaksi tulee maksimit*/
   int maksw = 0;
   
   /*laitetaan niin monta jäsentä kuin mahtuu*/
   if(alku) //laitetaan lopusta
-    o->alku = (mahtuu < yht)*(yht - mahtuu); //jos erotus on negatiivinen, kerrotaan 0:lla
+    o->alku = (mahtuu < yht)*(yht - mahtuu - o->rullaus); //0, jos mahtuu >= yht
   else //laitetaan alusta
     o->alku = -o->rullaus;
   int oy = o->sij.y;
@@ -233,7 +233,7 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
   return;
 }
 
-/*tämä palauttaa toteutumaksi näitten yhteisen alueen*/
+/*tämä palauttaa toteutumaksi näitten yhteisen alueen, vain muutol käyttää tätä*/
 void laita_vierekkain(slista* a, slista* b, int alku, tekstiolio_s* o, SDL_Renderer* r) {
   laita_tekstilista(a, alku, o, r);
   SDL_Rect sij0 = o->sij;
@@ -244,7 +244,8 @@ void laita_vierekkain(slista* a, slista* b, int alku, tekstiolio_s* o, SDL_Rende
   o->sij.w = o->sij.w - o->toteutuma.w;
   o->sij.h = o->toteutuma.h;
 
-  laita_tekstilista(b, alku, o, r);
+  if(-o->rullaus < b->pit)
+    laita_tekstilista(b, alku, o, r);
   
   o->sij = sij0;
   o->toteutuma.x = tot0.x;
