@@ -869,14 +869,14 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
   int i;
   tuhjenna_slista(lisatd);
   slistalle_kopioiden(lisatd, "aika  määrä");
-  for(i=0; erisek[i] >= 0; i+=2) { //erisek päättyy negatiiviseen ja dnf merkitään -2:lla
+  for(i=0; erisek[i] >= 0; i+=2) { //erisek päättyy negatiiviseen ja dnf < -1
     osuus = erisek[i+1]/(float)ftulos->pit; //tmp on sekunti, tmp+1 on näitten määrä
     kertuma += osuus;
     sprintf(tmps, "%i    %i    %.3f    %.3f",		\
 	    erisek[i], erisek[i+1], osuus, kertuma);
     slistalle_kopioiden(lisatd, tmps);
   }
-  if(erisek[i] == -2) {
+  if(erisek[i] < -1) {
     osuus = erisek[i+1]/(float)ftulos->pit;
     kertuma += osuus;
     sprintf(tmps, "DNF  %i    %.3f    %.3f", erisek[i+1], osuus, kertuma);

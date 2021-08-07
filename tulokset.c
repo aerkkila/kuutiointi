@@ -92,8 +92,7 @@ slista* tee_tiedot(int* avgind) {
 
 /*palauttaa listan, montako tulosta on kullakin kokonaissekunnilla
   esim. 15, 4, 16, 6, -1 tarkoittaisi 4 15:n sekunnin ja 6 16:n sekunnin tulosta
-  -1 merkitsee loppua ja (int)inf << 0 eli aina loppuu negatiiviseen
-  jos loppuu DNF:än, ei laiteta enää -1:tä*/
+  -1 merkitsee loppua ja (int)inf << 0 eli aina loppuu negatiiviseen*/
 int* eri_sekunnit(const flista* restrict ftul) {
   /*lasketaan ja alustetaan tarvittavien sekuntien määrä*/
   int n = 0;
@@ -111,9 +110,12 @@ int* eri_sekunnit(const flista* restrict ftul) {
     int vanha = sek;
     if(vanha == (sek = (int)fjarje[j])) //sama sekunti kuin viime kerralla
       erisek[i*2+1]++;
-    else
+    else {
       erisek[++i*2] = sek;
+      erisek[i*2+1]++;
+    }
   }
+  erisek[n*2] = -1;
   return erisek;
 }
 
