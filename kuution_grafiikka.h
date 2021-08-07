@@ -1,7 +1,6 @@
-#include "kuutio.h"
-
 #ifndef __KUUTION_GRAFIIKKA__
 #define __KUUTION_GRAFIIKKA__
+#include "kuutio.h"
 
 inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
   /*x-pyöräytys*/
@@ -24,8 +23,6 @@ inline void __attribute((always_inline)) aseta_vari(vari v) {
   SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
 }
 
-#endif
-
 void tee_ruutujen_koordtit();
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd);
 void piirra_suunnikas(void* koordf2tai3, int onko2vai3);
@@ -37,3 +34,5 @@ int korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
 void korosta_siivu(int3 siivu);
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);
+
+#endif
