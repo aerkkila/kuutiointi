@@ -379,16 +379,13 @@ int kaunnista() {
 	      switch (rivi) {
 	      case 0:
 	      case 1:
-	        tuhjenna_slista(lisatd);
 		tee_lisatiedot(sektus1, avgind[sarake], 5);
 		break;
 	      case 2:
 	      case 3:
-	        tuhjenna_slista(lisatd);
 		tee_lisatiedot(sektus1, avgind[sarake+3], 12);
 		break;
 	      case 4:
-	        tuhjenna_slista(lisatd);
 		KIRJOITUSLAJIKSI(karsintaKirj);
 		break;
 	      }

@@ -54,10 +54,13 @@ void poista_slistalta_viimeinen(slista* restrict sl) {
   sl->pit--;
 }
 
+/*vaihdetaan osoittimet eikä dataa,
+  joten vapautetaan poistettava eikä suinkaan viimeistä*/
 void poista_slistalta(slista* restrict sl, int id) {
+  free(sl->taul[id]);
   for(; id<sl->pit-1; id++)
     sl->taul[id] = sl->taul[id+1];
-  poista_slistalta_viimeinen(sl);
+  sl->pit--;
 }
 
 void poista_listalta(void* lv, int id) {

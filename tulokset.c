@@ -162,6 +162,12 @@ void poista_listoilta(int ind) {
   poista_listalta(thetki, ind);
 }
 
+void poista_listoilta_viimeinen() {
+  free(*VIIMEINEN(sektus));
+  free(*VIIMEINEN(stulos));
+  sektus->pit--; stulos->pit--; ftulos->pit--; thetki->pit--;
+}
+
 float lue_kellosta(const char* restrict s) {
   if(strstr(s, "Ø"))
     return INFINITY;
