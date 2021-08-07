@@ -185,16 +185,19 @@ int kaunnista() {
 		    SDL_VERSION(&v);
 		    sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
 		    laitot |= kellolai;
-		    break;
+		    continue; //jos olisi break, niin tulisi float_kelloksi
 		  }
 		  /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 		  while((apucp = strstr(KELLO, ".")))
 		    *apucp = ',';
+		  float_kelloksi(KELLO, lue_kellosta(KELLO)); //tämä muotoilee syötteen
 		  lisaa_listoille(KELLO, time(NULL));
 		  TEE_TIEDOT;
 		  slistalle_kopioiden(sektus, sekoitus(apuc));
 		  MUUTA_TULOS;
-		  break;
+		  KIRJOITUSLAJIKSI(aikaKirj); //usein halutaan syöttää monta peräkkäin
+		  KELLO[0] = '\0';
+		  continue;
 		case ulosnimiKirj:
 		  /*vaihdetaan ulosnimi ja kelloon taas aika*/
 		  poista_slistalta_viimeinen(muut_b);
