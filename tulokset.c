@@ -223,6 +223,7 @@ int lue_tiedosto(const char* tiednimi, char* rajaus) {
     ilistalle(thetki, i);
     slistalle_kopioiden(stulos, float_kelloksi(kello, faika));
   }
+  fclose(f);
  LUETTU:
   /*rajataan*/
   if(strlen(rajaus)) {
@@ -237,23 +238,20 @@ int lue_tiedosto(const char* tiednimi, char* rajaus) {
 	fprintf(stderr, "Virheellinen rajausargumentti\n");
 	break;
       case 1:
-	loppu = -1;
+	loppu = ftulos->pit;
 	break;
       }
     }
-    if(loppu < alku)
-      goto TEE_LISTA;
     if(alku < 0)
       alku += ftulos->pit;
     if(loppu < 0)
       loppu += ftulos->pit+1;
+    if(loppu < alku)
+      return 0;
     rajaa_lista(ftulos, alku, loppu);
-    rajaa_lista(stulos, alku, loppu);
+    rajaa_slista(stulos, alku, loppu);
     rajaa_lista(thetki, alku, loppu);
   }
- TEE_LISTA:
-  //tee_jarjlista();
-  fclose(f);
   return 0;
 }
 

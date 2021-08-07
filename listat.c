@@ -77,13 +77,30 @@ void rajaa_lista(void* lv, int alku, int loppu) {
   if(loppu <= alku)
     return;
   int n = loppu-alku;
-  int patkia = (ll->pit-n)/ll->patka + 1;
+  int patkia = n/ll->patka + 1;
   void* uusi = malloc(ll->patka*patkia*ll->koko);
-  memcpy(uusi, ll->taul+alku, n);
+  memcpy(uusi, ll->taul+alku*ll->koko, n*ll->koko);
   free(ll->taul);
   ll->pit = n;
   ll->tilaa = patkia*ll->patka;
   ll->taul = uusi;
+}
+
+void rajaa_slista(slista* sl, int alku, int loppu) {
+  if(loppu <= alku)
+    return;
+  int n = loppu-alku;
+  int patkia = n/sl->patka + 1;
+  char** uusi = malloc(sl->patka*patkia*sl->koko);
+  memcpy(uusi, sl->taul+alku, n*sl->koko);
+  for(int i=0; i<alku; i++)
+    free(sl->taul[i]);
+  for(int i=loppu; i<sl->pit; i++)
+    free(sl->taul[i]);
+  free(sl->taul);
+  sl->taul = uusi;
+  sl->pit = n;
+  sl->tilaa = patkia*sl->patka;
 }
 
 void tuhjenna_slista(slista* restrict sl) {

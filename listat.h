@@ -56,6 +56,7 @@ void poista_slistalta_viimeinen(slista* restrict);
 void poista_slistalta(slista* restrict, int);
 void poista_listalta(void*, int);
 void rajaa_lista(void*, int alku, int loppu);
+void rajaa_slista(slista* sl, int alku, int loppu);
 void tuhjenna_slista(slista* restrict);
 slista* slistaksi(const char* restrict s, const char* restrict erotin);
 void slista_sprintf(char* kohde, const char* restrict muoto, slista* restrict lis);
