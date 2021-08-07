@@ -52,7 +52,7 @@ inline char __attribute__((always_inline)) rullaustapahtuma_lopusta(tekstiolio_s
     strcpy(KELLO, "");					   \
     laitot |= kellolai;					   \
     strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
-    laitot |= tkstallai;					   \
+    laitot |= tkstallai;				   \
   }
 
 extern float skaala;
@@ -242,7 +242,7 @@ int kaunnista() {
 		break;
 	      case jarjestus1al:;
 		int mahtuu = jarjol1.sij.h / TTF_FontLineSkip(jarjol1.font);
-		jarjol1.rullaus = -(stulos->pit-1 - mahtuu);
+		jarjol1.rullaus = -(stulos->pit - mahtuu) * (mahtuu<stulos->pit);
 		laitot |= jarjlai;
 		break;
 	      case jarjestus2al:
@@ -311,6 +311,10 @@ int kaunnista() {
 		SDL_RenderSetScale(rend, skaala, skaala);
 		laitot = kaikki_laitot;
 	      }
+	      break;
+	    case SDLK_PAUSE:
+	      if(kontrol)
+		asm("int $3"); //jäljityspisteansa: debuggerille breakpoint
 	      break;
 	    }
 	  break;
@@ -487,9 +491,9 @@ int kaunnista() {
 	  case jarjestus2al:
 	    apuind = LISTARIVI(jarjol2, button);
 	  MBUP_JARJ2:
-	    if(apuind+1 == jarjes->pit)
+	    if(apuind+1 == ftulos->pit)
 	      break;
-	    apuind = jarjes->taul[apuind];
+	    apuind = jarjes[apuind];
 	  MBUP_TULOKSIA:
 	    if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	      if(kontrol) {
@@ -598,8 +602,8 @@ int kaunnista() {
 	  case jarjestus2al:;
 	    if(alue != jarjestus1al)
 	      apuind = LISTARIVI(jarjol2, motion);
-	    if(apuind+1 < jarjes->pit) {
-	      apuind = jarjes->taul[apuind];
+	    if(apuind < ftulos->pit) {
+	      apuind = jarjes[apuind];
 	      goto LAITA_AIKA_NAKUVIIN;
 	    }
 	    laitot |= tkstallai;
@@ -654,6 +658,8 @@ int kaunnista() {
 	  switch(tapaht.window.event) {
 	  case SDL_WINDOWEVENT_RESIZED:
 	    SDL_RenderClear(rend);
+	    ikkuna_w = tapaht.window.data1;
+	    ikkuna_h = tapaht.window.data2;
 	    laitot = kaikki_laitot;
 	    break;
 	  }
@@ -896,18 +902,20 @@ inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* s
   ipc->viesti = 0;
 }
 
+/*rullaus <= 0*/
 char rullaustapahtuma_alusta(tekstiolio_s* o, SDL_Event tapaht) {
   int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
-  if((o->alku + riveja == ftulos->pit-1 && tapaht.wheel.y < 0) ||	\
-     (o->rullaus == 0 && tapaht.wheel.y > 0))
+  if((o->alku + riveja >= ftulos->pit-1 && tapaht.wheel.y < 0) ||	\
+     (o->rullaus >= 0 && tapaht.wheel.y > 0))
     return 0;
   o->rullaus += tapaht.wheel.y;
   return 1;
 }
 
+/*rullaus >= 0*/
 char rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
-  if((o->alku == 0 && tapaht.wheel.y > 0) ||	\
-     (o->rullaus == 0 && tapaht.wheel.y < 0))
+  if((o->alku <= 0 && tapaht.wheel.y > 0) ||	\
+     (o->rullaus <= 0 && tapaht.wheel.y < 0))
     return 0;
   o->rullaus += tapaht.wheel.y;
   return 1;

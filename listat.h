@@ -59,5 +59,4 @@ void rajaa_lista(void*, int alku, int loppu);
 void tuhjenna_slista(slista* restrict);
 slista* slistaksi(const char* restrict s, const char* restrict erotin);
 void slista_sprintf(char* kohde, const char* restrict muoto, slista* restrict lis);
-void* monista_listan_taulukko(const void* lv);
 #endif

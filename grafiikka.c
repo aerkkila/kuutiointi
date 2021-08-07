@@ -7,6 +7,7 @@
 #define PYYHI(olio) SDL_RenderFillRect(rend, &olio.toteutuma)
 #define KELLO (kellool.teksti)
 
+void laita_jarjestus();
 unsigned short laitot = 0x01ff;
 const unsigned short kellolai  = 0x0001;
 const unsigned short sektuslai = 0x0002;
@@ -76,7 +77,7 @@ void piirra() {
     laitot &= ~tkstallai;
   }
   if(laitot & jarjlai) {
-    laita_jarjlista();
+    laita_jarjestus();
     laitot &= ~jarjlai;
   }
   if(laitot & tiedtlai) {
@@ -182,8 +183,45 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
   return raja;
 }
 
-void laita_jarjlista() {
-  ;
+void laita_jarjestus() {
+  int rvali = TTF_FontLineSkip(jarjol1.font);
+  jarjol1.sij.x = tulosol.toteutuma.x + tulosol.toteutuma.w + 14;
+  jarjol1.sij.y = tulosol.toteutuma.y;
+  jarjol1.sij.h = (ikkuna_h - jarjol1.sij.y) * jarjsuhde;
+  int h_apu = jarjol1.sij.h;
+  jarjol1.toteutuma.h = 0;
+  int leveystot = 0;
+  int i = -jarjol1.rullaus;
+  jarjol1.alku = i;
+  for(; i<ftulos->pit && h_apu >= rvali; i++) {
+    sprintf(jarjol1.teksti, "%i. %s", jarjes[i]+1, stulos->taul[jarjes[i]]);
+    laita_teksti_ttf(&jarjol1, rend);
+    jarjol1.sij.y += rvali;
+    h_apu -= rvali;
+    if(jarjol1.toteutuma.w > leveystot)
+      leveystot = jarjol1.toteutuma.w;
+  }
+  jarjol1.toteutuma.h = jarjol1.sij.y - tulosol.toteutuma.y;
+  jarjol1.toteutuma.y = tulosol.toteutuma.y;
+  jarjol1.toteutuma.w = leveystot;
+  /*jarjol2*/
+  jarjol2.sij = jarjol1.sij;
+  jarjol2.sij.h = ikkuna_h - jarjol2.sij.y;
+  int mahtuu = jarjol2.sij.h / rvali;
+  int raja = (mahtuu < ftulos->pit-i)? mahtuu : ftulos->pit-i;
+  i = ftulos->pit-raja;
+  i -= jarjol2.rullaus;
+  jarjol2.alku = i;
+  for(int j=0; j<raja; j++, i++) {
+    sprintf(jarjol2.teksti, "%i. %s", jarjes[i]+1, stulos->taul[jarjes[i]]);
+    laita_teksti_ttf(&jarjol2, rend);
+    jarjol2.sij.y += rvali;
+    if(jarjol2.toteutuma.w > leveystot)
+      leveystot = jarjol1.toteutuma.w;
+  }
+  jarjol2.toteutuma.y = jarjol1.toteutuma.y + jarjol1.toteutuma.h;
+  jarjol2.toteutuma.h = rvali*raja;
+  jarjol2.toteutuma.w = leveystot;
 }
 
 void laita_valinta(vnta_s* o, SDL_Renderer *rend) {

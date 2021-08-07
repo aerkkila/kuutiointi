@@ -13,6 +13,9 @@ sakko_e hae_sakko(const char* s);
 
 extern char* apuc;
 
+/*Tämä kutsuttakoon aina, kun tuloksia on muutettu.
+  Tämä huolehtii myös järjestyslistan ajantasaisuudesta
+  ja muualla sen oletetaan olevan ajan tasalla.*/
 slista* tee_tiedot(int* avgind) {
   tuhjenna_slista(tietoloput);
   float ka[ftulos->pit];
@@ -60,32 +63,30 @@ slista* tee_tiedot(int* avgind) {
     slistalle_kopioiden(tietoloput, apuc);
     return tietoloput;
   }
-  
-  float* fjarjest = monista_listan_taulukko(ftulos);
-  int* jarjestus = malloc(ftulos->pit*sizeof(int));
-  flomituslajittele_jarj(fjarjest, jarjestus, ftulos->pit);
+  /*järjestyslista*/
+  fjarje = realloc(fjarje, ftulos->pit*ftulos->koko);
+  jarjes = realloc(jarjes, ftulos->pit*sizeof(int));
+  memcpy(fjarje, ftulos->taul, ftulos->pit*ftulos->koko);
+  flomituslajittele_jarj(fjarje, jarjes, ftulos->pit);
   
   /*Keskiarvo*/
   int pois = ftulos->pit / karsinta + 1;
   int mukaan = ftulos->pit - pois*2;
-  ka[0] = keskiarvo(fjarjest+pois, mukaan);
-  ka[1] = std(fjarjest+pois, mukaan, ka[0], 1);
+  ka[0] = keskiarvo(fjarje+pois, mukaan);
+  ka[1] = std(fjarje+pois, mukaan, ka[0], 1);
   sprintf(apuc, " = %.2f (σ = %.2f); %i", ka[0], ka[1], karsinta);
   slistalle_kopioiden(tietoloput, apuc);
 
   /*Mediaani*/
-  a = jarjestus[(ftulos->pit-1)/2];
+  a = jarjes[(ftulos->pit-1)/2];
   *ka = ftulos->taul[a];
   if(!(ftulos->pit % 2)) {
-    b = jarjestus[(ftulos->pit-1)/2+1];
+    b = jarjes[(ftulos->pit-1)/2+1];
     *ka += ftulos->taul[b];
     *ka /= 2;
   }
   sprintf(apuc, " = %.2f (%i.)", *ka, a+1);
   slistalle_kopioiden(tietoloput, apuc);
-
-  free(fjarjest);
-  free(jarjestus);
   return tietoloput;
 }
 
@@ -94,13 +95,12 @@ slista* tee_tiedot(int* avgind) {
   -1 merkitsee loppua ja (int)inf << 0 eli aina loppuu negatiiviseen
   jos loppuu DNF:än, ei laiteta enää -1:tä*/
 int* eri_sekunnit(const flista* restrict ftul) {
-  float* fjarjest = monista_listan_taulukko(ftul);
   /*lasketaan ja alustetaan tarvittavien sekuntien määrä*/
   int n = 0;
   int vanha_sek = -1;
   for(int i=0; i<ftul->pit; i++)
-    if( vanha_sek != (int)(fjarjest[i]) ) {
-      vanha_sek = (int)(fjarjest[i]);
+    if( vanha_sek != (int)(fjarje[i]) ) {
+      vanha_sek = (int)(fjarje[i]);
       n++;
     }
   int *erisek = calloc(n*2+1, sizeof(int));
@@ -109,12 +109,11 @@ int* eri_sekunnit(const flista* restrict ftul) {
   int sek = -1, i = -1;
   for(int j=0; j<ftulos->pit; j++) {
     int vanha = sek;
-    if(vanha == (sek = (int)fjarjest[j])) //sama sekunti kuin viime kerralla
+    if(vanha == (sek = (int)fjarje[j])) //sama sekunti kuin viime kerralla
       erisek[i*2+1]++;
     else
       erisek[++i*2] = sek;
   }
-  free(fjarjest);
   return erisek;
 }
 

@@ -7,6 +7,7 @@ int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
 Uint32 viive = 3;
 unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
+float jarjsuhde = 0.70;
 
 const char* ohjelman_nimi = "Kajastin";
 const char* ulosnimi0 = "tulokset.txt";
@@ -37,11 +38,9 @@ tekstiolio_s jarjol1 = {.ttflaji = 1,					\
 			.fonttikoko = 19,				\
 			.fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
 			.vari = {140, 150, 170, 255},			\
-			.sij = {0, 30, 200, 550}};
+			.sij = {.w=300}};
 
 tekstiolio_s jarjol2 = {.vari = {170, 100, 110, 255}};
-
-float jarjsuhde = 0.70;
 
 /*tähän tulee esim "avg5 = \navg12 = " jne.*/
 tekstiolio_s tiedotol = {.ttflaji = 0,					\
@@ -98,8 +97,8 @@ slista* sektus;
 slista* stulos;
 flista* ftulos;
 ilista* thetki;
-ilista* jarjes;
-flista* fjarje;
+int* jarjes;
+float* fjarje;
 
 char* ulosnimi;
 
@@ -118,8 +117,8 @@ int asetelma() {
   stulos = alusta_lista(tulospatka, char*);
   ftulos = alusta_lista(tulospatka, float);
   thetki = alusta_lista(tulospatka, int);
-  jarjes = alusta_lista(tulospatka, int);
-  fjarje = alusta_lista(tulospatka, float);
+  jarjes = malloc(1);
+  fjarje = malloc(1);
 
   ulosnimi = muut_b->taul[0];
   
@@ -131,12 +130,8 @@ int asetelma() {
   kellool.vari = kellovarit[0];
 
   SDL_Color vtmp = jarjol2.vari;
+  jarjol1.teksti = malloc(32);
   jarjol2 = jarjol1;
-  
-  jarjol1.sij.h *= jarjsuhde;
-  
-  jarjol2.sij.h *= (1-jarjsuhde);
-  jarjol2.sij.y += jarjol1.sij.h;
   jarjol2.vari = vtmp;
 
   tluvutol = tiedotol;
@@ -182,6 +177,38 @@ int avaa_fontit(int n, ...) {
   }
   va_end(ap);
   return 0;
+}
+
+void tuhoa_asetelma() {
+  extern char* apuc;
+  SDL_DestroyTexture(tarknap.kuvat.valittu);
+  SDL_DestroyTexture(tarknap.kuvat.ei_valittu);
+  tuhoa_slista(&sektus);
+  tuhoa_slista(&stulos);
+  tuhoa_lista(&ftulos);
+  tuhoa_lista(&thetki);
+  free(fjarje); fjarje=NULL;
+  free(jarjes); jarjes=NULL;
+  tuhoa_slista(&muut_a);
+  tuhoa_slista(&muut_b);
+  tuhoa_slista(&tietoalut);
+  tuhoa_slista(&tietoloput);
+  if(lisatd)
+    tuhoa_slista(&lisatd);
+  free(apuc);
+  
+  free(kellool.teksti);
+  free(tkstalol.teksti);
+  free(jarjol1.teksti);
+  TTF_CloseFont(kellool.font);
+  TTF_CloseFont(tulosol.font);
+  TTF_CloseFont(jarjol1.font);
+  TTF_CloseFont(tiedotol.font);
+  TTF_CloseFont(sektusol.font);
+  TTF_CloseFont(tkstalol.font);
+  TTF_CloseFont(tarknap.teksti.font);
+  TTF_CloseFont(lisaol.font);
+  TTF_CloseFont(muutol.font);
 }
 
 SDL_Renderer* rend;

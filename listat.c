@@ -115,10 +115,3 @@ slista* slistaksi(const char* restrict s, const char* restrict erotin) {
   free(str0);
   return l;
 }
-
-void* monista_listan_taulukko(const void* lv) {
-  const lista* ll = lv;
-  void* r = malloc(ll->pit*ll->koko);
-  memcpy(r, ll->taul, ll->pit*ll->koko);
-  return r;
-}

@@ -9,6 +9,7 @@ extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
 extern Uint32 viive;
 extern unsigned NxN;
 extern unsigned karsinta;
+extern float jarjsuhde;
 
 extern const char* ohjelman_nimi;
 extern const char* ulosnimi0;
@@ -46,9 +47,10 @@ extern slista* sektus;
 extern slista* stulos;
 extern flista* ftulos;
 extern ilista* thetki;
-extern ilista* jarjes;
-extern flista* fjarje;
+extern int* jarjes;
+extern float* fjarje;
 
 int asetelma();
+void tuhoa_asetelma();
 
 #endif

@@ -45,13 +45,13 @@ int main(int argc, char** argv) {
   SDL_Surface* kuva;
   if(!(kuva = SDL_LoadBMP(url_valittu))) {
     fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_valittu);
-    goto EI_KUVAA;
+    goto EI_FONTTI;
   }
   tarknap.kuvat.valittu = SDL_CreateTextureFromSurface(rend, kuva);
   SDL_FreeSurface(kuva);
   if(!(kuva = SDL_LoadBMP(url_eivalittu))) {
     fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_eivalittu);
-    goto EI_KUVAA;
+    goto EI_FONTTI;
   }
   tarknap.kuvat.ei_valittu = SDL_CreateTextureFromSurface(rend, kuva);
   SDL_FreeSurface(kuva);
@@ -79,35 +79,7 @@ int main(int argc, char** argv) {
   
   r = kaunnista();
 
-  SDL_DestroyTexture(tarknap.kuvat.valittu);
-  SDL_DestroyTexture(tarknap.kuvat.ei_valittu);
-  tuhoa_slista(&sektus);
-  tuhoa_slista(&stulos);
-  tuhoa_lista(&ftulos);
-  tuhoa_lista(&thetki);
-  tuhoa_lista(&jarjes);
-  tuhoa_lista(&fjarje);
-  
-  tuhoa_slista(&muut_a);
-  tuhoa_slista(&muut_b);
-  tuhoa_slista(&tietoalut);
-  tuhoa_slista(&tietoloput);
-  if(lisatd)
-    tuhoa_slista(&lisatd);
-  free(apuc);
-  
-  free(kellool.teksti);
-  free(tkstalol.teksti);
- EI_KUVAA:
-  TTF_CloseFont(kellool.font);
-  TTF_CloseFont(tulosol.font);
-  TTF_CloseFont(jarjol1.font);
-  TTF_CloseFont(tiedotol.font);
-  TTF_CloseFont(sektusol.font);
-  TTF_CloseFont(tkstalol.font);
-  TTF_CloseFont(tarknap.teksti.font);
-  TTF_CloseFont(lisaol.font);
-  TTF_CloseFont(muutol.font);
+  tuhoa_asetelma();
  EI_FONTTI:
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(ikkuna);
