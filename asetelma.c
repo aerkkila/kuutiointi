@@ -28,7 +28,7 @@ SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 			  (SDL_Color){200, 80,  100, 255}}; 
 
 tekstiolio_s tulosol = {.ttflaji = 2,					\
-			.sij = {820, 30, 200, 550},			\
+			.sij = {820, 20, 200, 550},			\
 			.fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
 			.fonttikoko = 19,				\
 			.vari = {100, 200, 150, 255},			\
@@ -47,7 +47,7 @@ tekstiolio_s tiedotol = {.ttflaji = 0,					\
 			 .fonttikoko = 20,				\
 			 .fonttied = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf", \
 			 .vari = {150, 255, 150, 255},			\
-			 .sij = {900, 30, 500, 500}};
+			 .sij = {900, 20, 500, 500}};
 
 /*tähän tulevat luvut tiedotolion perään */
 tekstiolio_s tluvutol;

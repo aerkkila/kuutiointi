@@ -65,10 +65,12 @@ void piirra() {
     laitot &= ~muutlai;
   }
   if(laitot & sektuslai) {
+    sektusol.sij.h = ikkuna_h - sektusol.sij.y;
     laita_tekstilista(sektus, 1, &sektusol, rend);
     laitot &= ~sektuslai;
   }
   if(laitot & tuloslai) {
+    tulosol.sij.h = ikkuna_h - tulosol.sij.y;
     laita_oikealle(&kellool, 10, stulos, 1, &tulosol, rend);
     laitot &= ~tuloslai;
   }
@@ -87,6 +89,7 @@ void piirra() {
     laitot &= ~tiedtlai;
   }
   if(laitot & lisatdlai) {
+    lisaol.sij.h = ikkuna_h - lisaol.sij.y;
     laita_oikealle(&jarjol1, 20, lisatd, 0, &lisaol, rend);
     laitot &= ~lisatdlai;
   }
@@ -160,7 +163,7 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
   else //laitetaan alusta
     o->alku = -o->rullaus;
   int oy = o->sij.y;
-  int raja = (mahtuu < yht)? mahtuu : yht;
+  int raja = (mahtuu < yht-o->alku)? mahtuu : yht-o->alku;
   for(int i=0; i<raja; i++) {
     if(o->numerointi) {
       o->teksti = malloc(strlen( sl->taul[o->alku+i] )+10);
