@@ -434,11 +434,11 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
   return;
 }
 
-inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
 #define k(i) (koord.a[i])
 #define u(i) (aks.a[i])
 #define co (cosf(kulma))
 #define si (sinf(kulma))
+inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
   float x,y,z;
   x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
        k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
@@ -458,13 +458,11 @@ inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf
 #undef co
 #undef si
 
-#define PI 3.14159265
+#define PI 3.1415926536
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
-  if(kaista)
-    return;
   int3 paikka;
   float siirto = kuva.resKuut/2 + kuva.sij0;
-  const double fps = 30.0;
+  const double spf = 1/30.0; // 1/fps
   double kokoKulma = PI/2*maara;
   double kulmaNyt = 0.0;
   struct timeval hetki;
@@ -473,16 +471,67 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
   double loppu = alku + aika;
   double kului = 0;
   akseli = puorauta(akseli, kuutio.xyz);
-  
-  while(alku+kului/2 < loppu) {
-    float askel = (kokoKulma - kulmaNyt) / (fps * (loppu-alku));
-    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
-      break;
-    kulmaNyt += askel;
+
+  /*siivusiirron piirtäminen, joka on muuten sama kuin edellä tuleva normaali piirtäminen,
+    mutta for-silmukoitten rajat ovat erilaiset*/
+  if(kaista) {
+    while(alku+kului/2 < loppu) {
+      float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
+      if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
+	break;
+      kulmaNyt += askel;
     
 #define A kuutio.ruudut[RUUTU(paikka.a[0],paikka.a[1],paikka.a[2])+n]
-    for(int i=-1; i<kuutio.N+1; i++)
-      for(int j=-1; j<kuutio.N+1; j++) {
+      for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
+	for(int j=0; j<kuutio.N; j++) {
+	  paikka = hae_ruutu(tahko,i,j);
+	  if(paikka.a[0] < 0)
+	    continue;
+	  for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
+	    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
+	    A = yleispuorautus(A, akseli, askel);
+	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
+	  }
+	}
+      for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
+	for(int i=0; i<kuutio.N; i++) {
+	  paikka = hae_ruutu(tahko,i,j);
+	  if(paikka.a[0] < 0)
+	    continue;
+	  for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
+	    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
+	    A = yleispuorautus(A, akseli, askel);
+	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
+	  }
+	}
+      paivita();
+      /*pysähdys*/
+      gettimeofday(&hetki, NULL);
+      double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+      kului = nyt - alku;
+      if(kului < spf)
+	SDL_Delay((unsigned)((spf - kului)*1000));
+    
+      /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
+      gettimeofday(&hetki, NULL);
+      alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+      SDL_RenderPresent(kuva.rend);
+    }
+    /*viimeinen askel menee loppuun*/
+    float askel = kokoKulma-kulmaNyt;
+    for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
+      for(int j=0; j<kuutio.N; j++) {
+	paikka = hae_ruutu(tahko,i,j);
+	if(paikka.a[0] < 0)
+	  continue;
+	for(int n=0; n<4; n++) {
+	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
+	  A = yleispuorautus(A, akseli, askel);
+	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
+	}
+      }
+    for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
+      for(int i=0; i<kuutio.N; i++) {
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
@@ -493,12 +542,35 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	}
       }
     paivita();
+    return;
+  }
+
+  /*normaalin siirron piirtäminen*/
+  while(alku+kului/2 < loppu) {
+    float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
+    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
+      break;
+    kulmaNyt += askel;
+    
+    // A = kuutio.ruudut[RUUTU(paikka.a[0],paikka.a[1],paikka.a[2])+n]
+    for(int i=-1; i<kuutio.N+1; i++)
+      for(int j=-1; j<kuutio.N+1; j++) {
+	paikka = hae_ruutu(tahko,i,j);
+	if(paikka.a[0] < 0)
+	  continue;
+	for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
+	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
+	  A = yleispuorautus(A, akseli, askel);
+	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
+	}
+      }
+    paivita();
     /*pysähdys*/
     gettimeofday(&hetki, NULL);
     double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
     kului = nyt - alku;
-    if(kului < 1/fps)
-      SDL_Delay((unsigned)((1/fps - kului)*1000));
+    if(kului < spf)
+      SDL_Delay((unsigned)((spf - kului)*1000));
     
     /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
     gettimeofday(&hetki, NULL);
