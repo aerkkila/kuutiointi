@@ -325,32 +325,6 @@ void siirto(int tahko, int siirtokaista, int maara) {
   siirto(tahko, siirtokaista, maara-1);
 }
 
-void kaanto(char akseli, int maara) {
-  if(!maara)
-    return;
-  if(maara < 0)
-    maara += 4;
-  char sivu;
-  switch(akseli) {
-  case 'x':
-    sivu = _r;
-    break;
-  case 'y':
-    sivu = _u;
-    break;
-  case 'z':
-    sivu = _f;
-    break;
-  default:
-    return;
-  }
-  for(int i=0; i<kuutio.N; i++)
-    siirto(sivu, i, 1);
-  
-  kaanto(akseli, maara-1);
-  return;
-}
-
 inline char __attribute__((always_inline)) onkoRatkaistu() {
   for(int sivu=0; sivu<6; sivu++) {
     char laji = kuutio.sivut[sivu][0];
@@ -361,34 +335,56 @@ inline char __attribute__((always_inline)) onkoRatkaistu() {
   return 1;
 }
 
-char kontrol = 0;
 float kaantoaika;
 float kaantoaika0 = 0.2;
-double viimeKaantohetki = -1.0;
 
-inline void __attribute__((always_inline)) kaantoInl(char akseli, int maara) {
-  kaanto(akseli, maara);
-  kuva.paivita = 1;
-}
-
-inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int maara) {
-  if(kontrol)
-    return;
+static inline void __attribute__((always_inline)) animoi(int tahko, int kaista, int maara) {
+  static double viimeKaantohetki = -1.0;
   struct timeval hetki;
   gettimeofday(&hetki, NULL);
-  double hetkiNyt = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
-  if(viimeKaantohetki > 0) {
-    double erotus = hetkiNyt - viimeKaantohetki;
-    if(erotus < kaantoaika0)
-      kaantoaika = erotus;
-    else
-      kaantoaika = kaantoaika0;
-  }
-  koordf akseli = (koordf){{(akst[tahko].a[0]/3),	\
-			    (akst[tahko].a[1]/3),	\
-			    (akst[tahko].a[2]/3)}};
+  double hetkiNyt = hetki.tv_sec + hetki.tv_usec*1e-6;
+  double erotus = hetkiNyt - viimeKaantohetki;
+  if(erotus < kaantoaika0)
+    kaantoaika = erotus;
+  else
+    kaantoaika = kaantoaika0;
+  koordf akseli = {{(akst[tahko].a[0]/3),	\
+		    (akst[tahko].a[1]/3),	\
+		    (akst[tahko].a[2]/3)}};
   kaantoanimaatio(tahko, kaista, akseli, maara-2, kaantoaika);
   tee_ruutujen_koordtit();
+  kuva.paivita = 1;
+  gettimeofday(&hetki, NULL);
+  viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1e-6;
+}
+
+static inline void __attribute__((always_inline)) kaantoInl(char akseli, int maara) {
+  if(!maara)
+    return;
+  if(maara < 0)
+    maara += 4;
+  int tahko;
+  switch(akseli) {
+  case 'x':
+    tahko = _r;
+    break;
+  case 'y':
+    tahko = _u;
+    break;
+  case 'z':
+    tahko = _f;
+    break;
+  default:
+    return;
+  }
+  animoi(tahko, -kuutio.N, maara);
+  for(int j=0; j<maara; j++)
+    for(int i=0; i<kuutio.N; i++)
+      siirto(tahko, i, 1);
+}
+
+static inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int maara) {
+  animoi(tahko, kaista, maara);
   siirto(tahko, kaista, maara);
   kuva.paivita = 1;
   kuutio.ratkaistu = onkoRatkaistu();
@@ -401,8 +397,6 @@ inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int 
     viimeViesti = ipcLopeta;
   }
 #endif
-  gettimeofday(&hetki, NULL);
-  viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
 }
 
 int main(int argc, char** argv) {
@@ -468,6 +462,7 @@ int main(int argc, char** argv) {
   int siirtokaista = 0;
   int korosta_hiirella = 0;
   int raahattiin = 0;
+  int vaihto = 0;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -556,13 +551,11 @@ int main(int argc, char** argv) {
 	  case SDLK_RSHIFT:
 	  case SDLK_LSHIFT:
 	    siirtokaista++;
-	    break;
-	  case SDLK_RCTRL:
-	  case SDLK_LCTRL:
-	    kontrol = 1;
+	    vaihto = 1;
 	    break;
 	  case SDLK_PAUSE:
-	    seis(); //tarvitaan virheenjäljitykseen (gdb: break seis)
+	    if(vaihto)
+	      asm("int $3");
 	    break;
 	  case SDLK_RETURN:
 	    kaantoanimaatio(_f, 0, (koordf){{0,1,0}}, 1.0, 1);
@@ -583,7 +576,7 @@ int main(int argc, char** argv) {
 	  case SDLK_UP:
 	    if(A.a[0] < 0)
 	      A = (int3){{_f, kuutio.N/2, kuutio.N/2}};
-	    else if(kontrol)
+	    else if(vaihto)
 	      A.a[0] = -1;
 	    else
 	      A = hae_ruutu(B(0), B(1), B(2)-1);
@@ -652,15 +645,12 @@ int main(int argc, char** argv) {
 	switch(tapaht.key.keysym.sym) {
 	case SDLK_RSHIFT:
 	case SDLK_LSHIFT:
+	  vaihto = 0;
 	  siirtokaista = 0;
-	  break;
-	case SDLK_RCTRL:
-	case SDLK_LCTRL:
-	  kontrol = 0;
 	  break;
 	default:
 	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	    siirtokaista = 1;
+	    siirtokaista = 0;
 	  else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
 	    siirtokaista = 0;
 	  break;

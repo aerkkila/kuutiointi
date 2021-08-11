@@ -472,7 +472,50 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
   double kului = 0;
   akseli = puorauta(akseli, kuutio.xyz);
 
-  /*siivusiirron piirtäminen, joka on muuten sama kuin edellä tuleva normaali piirtäminen,
+  /*Monen kaistan samanaikainen pyöritys merkitään kaistan negatiivisuutena.*/
+  
+  /*––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
+  /*******************Koko kuution pyöritys************************************/
+  if(kaista == -kuutio.N) {
+    int pit = kuutio.N*kuutio.N*24;
+    while(alku+kului/2 < loppu) {
+      float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
+      if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
+	break;
+      kulmaNyt += askel;
+#define A kuutio.ruudut[i]
+      for(int i=0; i<pit; i++) {
+	A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
+	A = yleispuorautus(A, akseli, askel);
+	A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
+      }
+      paivita();
+      /*pysähdys*/
+      gettimeofday(&hetki, NULL);
+      double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+      kului = nyt - alku;
+      if(kului < spf)
+	SDL_Delay((unsigned)((spf - kului)*1000));
+    
+      /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
+      gettimeofday(&hetki, NULL);
+      alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
+      SDL_RenderPresent(kuva.rend);
+    }
+    /*viimeinen askel menee loppuun*/
+    float askel = kokoKulma-kulmaNyt;
+    for(int i=0; i<pit; i++) {
+      A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
+      A = yleispuorautus(A, akseli, askel);
+      A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
+    }
+    paivita();
+    return;
+  }
+#undef A
+
+  /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
+  /*siivun pyörittäminen, joka on muuten sama kuin edellä tuleva tavallinen kääntö,
     mutta for-silmukoitten rajat ovat erilaiset*/
   if(kaista) {
     while(alku+kului/2 < loppu) {
@@ -545,7 +588,8 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
     return;
   }
 
-  /*normaalin siirron piirtäminen*/
+  /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
+  /*normaalin tahkon pyörittäminen*/
   while(alku+kului/2 < loppu) {
     float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
     if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
