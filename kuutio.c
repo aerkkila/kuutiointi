@@ -18,7 +18,7 @@
 kuutio_t kuutio;
 kuva_t kuva;
 int3 akst[6];
-SDL_Texture* aputekstuuri;
+SDL_Texture* alusta;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
@@ -375,9 +375,10 @@ static inline void __attribute__((always_inline)) kaantoInl(char akseli, int maa
     return;
   }
   animoi(tahko, -kuutio.N, maara);
-  for(int j=0; j<maara; j++)
-    for(int i=0; i<kuutio.N; i++)
+  for(int m=0; m<maara; m++)
+    for(int i=1; i<=kuutio.N; i++)
       siirto(tahko, i, 1);
+  kuva.paivita = 1;
 }
 
 static inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int maara) {
@@ -433,7 +434,11 @@ int main(int argc, char** argv) {
 
   kuutio = luo_kuutio(N);
   kaantoaika = kaantoaika0;
-  aputekstuuri = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
+  alusta = SDL_CreateTexture(kuva.rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
+  SDL_SetTextureBlendMode(alusta, SDL_BLENDMODE_BLEND); //alustan kopioinnissa on alfa-kanava
+  SDL_SetRenderDrawBlendMode(kuva.rend, SDL_BLENDMODE_NONE); //muualla otetaan sellaisenaan
+  if(!alusta)
+    return 1;
 
   /*akselit*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
@@ -472,8 +477,8 @@ int main(int argc, char** argv) {
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
 	  kuva.xRes = tapaht.window.data1;
 	  kuva.yRes = tapaht.window.data2;
-	  SDL_DestroyTexture(aputekstuuri);
-	  aputekstuuri = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
+	  SDL_DestroyTexture(alusta);
+	  alusta = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
 	  kuva.resKuut = koko1/sqrt(3.0);
 	  
 	  if((koko1-kuva.resKuut)/2 != kuva.sij0) {
@@ -523,11 +528,11 @@ int main(int argc, char** argv) {
 	  siirtoInl1(_b, 1);
 	  break;
 	case SDL_SCANCODE_U:
-	  for(int kaista=1; kaista<N-1; kaista++)
+	  for(int kaista=2; kaista<N; kaista++)
 	    siirtoInl(_r, kaista, 1);
 	  break;
 	case SDL_SCANCODE_R:
-	  for(int kaista=1; kaista<N-1; kaista++)
+	  for(int kaista=2; kaista<N; kaista++)
 	    siirtoInl(_l, kaista, 1);
 	  break;
 	  /*käytetään kääntämisten määrässä siirtokaistaa*/
@@ -783,7 +788,7 @@ int main(int argc, char** argv) {
     savelPtr = NULL;
   }
 #endif
-  SDL_DestroyTexture(aputekstuuri);
+  SDL_DestroyTexture(alusta);
   SDL_DestroyRenderer(kuva.rend);
   SDL_DestroyWindow(kuva.ikkuna);
   tuhoa_kuutio(kuutio);
