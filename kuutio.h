@@ -66,7 +66,7 @@ inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p
 extern kuutio_t kuutio;
 extern kuva_t kuva;
 extern int3 akst[6];
-extern SDL_Texture* alusta;
+extern SDL_Texture* alusta[];
 
 int mika_tahko(int x, int y);
 int piste_alueella(float x, float y, int n, ...);

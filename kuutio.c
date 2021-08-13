@@ -18,7 +18,7 @@
 kuutio_t kuutio;
 kuva_t kuva;
 int3 akst[6];
-SDL_Texture* alusta;
+SDL_Texture* alusta[2];
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
@@ -434,11 +434,13 @@ int main(int argc, char** argv) {
 
   kuutio = luo_kuutio(N);
   kaantoaika = kaantoaika0;
-  alusta = SDL_CreateTexture(kuva.rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
-  SDL_SetTextureBlendMode(alusta, SDL_BLENDMODE_BLEND); //alustan kopioinnissa on alfa-kanava
+  for(int i=0; i<2; i++) {
+    alusta[i] = SDL_CreateTexture(kuva.rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
+    SDL_SetTextureBlendMode(alusta[i], SDL_BLENDMODE_BLEND); //alustan kopioinnissa on alfa-kanava
+    if(!alusta[i])
+      return 1;
+  }
   SDL_SetRenderDrawBlendMode(kuva.rend, SDL_BLENDMODE_NONE); //muualla otetaan sellaisenaan
-  if(!alusta)
-    return 1;
 
   /*akselit*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
@@ -458,8 +460,8 @@ int main(int argc, char** argv) {
 #endif
 
 #define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
-  
-  SDL_Event tapaht;
+ 
+  SDL_Event tapaht; 
   int xVanha, yVanha;
   char hiiri_painettu = 0;
   int siirtokaista = 1;
@@ -477,8 +479,12 @@ int main(int argc, char** argv) {
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
 	  kuva.xRes = tapaht.window.data1;
 	  kuva.yRes = tapaht.window.data2;
-	  SDL_DestroyTexture(alusta);
-	  alusta = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
+	  for(int i=0; i<2; i++) {
+	    SDL_DestroyTexture(alusta[i]);
+	    if(!(alusta[i] = SDL_CreateTexture(kuva.rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes)))
+	      printf("Ei tehty alustaa %i\n", i);
+	    SDL_SetTextureBlendMode(alusta[i], SDL_BLENDMODE_BLEND);
+	  }
 	  kuva.resKuut = koko1/sqrt(3.0);
 	  
 	  if((koko1-kuva.resKuut)/2 != kuva.sij0) {
@@ -788,7 +794,8 @@ int main(int argc, char** argv) {
     savelPtr = NULL;
   }
 #endif
-  SDL_DestroyTexture(alusta);
+  for(int i=0; i<2; i++)
+    SDL_DestroyTexture(alusta[i]);
   SDL_DestroyRenderer(kuva.rend);
   SDL_DestroyWindow(kuva.ikkuna);
   tuhoa_kuutio(kuutio);
