@@ -33,6 +33,20 @@ void piirra_kuvaksi() {
       }
 }
 
+void piirra_kaistoja(int tahko, int kaistaraja) {
+  int3 ruutu;
+  for(int i=-kaistaraja; i<kuutio.N+kaistaraja; i++)
+    for(int j=-kaistaraja; j<=kuutio.N+kaistaraja; j++) {
+      vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
+      aseta_vari(vari);
+      ruutu = hae_ruutu(tahko, i, j);
+#define A(n) kuutio.ruudut+RUUTUINT3(ruutu)+n
+      if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
+	piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
+    }
+#undef A
+}
+
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   koordf nurkka, nurkka0; //nurkka0 on nurkan sijainti ennen pyöritystä
   float res = kuva.resKuut/2;
@@ -515,9 +529,18 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 #undef A
 
   /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
+  /*Paikallaan pysyvä osa piirretään alussa toiseen tekstuuriin.
+    Vain liikkuva osa piirretään aina uudestaan*/
+#if 0
+  SDL_SetRenderTarget(rend, aputekstuuri);
+  piirra_kaistoja((tahko+3)%6, kuutio.N-kaista);
+  if(kaista>1)
+    piirra_kaistoja(tahko, kaista-1);
+#endif
+
   /*siivun pyörittäminen, joka on muuten sama kuin edellä tuleva tavallinen kääntö,
     mutta for-silmukoitten rajat ovat erilaiset*/
-  if(kaista) {
+  if(kaista>1) {
     while(alku+kului/2 < loppu) {
       float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
       if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
@@ -525,7 +548,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
       kulmaNyt += askel;
     
 #define A kuutio.ruudut[RUUTU(paikka.a[0],paikka.a[1],paikka.a[2])+n]
-      for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
+      for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
 	for(int j=0; j<kuutio.N; j++) {
 	  paikka = hae_ruutu(tahko,i,j);
 	  if(paikka.a[0] < 0)
@@ -536,7 +559,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
 	  }
 	}
-      for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
+      for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
 	for(int i=0; i<kuutio.N; i++) {
 	  paikka = hae_ruutu(tahko,i,j);
 	  if(paikka.a[0] < 0)
@@ -562,7 +585,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
     }
     /*viimeinen askel menee loppuun*/
     float askel = kokoKulma-kulmaNyt;
-    for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
+    for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
       for(int j=0; j<kuutio.N; j++) {
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)
@@ -573,7 +596,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
 	}
       }
-    for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
+    for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
       for(int i=0; i<kuutio.N; i++) {
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)

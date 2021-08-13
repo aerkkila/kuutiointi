@@ -18,15 +18,12 @@
 kuutio_t kuutio;
 kuva_t kuva;
 int3 akst[6];
+SDL_Texture* aputekstuuri;
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
 shmRak_s *ipc;
 volatile float* savelPtr;
 #endif
-
-void seis() { //tarvitaan virheenjäljitykseen (gdb: break seis)
-  ;
-}
 
 kuutio_t luo_kuutio(int N) {
   vari varit[6];
@@ -241,12 +238,12 @@ void siirto(int tahko, int siirtokaista, int maara) {
   if(maara == 0)
     return;
   int N = kuutio.N;
-  if(siirtokaista < 0 || siirtokaista >= N)
+  if(siirtokaista < 0 || siirtokaista > N)
     return;
-  else if(siirtokaista == N-1) {
+  else if(siirtokaista == N) {
     maara = (maara+2) % 4;
     tahko = (tahko+3) % 6;
-    siirtokaista = 0;
+    siirtokaista = 1;
   }
   int apu[N*N];
 
@@ -256,11 +253,11 @@ void siirto(int tahko, int siirtokaista, int maara) {
   for(iakseli=0; iakseli<3; iakseli++)
     if(ABS(akst[tahko].a[iakseli]) == 1)
       break;
-  int3 ruutu0 = hae_ruutu(tahko, 0, -1-siirtokaista);
+  int3 ruutu0 = hae_ruutu(tahko, 0, -siirtokaista);
   int IvaiJ = akst[ruutu0.a[0]].a[iakseli];
   for(int j=1; j<4; j++) {
     for(int i=0; i<N; i++) {
-      ruutu0 = hae_ruutu(tahko, i, -1-siirtokaista); //alkukohdaksi valitaan j-akselin alimeno
+      ruutu0 = hae_ruutu(tahko, i, -siirtokaista); //alkukohdaksi valitaan j-akselin alimeno
       int etumerkki = SIGN(IvaiJ) * SIGN(akst[tahko].a[iakseli]);
       int3 ruutu1 = hae_ruutu(ruutu0.a[0],				\
 			      ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki, \
@@ -270,7 +267,7 @@ void siirto(int tahko, int siirtokaista, int maara) {
     }
   }
   /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
-  if(siirtokaista > 0 && siirtokaista < N-1) {
+  if(siirtokaista > 1 && siirtokaista < N) {
     siirto(tahko, siirtokaista, maara-1);
     return;
   }
@@ -436,6 +433,7 @@ int main(int argc, char** argv) {
 
   kuutio = luo_kuutio(N);
   kaantoaika = kaantoaika0;
+  aputekstuuri = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
 
   /*akselit*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
@@ -459,7 +457,7 @@ int main(int argc, char** argv) {
   SDL_Event tapaht;
   int xVanha, yVanha;
   char hiiri_painettu = 0;
-  int siirtokaista = 0;
+  int siirtokaista = 1;
   int korosta_hiirella = 0;
   int raahattiin = 0;
   int vaihto = 0;
@@ -472,7 +470,12 @@ int main(int argc, char** argv) {
 	switch(tapaht.window.event) {
 	case SDL_WINDOWEVENT_RESIZED:;
 	  int koko1 = (tapaht.window.data1 < tapaht.window.data2)? tapaht.window.data1: tapaht.window.data2;
+	  kuva.xRes = tapaht.window.data1;
+	  kuva.yRes = tapaht.window.data2;
+	  SDL_DestroyTexture(aputekstuuri);
+	  aputekstuuri = SDL_CreateTexture(kuva.rend, SDL_PIXELTYPE(SDL_PIXELFORMAT_RGB888), SDL_TEXTUREACCESS_TARGET, kuva.xRes, kuva.yRes);
 	  kuva.resKuut = koko1/sqrt(3.0);
+	  
 	  if((koko1-kuva.resKuut)/2 != kuva.sij0) {
 	    kuva.sij0 = (koko1-kuva.resKuut)/2;
 	    tee_ruutujen_koordtit();
@@ -529,22 +532,22 @@ int main(int argc, char** argv) {
 	  break;
 	  /*käytetään kääntämisten määrässä siirtokaistaa*/
 	case SDL_SCANCODE_H:
-	  kaantoInl('y', (3*(siirtokaista+1)) % 4);
+	  kaantoInl('y', (3*(siirtokaista)) % 4);
 	  break;
 	case SDL_SCANCODE_G:
-	  kaantoInl('y', (1*(siirtokaista+1)) % 4);
+	  kaantoInl('y', (1*(siirtokaista)) % 4);
 	  break;
 	case SDL_SCANCODE_N:
-	  kaantoInl('x', (1*(siirtokaista+1)) % 4);
+	  kaantoInl('x', (1*(siirtokaista)) % 4);
 	  break;
 	case SDL_SCANCODE_V:
-	  kaantoInl('x', (3*(siirtokaista+1)) % 4);
+	  kaantoInl('x', (3*(siirtokaista)) % 4);
 	  break;
 	case SDL_SCANCODE_COMMA:
-	  kaantoInl('z', (1*(siirtokaista+1)) % 4);
+	  kaantoInl('z', (1*(siirtokaista)) % 4);
 	  break;
 	case SDL_SCANCODE_C:
-	  kaantoInl('z', (3*(siirtokaista+1)) % 4);
+	  kaantoInl('z', (3*(siirtokaista)) % 4);
 	  break;
 	default:
 	  switch(tapaht.key.keysym.sym) {
@@ -632,10 +635,10 @@ int main(int argc, char** argv) {
 	    }
 #endif
 	  default:
-	    if('1' < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
+	    if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	      siirtokaista += tapaht.key.keysym.sym - '1';
-	    else if(SDLK_KP_1 < tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
-	      siirtokaista += tapaht.key.keysym.sym - SDLK_KP_1;
+	    else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
+	      siirtokaista += (tapaht.key.keysym.sym - SDLK_KP_1 + 1) * 10;
 	    break;
 	  }
 	  break;
@@ -646,13 +649,15 @@ int main(int argc, char** argv) {
 	case SDLK_RSHIFT:
 	case SDLK_LSHIFT:
 	  vaihto = 0;
-	  siirtokaista = 0;
+	  siirtokaista = 1;
 	  break;
 	default:
+	  if(vaihto)
+	    break;
 	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	    siirtokaista = 0;
+	    siirtokaista = 1;
 	  else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
-	    siirtokaista = 0;
+	    siirtokaista = 1;
 	  break;
 	}
 	break;
@@ -778,6 +783,7 @@ int main(int argc, char** argv) {
     savelPtr = NULL;
   }
 #endif
+  SDL_DestroyTexture(aputekstuuri);
   SDL_DestroyRenderer(kuva.rend);
   SDL_DestroyWindow(kuva.ikkuna);
   tuhoa_kuutio(kuutio);
