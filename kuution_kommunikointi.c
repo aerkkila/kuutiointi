@@ -66,7 +66,7 @@ void lue_siirrot(shmRak_s* ipc) {
   while(ipc->data[i]) {
     puoli = puoleksi(ipc->data[i++]);
     maara = maaraksi(ipc->data[i++]);
-    siirto(puoli, 0, maara);
+    siirto(puoli, 1, maara);
     while(ipc->data[i] == ' ')
       i++;
   }
