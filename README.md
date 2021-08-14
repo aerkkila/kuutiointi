@@ -1,3 +1,5 @@
+![kuvapaappaus_kajastin](https://user-images.githubusercontent.com/78755456/129454816-a6a3d250-4494-4fd0-8a45-00ad0ba920f2.png)![kuvakaappaus_kuutio](https://user-images.githubusercontent.com/78755456/129454818-45133102-9efb-48da-a9ec-9adf859bb51c.png)
+
 Tämä vaatii grafiikkakirjastot SDL2 ja SDL_TTF. Tiedoston asetelma.c alkupuolella on muutama polku, jotka käyttäjän pitää asettaa itse.
 
 Tässä on kuutiointiin tarkoitettu ajanottosovellus ja virtuaalinen rubikin kuutio. Nämä ovat kaksi itsenäistä C-ohjelmaa, mutta ne voivat myös keskustella keskenään ja ovat siksi samassa kansiossa. Pieniä lisätoimintoja on kirjoitettu myös Pythonilla.
@@ -36,9 +38,9 @@ Ajanottosovelluksessa on seuraavat kirjoitustilat, joissa haluttu syöte kirjoit
 Ajanottosovelluksesta voi käynnistää kuution napauttamalla vasemmalta ylhäältä tekstiä kuutio. Kuution koko (NxNxN) on sama kuin mikä on asetettu sekoitukseen.
 Näppäimellä F1 kuutio päätyy siihen sekoitukseen, jonka ajanottosovellus on arponut näytölle ja tarkasteluaika käynnistyy. Ajanotto alkaa automaattisesti, kun kuutiolle tekee siirron ja päättyy, kun kuutio on ratkaistu.
 
-Kuutiota ohjataan näppäimistöltä tiedostossa kuutio.c määritetyin näppäimin. Sitä voi myös pyöritellä hiirellä. Näppäimellä F2 kuutio avaa Python-sovelluksen, joka kuuntelee säveliä ja näin kuutiota voi ohjata myös viheltämällä, mutta tämä on lähinnä kokeellinen ominaisuus.
+Kuutiota ohjataan näppäimistöltä tiedostossa kuutio.c määritetyin näppäimin. Näppäimet on valittu siten, että käyttäminen olisi helppoa kymmensormijärjestelmällä. Kuutiota voi myös pyöritellä hiirellä. Näppäimellä F2 kuutio avaa Python-sovelluksen, joka kuuntelee säveliä ja näin kuutiota voi ohjata myös viheltämällä, mutta tämä on lähinnä kokeellinen ominaisuus. Käynnistettäessä kuutio komentoriviltä sen koko on oletuksena 3 (3x3x3), mutta argumenttina voi antaa muun koon, esim. "./kuutio 6" käynnistäisi (6x6x6)-kuution.
 
-Kuutiossa on myös jotain hiirellä ja nuolilla toimiva tahkojen tai ruutujen korostustoimintoja, jotka ovat turhia ja tehty lähinnä virheenjäljitystarkoituksessa, mutta periaatteessa ihan hauskoja ja saavat siksi olla siellä.
+Kuutiossa on myös jotain hiirellä ja nuolilla toimivia tahkojen tai ruutujen korostustoimintoja, jotka ovat turhia ja tehty lähinnä virheenjäljitystarkoituksessa.
 
 Tulokset voi tallentaa ctrl+s-komennolla. Tämä tallentaa ajat ja niitten saamisajankohdat, mutta ei sekoituksia. Kirjoitettavan tiedoston nimi lukee kohdassa ulosnimi ja sitä voi vaihtaa yllä kuvatulla tavalla. Jos tiedosto on jo olemassa, kirjoitetaan sen loppuun, mutta jos on samaan aikaan saatuja tuloksia, kirjoitetaan niitten päälle, jottei kaksi peräkkäistä tallennusta tuottaisi samoja tuloksia kahdesti.
 
