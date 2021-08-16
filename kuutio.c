@@ -73,8 +73,6 @@ void paivita() {
     korosta_tahko(kuva.korostus);
   if(kuva.ruutuKorostus.a[0] >= 0)
     korosta_ruutu(kuutio.ruudut+RUUTUINT3(kuva.ruutuKorostus), 3);
-  if(kuva.siivuKorostus.a[0] >= 0)
-    korosta_siivu(kuva.siivuKorostus);
   SDL_RenderPresent(kuva.rend);
 }
 
@@ -187,51 +185,6 @@ int3 mika_ruutu(int x, int y) {
     }
  EI_LOUTUNUT:
   return (int3){{-1,-1,-1}};
-}
-
-int3 hae_siivu(int3 ruutu) {
-  int akseli, siivu, suunta, tahkoaks, rsuunta_xyz, rsuunta_ij;
-  int3 akslt = akst[ruutu.a[0]];
-  /*normaaliakseli on jäljelle jäävä: tahkon akseli ja reunapalan suunta on käytetty*/
-
-  /*ruudun suunta ij*/
-  for(rsuunta_ij=1; rsuunta_ij<=2; rsuunta_ij++) {
-    if( ruutu.a[rsuunta_ij] % (kuutio.N-1) )
-      continue;
-    goto JATKA; //suunta löytyi
-  }
-  return (int3){{-1,-1,-1}}; //ruutu ei ollut reunalla
-  
- JATKA:
-  /*ruudun suunta xyz*/
-  for(rsuunta_xyz=0; rsuunta_xyz<3; rsuunta_xyz++)
-    if( ABS(akslt.a[rsuunta_xyz]) == rsuunta_ij )
-      break;
-
-  /*tahkon akseli*/
-  for(tahkoaks=0; tahkoaks<3; tahkoaks++)
-    if( !(akslt.a[tahkoaks] % 3) )
-      break;
-
-  akseli = 3 - rsuunta_xyz - tahkoaks;
-  
-  int IvaiJ = (rsuunta_ij==1)? 2: 1;
-  if(akslt.a[akseli] < 0)
-    siivu = ruutu.a[IvaiJ];
-  else
-    siivu = kuutio.N-1 - ruutu.a[IvaiJ];
-
-  /*ainoastaan ristitulon merkillä on väliä*/
-  int3 tahkovkt = (int3){{0,0,0}};
-  int3 suuntavkt = (int3){{0,0,0}};
-  tahkovkt.a[tahkoaks] = akslt.a[tahkoaks]; //oikeaan kohtaan posi- tai negatiivinen luku
-  suuntavkt.a[rsuunta_xyz] = akslt.a[rsuunta_xyz];
-  int3 rtulo = RISTITULO(tahkovkt, suuntavkt, int3); //kaksi kolmesta ovat nollia
-  suunta = 0;
-  for(int i=0; i<3; i++)
-    suunta -= rtulo.a[i]; //miinus koska ristitulo kiertää vastapäivään
-  
-  return (int3){{akseli, siivu, suunta}};
 }
 
 void siirto(int tahko, int siirtokaista, int maara) {
@@ -427,7 +380,6 @@ int main(int argc, char** argv) {
   kuva.paivita = 1;
   kuva.korostus = -1;
   kuva.ruutuKorostus = (int3){{-1, kuutio.N/2, kuutio.N/2}};
-  kuva.siivuKorostus = (int3){{-1, -1, -1}};
   kuva.korostusVari = VARI(80, 233, 166);
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
@@ -465,9 +417,10 @@ int main(int argc, char** argv) {
   int xVanha, yVanha;
   char hiiri_painettu = 0;
   int siirtokaista = 1;
-  int korosta_hiirella = 0;
   int raahattiin = 0;
   int vaihto = 0;
+  int numero1_pohjassa = 0;
+  int numero10_pohjassa = 0;
   while(1) {
     while(SDL_PollEvent(&tapaht)) {
       switch(tapaht.type) {
@@ -574,9 +527,6 @@ int main(int argc, char** argv) {
 	  case SDLK_RETURN:
 	    kaantoanimaatio(_f, 0, (koordf){{0,1,0}}, 1.0, 1);
 	    break;
-	  case SDLK_ESCAPE:
-	    korosta_hiirella = 0;
-	    break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
 	  case SDLK_LEFT:
@@ -646,10 +596,13 @@ int main(int argc, char** argv) {
 	    }
 #endif
 	  default:
-	    if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
+	    if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9' && !numero1_pohjassa) {
+	      numero1_pohjassa = 1;
 	      siirtokaista += tapaht.key.keysym.sym - '1';
-	    else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
+	    } else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9 && !numero10_pohjassa) {
+	      numero10_pohjassa = 1;
 	      siirtokaista += (tapaht.key.keysym.sym - SDLK_KP_1 + 1) * 10;
+	    }
 	    break;
 	  }
 	  break;
@@ -663,12 +616,15 @@ int main(int argc, char** argv) {
 	  siirtokaista = 1;
 	  break;
 	default:
-	  if(vaihto)
-	    break;
-	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	    siirtokaista = 1;
-	  else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9)
-	    siirtokaista = 1;
+	  if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9') {
+	    numero1_pohjassa = 0;
+	    if(!vaihto)
+	      siirtokaista = 1;
+	  } else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9) {
+	    numero10_pohjassa = 0;
+	    if(!vaihto)
+	      siirtokaista = 1;
+	  }
 	  break;
 	}
 	break;
@@ -705,20 +661,14 @@ int main(int argc, char** argv) {
 	  tee_ruutujen_koordtit();
 	  kuva.paivita = 1;
 	  break;
-	} else if(korosta_hiirella) {
-	  /*korostetaan hiiren mahdollisesti osoittama tahko tai siivu*/
-	  kuva.siivuKorostus = hae_siivu(mika_ruutu(tapaht.motion.x, tapaht.motion.y));
-	  kuva.paivita = 1;
-	  break;
 	}
 	break;
       case SDL_MOUSEBUTTONUP:
 	hiiri_painettu = 0;
 	if(!raahattiin) {
-	  if(!korosta_hiirella) {
-	    korosta_hiirella = 1;
-	    break;
-	  }
+	  int tahko = mika_tahko(tapaht.motion.x, tapaht.motion.y);
+	  if(tahko >= 0)
+	    siirtoInl(tahko, siirtokaista, (tapaht.button.button == 1)? 3: 1);
 	}
 	break;
       }

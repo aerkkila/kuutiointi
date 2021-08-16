@@ -48,7 +48,6 @@ typedef struct {
   char paivita;
   int korostus;
   int3 ruutuKorostus;
-  int3 siivuKorostus; //akseli, siivuluku, kääntösuunta
   vari korostusVari;
 } kuva_t;
 
