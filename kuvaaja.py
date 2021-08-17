@@ -37,12 +37,11 @@ plt.plot(ind, ind*ts.slope+ts.intercept, label="ts");
 plt.xlim(right=np.max(ind));
 plt.ylim(top=np.max(ajat));
 
-#dnfien plottaus
+#dnfien piirtäminen
 ala,ula = plt.ylim();
 dnfaika = np.zeros(np.shape(dnfind)) + ula;
 plt.plot(dnfind, dnfaika, 'o', color='r');
 
 plt.legend();
-#plt.tight_layout();
 plt.title('theil-senn: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f\npns: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f' %(ts.slope*1000, ts.intercept, ts.p, pns.slope*1000, pns.intercept, pns.pvalue));
 plt.show();
