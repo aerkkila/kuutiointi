@@ -17,7 +17,7 @@ typedef struct {float a[2];} koordf2;
 typedef struct {int a[3];} int3;
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
-#define SIGN(i) ((i<0)? -1: (i==0)? 0: 1)
+#define SIGN(i) ((i<0)? -1: 1)
 #define ABS(i) ((i<0)? -i: i)
 #define VAIHDA(a,b,tyyppi) {			\
     tyyppi apu = a;				\
@@ -42,7 +42,7 @@ typedef struct {
   SDL_Renderer* rend;
   int xRes;
   int yRes;
-  int sij0; //nurkan paikka kun katsotaan suoraan edestä
+  int sij0; //nurkan paikka katsottaessa suoraan edestä
   float resKuut;
   float mustaOsuus;
   char paivita;
