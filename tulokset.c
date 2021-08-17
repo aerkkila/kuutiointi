@@ -36,7 +36,11 @@ slista* tee_tiedot(int* avgind) {
       a = ftulos->pit-q;
       b = fminind(ka, ftulos->pit-q+1);
       c = fmaxind(ka, ftulos->pit-q+1);
-      sprintf(apuc, " = %.2f  (%.2f – %.2f)", ka[a], ka[b], ka[c]);
+      /*Tuloksiin lisätään 5 ms, jotta pyöristys menee oikein*/
+      sprintf(apuc, " = %s  (%s – %s)",			\
+	      float_kelloksi(apuc+200,ka[a]+0.005),	\
+	      float_kelloksi(apuc+300,ka[b]+0.005),	\
+	      float_kelloksi(apuc+400,ka[c]+0.005));
     }
     slistalle_kopioiden(tietoloput, apuc);
     if(ftulos->pit < q)
@@ -74,7 +78,7 @@ slista* tee_tiedot(int* avgind) {
   int mukaan = ftulos->pit - pois*2;
   ka[0] = keskiarvo(fjarje+pois, mukaan);
   ka[1] = std(fjarje+pois, mukaan, ka[0], 1);
-  sprintf(apuc, " = %.2f (σ = %.2f); %i", ka[0], ka[1], karsinta);
+  sprintf(apuc, " = %s (σ = %.2f); %i", float_kelloksi(apuc+200,ka[0]+0.005), ka[1], karsinta);
   slistalle_kopioiden(tietoloput, apuc);
 
   /*Mediaani*/
@@ -85,7 +89,7 @@ slista* tee_tiedot(int* avgind) {
     *ka += ftulos->taul[b];
     *ka /= 2;
   }
-  sprintf(apuc, " = %.2f (%i.)", *ka, a+1);
+  sprintf(apuc, " = %s (%i.)", float_kelloksi(apuc+200,*ka+0.005), a+1);
   slistalle_kopioiden(tietoloput, apuc);
   return tietoloput;
 }
@@ -132,7 +136,8 @@ void tee_lisatiedot(char** sektus, int alkuind, int n) {
   strftime(apuc+500, 200, "%A %d.%m.%Y klo %H.%M", aika);
 
   float ka = keskiarvo(karstaul, n-2);
-  sprintf(apuc, "Avg%i: %.2f; σ = %.2f; %s", n, ka, std(karstaul, n-2, ka, 0), apuc+500);
+  sprintf(apuc, "Avg%i: %s; σ = %.2f; %s",\
+	  n, float_kelloksi(apuc+1000,ka+0.005), std(karstaul, n-2, ka, 0), apuc+500);
   slistalle_kopioiden(lisatd, apuc);
 
   int ma = fmaxind(arr, n);
