@@ -3,9 +3,9 @@
 #include "kuutio.h"
 
 inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
-  /*x-pyöräytys*/
   float x = xyz.a[0], y = xyz.a[1], z = xyz.a[2];
   float x1,y1,z1;
+  /*x-pyöräytys*/
   y1 = y*cosf(kulmat.a[0]) - z*sinf(kulmat.a[0]);
   z1 = y*sinf(kulmat.a[0]) + z*cosf(kulmat.a[0]);
   y = y1; z = z1;
@@ -19,6 +19,29 @@ inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
   x = x1; y = y1;
   return (koordf){{x,y,z}};
 }
+#define k(i) (koord.a[i])
+#define u(i) (aks.a[i])
+#define co (cosf(kulma))
+#define si (sinf(kulma))
+inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
+  float x,y,z;
+  x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
+       k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
+       k(2) * (u(0)*u(2)*(1-co) + u(1)*si));
+  
+  y = (k(0) * (u(1)*u(0)*(1-co) + u(2)*si) +	\
+       k(1) * (co + u(1)*u(1)*(1-co)) +		\
+       k(2) * (u(1)*u(2)*(1-co) - u(0)*si));
+
+  z = (k(0) * (u(2)*u(0)*(1-co) - u(1)*si) + \
+       k(1) * (u(2)*u(1)*(1-co) + u(0)*si) + \
+       k(2) * (co + u(2)*u(2)*(1-co)));
+  return (koordf){{x,y,z}};
+}
+#undef k
+#undef u
+#undef co
+#undef si
 inline void __attribute((always_inline)) aseta_vari(vari v) {
   SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
 }

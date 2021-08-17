@@ -646,7 +646,7 @@ int main(int argc, char** argv) {
 	  yVanha = tapaht.motion.y;
 	  kuutio.xyz.a[1] += xEro*PI/(2*kuva.resKuut);
 	  if(hiiri_painettu == 2)
-	    kuutio.xyz.a[2] += yEro*PI/(2*kuva.resKuut);
+	    kuutio.xyz.a[2] -= yEro*PI/(2*kuva.resKuut);
 	  else
 	    kuutio.xyz.a[0] += yEro*PI/(2*kuva.resKuut);
 	  if(kuutio.xyz.a[1] < -PI)

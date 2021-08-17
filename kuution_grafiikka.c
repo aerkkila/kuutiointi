@@ -450,30 +450,6 @@ void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
   return;
 }
 
-#define k(i) (koord.a[i])
-#define u(i) (aks.a[i])
-#define co (cosf(kulma))
-#define si (sinf(kulma))
-inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
-  float x,y,z;
-  x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
-       k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
-       k(2) * (u(0)*u(2)*(1-co) + u(1)*si));
-  
-  y = (k(0) * (u(1)*u(0)*(1-co) + u(2)*si) +	\
-       k(1) * (co + u(1)*u(1)*(1-co)) +		\
-       k(2) * (u(1)*u(2)*(1-co) - u(0)*si));
-
-  z = (k(0) * (u(2)*u(0)*(1-co) - u(1)*si) + \
-       k(1) * (u(2)*u(1)*(1-co) + u(0)*si) + \
-       k(2) * (co + u(2)*u(2)*(1-co)));
-  return (koordf){{x,y,z}};
-}
-#undef k
-#undef u
-#undef co
-#undef si
-
 #define PI 3.1415926536
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
   int3 paikka;
