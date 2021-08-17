@@ -35,32 +35,27 @@ kuutio_t luo_kuutio(int N) {
   varit[_l] = VARI(220,120,0  ); //oranssi
   
   kuutio.N = N;
+  int N2 = N*N;
   kuutio.xyz = (koordf){{PI/6, -PI/6, 0}};
-  kuutio.sivut = malloc(6*sizeof(char*));
-  kuutio.ruudut = malloc(6*4*kuutio.N*kuutio.N*sizeof(koordf));
+  kuutio.ruudut = malloc(6*4*N2*sizeof(koordf));
+  kuutio.sivut = malloc(6*N2);
   kuutio.varit = malloc(sizeof(varit));
   kuutio.ratkaistu = 1;
   
   for(int i=0; i<6; i++) {
+    memset(kuutio.sivut+i*N2, i, N2);
     kuutio.varit[i] = varit[i];
-    kuutio.sivut[i] = malloc(N*N);
-    for(int j=0; j<N*N; j++)
-      kuutio.sivut[i][j] = i;
   }
   tee_ruutujen_koordtit();
   return kuutio;
 }
 
 void tuhoa_kuutio() {
-  for(int i=0; i<6; i++) {
-    free(kuutio.sivut[i]);
-    kuutio.sivut[i] = NULL;
-  }
   free(kuutio.sivut);
   free(kuutio.ruudut);
+  free(kuutio.varit);
   kuutio.ruudut = NULL;
   kuutio.sivut = NULL;
-  free(kuutio.varit);
   kuutio.varit = NULL;
 }
 
@@ -198,8 +193,6 @@ void siirto(int tahko, int siirtokaista, int maara) {
     tahko = (tahko+3) % 6;
     siirtokaista = 1;
   }
-  int apu[N*N];
-
   /*siirretään kuin old-pochman-menetelmässä:
     vaihdetaan ensin sivut 0,1, sitten 0,2 jne*/
   int iakseli;
@@ -215,8 +208,7 @@ void siirto(int tahko, int siirtokaista, int maara) {
       int3 ruutu1 = hae_ruutu(ruutu0.a[0],				\
 			      ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki, \
 			      ruutu0.a[2] + (ABS(IvaiJ)-1) * j*N * etumerkki);
-      VAIHDA(kuutio.sivut[ruutu0.a[0]][ruutu0.a[1]*N + ruutu0.a[2]],	\
-	     kuutio.sivut[ruutu1.a[0]][ruutu1.a[1]*N + ruutu1.a[2]], char);
+      VAIHDA(kuutio.sivut[SIVUINT3(ruutu0)], kuutio.sivut[SIVUINT3(ruutu1)], char);
     }
   }
   /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
@@ -261,25 +253,25 @@ void siirto(int tahko, int siirtokaista, int maara) {
   default:
     return;
   }
-  char* sivu = kuutio.sivut[sivuInd];
-  /*kopioidaan kys. sivu ensin*/
-  for(int i=0; i<N*N; i++)
-    apu[i] = sivu[i];
+  char* sivu = kuutio.sivut+sivuInd*N*N;
+  char apu[N*N];
+  memcpy(apu, sivu, N*N);
 
   /*nyt käännetään: */
-#define arvo(sivu,j,i) sivu[(i)*N+(j)]
+#define arvo(taul,j,i) taul[(i)*N+(j)]
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
-      arvo(sivu,j,i) = arvo(apu,N-1-i,j);
+      *sivu++ = arvo(apu,N-1-i,j);
 #undef arvo
   siirto(tahko, siirtokaista, maara-1);
 }
 
 inline char __attribute__((always_inline)) onkoRatkaistu() {
+  int N2 = kuutio.N*kuutio.N;
   for(int sivu=0; sivu<6; sivu++) {
-    char laji = kuutio.sivut[sivu][0];
-    for(int i=1; i<kuutio.N*kuutio.N; i++)
-      if(kuutio.sivut[sivu][i] != laji)
+    char* restrict s = kuutio.sivut+sivu*N2;
+    for(int i=1; i<N2; i++)
+      if(s[i] != *s)
 	return 0;
   }
   return 1;

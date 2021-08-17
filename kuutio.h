@@ -27,9 +27,12 @@ typedef struct {int a[3];} int3;
 #define HAE_RUUTUint3(A) hae_ruutu((A).a[0], (A).a[1], (A).a[2])
 #define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
 #define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
+#define SIVU(tahko, i, j) ((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))
+#define SIVUINT3(A) SIVU((A).a[0],(A).a[1],(A).a[2])
+#define VARIINT3(rtu) (kuutio.varit[(int)kuutio.sivut[SIVUINT3(rtu)]])
 
 typedef struct {
-  char** sivut;
+  char* sivut;
   koordf* ruudut;
   koordf xyz;
   vari* varit;

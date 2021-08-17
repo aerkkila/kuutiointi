@@ -24,7 +24,7 @@ void piirra_kuvaksi() {
   for(int tahko=0; tahko<6; tahko++)
     for(int i=0; i<kuutio.N; i++)
       for(int j=0; j<kuutio.N; j++) {
-	vari vari = kuutio.varit[(int)kuutio.sivut[tahko][i*kuutio.N+j]];
+	vari vari = kuutio.varit[(int)kuutio.sivut[SIVU(tahko,i,j)]];
 	aseta_vari(vari);
 #define A(n) (kuutio.ruudut+RUUTU(tahko,i,j)+n)
 	if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
@@ -40,7 +40,7 @@ void _piirra_kaistoja(int tahko, int kaistaraja) {
       rtu = hae_ruutu(tahko, i, j);
       if(rtu.a[0] < 0)
 	continue;
-      vari vari = kuutio.varit[(int)kuutio.sivut[rtu.a[0]][rtu.a[1]*kuutio.N+rtu.a[2]]];
+      vari vari = kuutio.varit[(int)kuutio.sivut[SIVUINT3(rtu)]];
       aseta_vari(vari);
 #define A(n) kuutio.ruudut+RUUTUINT3(rtu)+n
       if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
@@ -548,7 +548,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	    A = yleispuorautus(A, akseli, askel);
 	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
 	  }
-	  vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
 	  if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 	    piirra_suunnikas(rtu, 3);
@@ -564,7 +564,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	    A = yleispuorautus(A, akseli, askel);
 	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
 	  }
-	  vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
 	  if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 	    piirra_suunnikas(rtu, 3);
@@ -597,7 +597,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	  A = yleispuorautus(A, akseli, askel);
 	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
 	}
-	vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 	  piirra_suunnikas(rtu, 3);
@@ -613,7 +613,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	  A = yleispuorautus(A, akseli, askel);
 	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
 	}
-	vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 	  piirra_suunnikas(rtu, 3);
@@ -659,14 +659,14 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
-	rtu = kuutio.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
+	rtu = kuutio.ruudut+RUUTUINT3(paikka);
 	for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
 	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
 	  A = yleispuorautus(A, akseli, askel);
 	  A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
 	}
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
-	  vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
 	  piirra_suunnikas(rtu, 3);
 	}
@@ -701,7 +701,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
       }
       if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
-	vari vari = kuutio.varit[(int)kuutio.sivut[paikka.a[0]][paikka.a[1]*kuutio.N+paikka.a[2]]];
+	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
 	piirra_suunnikas(rtu, 3);
       }
