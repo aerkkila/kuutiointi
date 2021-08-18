@@ -50,7 +50,7 @@ void _piirra_kaistoja(int tahko, int kaistaraja) {
 }
 
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
-  koordf nurkka, nurkka0; //nurkka0 on nurkan sijainti ennen pyöritystä
+  koordf nurkka, nurkka0; //nurkka0 on nurkan sijainti kuution omassa koordinaatistossa
   float res = kuva.resKuut/2;
   float i,j;
   /*haetaan oikea nurkka ruudusta (vasen ylä, vasen ala yms)*/
@@ -73,29 +73,23 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   i = resPala * (iRuutu + i) + pow(-1,i)*resMusta;
   j = resPala * (jRuutu + j) + pow(-1,j)*resMusta;
   
-  /*i ja j ovat siirrot sivun vasemmasta ylänurkasta, nyt huomioidaan sivu*/
-  switch(tahko) {
-  case _u:
-    nurkka0 = (koordf){{-res+i, res, -res+j}}; break;
-  case _d:
-    nurkka0 = (koordf){{-res+i, -res, res-j}}; break;
-  case _f:
-    nurkka0 = (koordf){{-res+i, res-j, res}}; break;
-  case _b:
-    nurkka0 = (koordf){{res-i, res-j, -res}}; break;
-  case _r:
-    nurkka0 = (koordf){{res, res-j, res-i}}; break;
-  case _l:
-    nurkka0 = (koordf){{-res, res-j, -res+i}}; break;
-  default:
-    fprintf(stderr, "Virhe (tee_nurkan_koordtit): tahko = %i", tahko);
-    return (koordf){{NAN, NAN, NAN}};
-  }
-  nurkka0 = puorauta(nurkka0, kuutio.xyz);
+  /*i ja j ovat siirrot tahkon vasemmasta ylänurkasta, nyt huomioidaan tahko*/
+  int id = akst_tij[tahko].a[0];
+  nurkka0.a[ABS(id%3)] = res * SIGN(id);
+  id = akst_tij[tahko].a[1]; //i-suunta tahkolla
+  nurkka0.a[ABS(id%3)] = (-res + i) * SIGN(id);
+  id = akst_tij[tahko].a[2]; //j-suunta tahkolla
+  nurkka0.a[ABS(id%3)] = (-res + j) * SIGN(id);
 
-  nurkka.a[0] = nurkka0.a[0] + res + kuva.sij0;
-  nurkka.a[1] = nurkka0.a[1] - res - kuva.sij0;
-  nurkka.a[2] = nurkka0.a[2];
+  /*muunnos luonnolliseen koordinaatistoon:
+    uusi_i = vanha_xyz * xyz:n vaikutus i:hin*/
+  for(int i=0; i<3; i++)
+    nurkka.a[i] = (nurkka0.a[0] * kuutio.kannat[0].a[i] +	\
+		   nurkka0.a[1] * kuutio.kannat[1].a[i] +	\
+		   nurkka0.a[2] * kuutio.kannat[2].a[i]);
+  
+  nurkka.a[0] = nurkka.a[0] + res + kuva.sij0;
+  nurkka.a[1] = nurkka.a[1] - res - kuva.sij0;
   return nurkka;
 }
 
@@ -462,7 +456,6 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
   double alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
   double loppu = alku + aika;
   double kului = 0;
-  akseli = puorauta(akseli, kuutio.xyz);
 
   /*Monen kaistan samanaikainen pyöritys merkitään kaistan negatiivisuutena.*/
   

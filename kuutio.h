@@ -34,7 +34,7 @@ typedef struct {int a[3];} int3;
 typedef struct {
   char* sivut;
   koordf* ruudut;
-  koordf xyz;
+  koordf kannat[3];
   vari* varit;
   int N; //NxNxN-kuutio
   char ratkaistu;
@@ -68,6 +68,7 @@ inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p
 extern kuutio_t kuutio;
 extern kuva_t kuva;
 extern int3 akst[6];
+extern int3 akst_tij[6];
 extern SDL_Texture* alusta[];
 
 int mika_tahko(int x, int y);

@@ -18,6 +18,7 @@
 kuutio_t kuutio;
 kuva_t kuva;
 int3 akst[6];
+int3 akst_tij[6];
 SDL_Texture* alusta[2];
 #ifdef __KUUTION_KOMMUNIKOINTI__
 int viimeViesti;
@@ -36,7 +37,10 @@ kuutio_t luo_kuutio(int N) {
   
   kuutio.N = N;
   int N2 = N*N;
-  kuutio.xyz = (koordf){{PI/6, -PI/6, 0}};
+  koordf asento = {{PI/6, -PI/6, 0}};
+  kuutio.kannat[0] = puorauta((koordf){{1,0,0}}, asento);
+  kuutio.kannat[1] = puorauta((koordf){{0,1,0}}, asento);
+  kuutio.kannat[2] = puorauta((koordf){{0,0,1}}, asento);
   kuutio.ruudut = malloc(6*4*N2*sizeof(koordf));
   kuutio.sivut = malloc(6*N2);
   kuutio.varit = malloc(sizeof(varit));
@@ -290,9 +294,10 @@ static inline void __attribute__((always_inline)) animoi(int tahko, int kaista, 
     kaantoaika = erotus;
   else
     kaantoaika = kaantoaika0;
-  koordf akseli = {{(akst[tahko].a[0]/3),	\
-		    (akst[tahko].a[1]/3),	\
-		    (akst[tahko].a[2]/3)}};
+  koordf akseli = kuutio.kannat[tahko%3];
+  if(tahko/3)
+    for(int i=0; i<3; i++)
+      akseli.a[i] *= -1;
   kaantoanimaatio(tahko, kaista, akseli, maara-2, kaantoaika);
   tee_ruutujen_koordtit();
   kuva.paivita = 1;
@@ -360,6 +365,26 @@ int main(int argc, char** argv) {
   else
     oli_sdl = 1;
 
+  /*akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki*/
+  /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
+  i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
+  sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti)*/
+  akst[_r] = (int3){{3, -2, -1}};
+  akst[_l] = (int3){{-3, -2, 1}};
+  akst[_u] = (int3){{1, 3, 2}};
+  akst[_d] = (int3){{1, -3, -2}};
+  akst[_f] = (int3){{1, -2, 3}};
+  akst[_b] = (int3){{-1, -2, -3}};
+
+  /*käänteinen yllä olevaan: luvut ovat tämä, i, j
+    oikea on +x-akselilla (0. = tämä), i on -z-akseli (1. = i, ±2 = z) jne*/
+  akst_tij[_r] = (int3){{3, -2, -1}};
+  akst_tij[_l] = (int3){{-3, 2, -1}};
+  akst_tij[_u] = (int3){{1, 3, 2}};
+  akst_tij[_d] = (int3){{-1, 3, -2}};
+  akst_tij[_f] = (int3){{2, 3, -1}};
+  akst_tij[_b] = (int3){{-2, -3, -1}};
+
   /*Kuvan tekeminen*/
   kuva.ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
@@ -385,17 +410,6 @@ int main(int argc, char** argv) {
       return 1;
   }
   SDL_SetRenderDrawBlendMode(kuva.rend, SDL_BLENDMODE_NONE); //muualla otetaan sellaisenaan
-
-  /*akselit*/
-  /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
-  i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
-  sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti)*/
-  akst[_r] = (int3){{3, -2, -1}};
-  akst[_l] = (int3){{-3, -2, 1}};
-  akst[_u] = (int3){{1, 3, 2}};
-  akst[_d] = (int3){{1, -3, -2}};
-  akst[_f] = (int3){{1, -2, 3}};
-  akst[_b] = (int3){{-1, -2, -3}};
   
 #ifdef __KUUTION_KOMMUNIKOINTI__
   ipc = liity_muistiin();
@@ -632,23 +646,14 @@ int main(int argc, char** argv) {
 	/*pyöritetään, raahauksesta hiirellä*/
 	if(hiiri_painettu) {
 	  raahattiin = 1;
-	  float xEro = tapaht.motion.x - xVanha; //vasemmalle negatiivinen
-	  float yEro = tapaht.motion.y - yVanha; //alas positiivinen
+	  float xEro = (tapaht.motion.x-xVanha) * PI/(2*kuva.resKuut); //vasemmalle negatiivinen
+	  float yEro = (tapaht.motion.y-yVanha) * PI/(2*kuva.resKuut); //alas positiivinen
 	  xVanha = tapaht.motion.x;
 	  yVanha = tapaht.motion.y;
-	  kuutio.xyz.a[1] += xEro*PI/(2*kuva.resKuut);
-	  if(hiiri_painettu == 2)
-	    kuutio.xyz.a[2] -= yEro*PI/(2*kuva.resKuut);
-	  else
-	    kuutio.xyz.a[0] += yEro*PI/(2*kuva.resKuut);
-	  if(kuutio.xyz.a[1] < -PI)
-	    kuutio.xyz.a[1] += 2*PI;
-	  else if (kuutio.xyz.a[1] > PI)
-	    kuutio.xyz.a[1] -= 2*PI;
-	  if(kuutio.xyz.a[0] < -PI)
-	    kuutio.xyz.a[0] += 2*PI;
-	  else if (kuutio.xyz.a[0] > PI)
-	    kuutio.xyz.a[0] -= 2*PI;
+	  koordf akseli = {{[1] = xEro}};
+	  akseli.a[hiiri_painettu & 2] = yEro; // x- tai z-akseli
+	  for(int i=0; i<3; i++)
+	    kuutio.kannat[i] = puorauta(kuutio.kannat[i], akseli);
 	  
 	  tee_ruutujen_koordtit();
 	  kuva.paivita = 1;
