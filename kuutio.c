@@ -84,9 +84,7 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
   
   int aksTahko0;
   int3 ruutu0 = (int3){{tahko0, i0, j0}};
-  for(aksTahko0=0; aksTahko0<3; aksTahko0++)
-    if(ABS(akst[tahko0].a[aksTahko0]) == 3)
-      break;
+  aksTahko0 = ABS(tahko0%3);
   if((i0 < 0 || i0 >= kuutio.N) && (j0 < 0 || j0 >= kuutio.N))
     return (int3){{-1, -1, -1}};
   int ylimenoaks;
@@ -198,17 +196,14 @@ void siirto(int tahko, int siirtokaista, int maara) {
   int N = kuutio.N;
   if(siirtokaista < 0 || siirtokaista > N)
     return;
-  else if(siirtokaista == N) {
+  else if(siirtokaista == N && N > 1) {
     maara = (maara+2) % 4;
     tahko = (tahko+3) % 6;
     siirtokaista = 1;
   }
   /*siirretään kuin old-pochman-menetelmässä:
     vaihdetaan ensin sivut 0,1, sitten 0,2 jne*/
-  int iakseli;
-  for(iakseli=0; iakseli<3; iakseli++)
-    if(ABS(akst[tahko].a[iakseli]) == 1)
-      break;
+  int iakseli = ABS(akst_tij[tahko].a[1]%3);
   int3 ruutu0 = hae_ruutu(tahko, 0, -siirtokaista);
   int IvaiJ = akst[ruutu0.a[0]].a[iakseli];
   for(int j=1; j<4; j++) {
@@ -222,48 +217,12 @@ void siirto(int tahko, int siirtokaista, int maara) {
     }
   }
   /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
-  if(siirtokaista > 1 && siirtokaista < N) {
+  if(siirtokaista > 1) {
     siirto(tahko, siirtokaista, maara-1);
     return;
   }
-  
   /*käännetään käännetty sivu*/
-  int sivuInd;
-  switch(tahko) {
-  case _r:
-    sivuInd = _r;
-    if(siirtokaista == N)
-      sivuInd = _l;
-    break;
-  case _l:
-    sivuInd = _l;
-    if(siirtokaista == N)
-      sivuInd = _r;
-    break;
-  case _u:
-    sivuInd = _u;
-    if(siirtokaista == N)
-      sivuInd = _d;
-    break;
-  case _d:
-    sivuInd = _d;
-    if(siirtokaista == N)
-      sivuInd = _u;
-    break;
-  case _b:
-    sivuInd = _b;
-    if(siirtokaista == N)
-      sivuInd = _f;
-    break;
-  case _f:
-    sivuInd = _f;
-    if(siirtokaista == N)
-      sivuInd = _b;
-    break;
-  default:
-    return;
-  }
-  char* sivu = kuutio.sivut+sivuInd*N*N;
+  char* sivu = kuutio.sivut+tahko*N*N;
   char apu[N*N];
   memcpy(apu, sivu, N*N);
 
