@@ -166,6 +166,12 @@ int mika_tahko(int x, int y) {
   return -1;
 }
 
+double hetkiNyt() {
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  return (double)t.tv_sec + t.tv_usec*1e-6;
+}
+
 int3 mika_ruutu(int x, int y) {
   int tahko = mika_tahko(x,y);
   if(tahko < 0)
@@ -644,21 +650,40 @@ int main(int argc, char** argv) {
 	break;
       case SDL_MOUSEMOTION:;
 	/*pyöritetään, raahauksesta hiirellä*/
-	if(hiiri_painettu) {
-	  raahattiin = 1;
-	  float xEro = (tapaht.motion.x-xVanha) * PI/(2*kuva.resKuut); //vasemmalle negatiivinen
-	  float yEro = (tapaht.motion.y-yVanha) * PI/(2*kuva.resKuut); //alas positiivinen
-	  xVanha = tapaht.motion.x;
-	  yVanha = tapaht.motion.y;
-	  koordf akseli = {{[1] = xEro}};
-	  akseli.a[hiiri_painettu & 2] = yEro; // x- tai z-akseli
-	  for(int i=0; i<3; i++)
-	    kuutio.kannat[i] = puorauta(kuutio.kannat[i], akseli);
-	  
-	  tee_ruutujen_koordtit();
-	  kuva.paivita = 1;
+	if(!hiiri_painettu)
+	  break;
+	raahattiin = 1;
+	static double aika = NAN; //annetaan liikkeen kertyä lyhyen aikaa ennen pyörittämistä
+	static float xEro = 0;
+	static float yEro = 0;
+	xEro += (tapaht.motion.x-xVanha) * PI/(2*kuva.resKuut); //vasemmalle negatiivinen
+	yEro += (tapaht.motion.y-yVanha) * PI/(2*kuva.resKuut); //alas positiivinen
+	xVanha = tapaht.motion.x;
+	yVanha = tapaht.motion.y;
+	if(aika != aika) {
+	  aika = hetkiNyt(); //laitetaan tämä odottamaan ajan kertymistä
 	  break;
 	}
+	if(hetkiNyt() - aika < 0.02)
+	  break;
+	/*aikaa on kertynyt tarpeeksi*/
+	aika = NAN;
+	/*lähes vaaka- tai pystysuora liike tulkitaan kokonaan sellaiseksi,
+	  vinottain liike on huonosti määritelty, koska järjestyksellä on väliä*/
+	float suhde = yEro / xEro;
+	if(ABS(suhde) > 3)
+	  xEro = 0;
+	else if(ABS(suhde) < 0.3333)
+	  yEro = 0;
+	koordf akseli = {{[1] = xEro}};
+	akseli.a[hiiri_painettu & 2] = yEro; // x- tai z-akseli
+	xEro = 0; yEro = 0;
+	
+	for(int i=0; i<3; i++)
+	  kuutio.kannat[i] = puorauta(kuutio.kannat[i], akseli);
+	  
+	tee_ruutujen_koordtit();
+	kuva.paivita = 1;
 	break;
       case SDL_MOUSEBUTTONUP:
 	hiiri_painettu = 0;

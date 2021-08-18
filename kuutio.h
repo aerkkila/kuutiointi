@@ -78,3 +78,4 @@ kuva_t* suora_sivu_kuvaksi(int puoli);
 void paivita();
 int3 hae_ruutu(int tahko, int i0, int j0);
 int3 hae_siivu(int3 ruutu);
+double hetkiNyt();
