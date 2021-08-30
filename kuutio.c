@@ -364,6 +364,10 @@ int main(int argc, char** argv) {
   kuva.ruutuKorostus = (int3){{-1, kuutio.N/2, kuutio.N/2}};
   kuva.korostusVari = VARI(80, 233, 166);
   kuva.resKuut = (ikkuna_h < ikkuna_w)? ikkuna_h/sqrt(3.0)/2 : ikkuna_w/sqrt(3.0);
+  /*jos mustaa on alle 1 ruutu, laitetaan 1 ruutu, jos osuus on silloin alle puolet*/
+  if(kuva.resKuut/kuutio.N*kuva.mustaOsuus < 1)
+    if(1/(kuva.resKuut/kuutio.N) < 0.5)
+      kuva.mustaOsuus = 1/(kuva.resKuut/kuutio.N);
   kuva.sij0 = (ikkuna_h < ikkuna_w)? (ikkuna_h-kuva.resKuut)/2: (ikkuna_w-kuva.resKuut)/2;
 
   kuutio = luo_kuutio(N);
@@ -410,6 +414,9 @@ int main(int argc, char** argv) {
 	    SDL_SetTextureBlendMode(alusta[i], SDL_BLENDMODE_BLEND);
 	  }
 	  kuva.resKuut = koko1/sqrt(3.0);
+	  if(kuva.resKuut/kuutio.N*kuva.mustaOsuus < 1)
+	    if(1/(kuva.resKuut/kuutio.N) < 0.5)
+	      kuva.mustaOsuus = 1/(kuva.resKuut/kuutio.N);
 	  
 	  if((koko1-kuva.resKuut)/2 != kuva.sij0) {
 	    kuva.sij0 = (koko1-kuva.resKuut)/2;
