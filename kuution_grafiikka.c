@@ -28,7 +28,7 @@ void piirra_kuvaksi() {
 	aseta_vari(vari);
 #define A(n) (kuutio.ruudut+RUUTU(tahko,i,j)+n)
 	if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
-	  piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j), 3);
+	  piirra_suunnikas(kuutio.ruudut+RUUTU(tahko, i, j));
 #undef A
       }
 }
@@ -44,7 +44,7 @@ void _piirra_kaistoja(int tahko, int kaistaraja) {
       aseta_vari(vari);
 #define A(n) kuutio.ruudut+RUUTUINT3(rtu)+n
       if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
-	piirra_suunnikas(kuutio.ruudut+RUUTUINT3(rtu), 3);
+	piirra_suunnikas(kuutio.ruudut+RUUTUINT3(rtu));
     }
 #undef A
 }
@@ -93,34 +93,22 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
   return nurkka;
 }
 
-void piirra_suunnikas(void* k23, int onko2vai3) {
-  koordf2* ktit;
-  if(onko2vai3==2) {
-    ktit = malloc(4*sizeof(koordf2));
-    for(int i=0; i<4; i++)
-      for(int j=0; j<2; j++)
-	ktit[i].a[j] = ((koordf2*)k23)[i].a[j];
-  } else if (onko2vai3==3) {
-    ktit = malloc(4*sizeof(koordf2));
-    for(int i=0; i<4; i++)
-      for(int j=0; j<2; j++)
-	ktit[i].a[j] = ((koordf*)k23)[i].a[j];
-  } else {
-    fprintf(stderr, "Virhe: piirra_suunnikas kutsuttiin luvulla %i\n", onko2vai3);
-    return;
-  }
-  koordf2* xnurkat = jarjestaKoord2(ktit, ktit, 0,  4);
-  int xEro = (xnurkat[1].a[0] - xnurkat[0].a[0]) >= 0.5;
+void piirra_suunnikas(koordf* ktit0) {
+  koordf ktit[4];
+  jarjestaKoord(ktit, ktit0, 0,  4); //nurkat x:n mukaan järjestettynä
+  int xEro = (ktit[1].a[0] - ktit[0].a[0]) >= 0.5; //ei pystysuora
 
   float *yUla, *yAla;
   float kulmakerr1, kulmakerr2, y1, y2;
   if(xEro) {
-    kulmakerr2 = ((xnurkat[2].a[1]-xnurkat[0].a[1]) /	\
-		  (xnurkat[2].a[0]-xnurkat[0].a[0]));
-    kulmakerr1 = ((xnurkat[1].a[1]-xnurkat[0].a[1]) /	\
-		  (xnurkat[1].a[0]-xnurkat[0].a[0]));
-    y1 = -xnurkat[0].a[1];
-    y2 = -xnurkat[0].a[1];
+    /*0-nurkasta lähtevän kahden sivun kulmakertoimet*/
+    kulmakerr2 = ((ktit[2].a[1]-ktit[0].a[1]) /	\
+		  (ktit[2].a[0]-ktit[0].a[0]));
+    kulmakerr1 = ((ktit[1].a[1]-ktit[0].a[1]) /	\
+		  (ktit[1].a[0]-ktit[0].a[0]));
+    /*alempi ja ylempi y-koordinaatti ovat alkupisteessä samat ja eriytyvät oikealle mentäessä*/
+    y1 = -ktit[0].a[1];
+    y2 = -ktit[0].a[1];
     if(kulmakerr1 < kulmakerr2) {
       yAla = &y1;
       yUla = &y2;
@@ -129,22 +117,22 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
       yUla = &y1;
     }
   } else { //kaksi samaa kulmakerrointa, katsotaan näistä ylempi
-    int lisa0 = xnurkat[1].a[1] > xnurkat[0].a[1];
-    int lisa1 = xnurkat[3].a[1] > xnurkat[2].a[1];
-    kulmakerr1 = ((xnurkat[2+lisa1].a[1]-xnurkat[0+lisa0].a[1]) /	\
-		  (xnurkat[2+lisa1].a[0]-xnurkat[0+lisa0].a[0]));
+    int lisa0 = ktit[1].a[1] > ktit[0].a[1];
+    int lisa1 = ktit[3].a[1] > ktit[2].a[1];
+    kulmakerr1 = ((ktit[2+lisa1].a[1]-ktit[0+lisa0].a[1]) /	\
+		  (ktit[2+lisa1].a[0]-ktit[0+lisa0].a[0]));
     kulmakerr2 = kulmakerr1;
-    y1 = -xnurkat[lisa0].a[1];
+    y1 = -ktit[lisa0].a[1];
     yUla = &y1;
-    y2 = -xnurkat[!lisa0].a[1];
+    y2 = -ktit[!lisa0].a[1];
     yAla = &y2;
   }
   float muisti=0;
   /*ylä- tai alapuolen kulmakerroin vaihtuu,
     kun saavutetaan kys. puolen nurkka*/
   for(int patka=(xEro)? 0:2; patka<3; patka++) {
-    int xraja = (int)(xnurkat[patka+1].a[0]);
-    for(int i=xnurkat[patka*xEro].a[0]; i<xraja; i++) {
+    int xraja = (int)(ktit[patka+1].a[0]);
+    for(int i=ktit[patka*xEro].a[0]; i<xraja; i++) {
       for(int j=*yUla; j<*yAla; j++)
 	SDL_RenderDrawPoint(kuva.rend, i, j);
       y1 -= kulmakerr1;
@@ -152,14 +140,13 @@ void piirra_suunnikas(void* k23, int onko2vai3) {
     }
     if(patka==0) {
       muisti = kulmakerr1;
-      kulmakerr1 = (xnurkat[1].a[1]-xnurkat[3].a[1]) / (xnurkat[1].a[0]-xnurkat[3].a[0]);
-      y1 = -xnurkat[1].a[1];
+      kulmakerr1 = (ktit[1].a[1]-ktit[3].a[1]) / (ktit[1].a[0]-ktit[3].a[0]);
+      y1 = -ktit[1].a[1];
     } else {
-      kulmakerr2 = muisti; //suunnikkaat ovat kivoja
-      y2 = -xnurkat[2].a[1];
+      kulmakerr2 = muisti; //suunnikkaassa sama kulmakerroin toistuu
+      y2 = -ktit[2].a[1];
     }
   }
-  free(ktit);
 }
 
 int minKoordInd(koordf *ktit, int akseli, int pit) {
@@ -544,7 +531,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
 	  if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-	    piirra_suunnikas(rtu, 3);
+	    piirra_suunnikas(rtu);
 	}
       for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
 	for(int i=0; i<kuutio.N; i++) {
@@ -560,7 +547,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
 	  if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-	    piirra_suunnikas(rtu, 3);
+	    piirra_suunnikas(rtu);
 	}
       /*pysähdys*/
       gettimeofday(&hetki, NULL);
@@ -593,7 +580,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-	  piirra_suunnikas(rtu, 3);
+	  piirra_suunnikas(rtu);
       }
     for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
       for(int i=0; i<kuutio.N; i++) {
@@ -609,7 +596,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-	  piirra_suunnikas(rtu, 3);
+	  piirra_suunnikas(rtu);
       }
     SDL_RenderCopy(kuva.rend, alusta[0], NULL, NULL);
     SDL_RenderPresent(kuva.rend);
@@ -661,7 +648,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
 	  vari vari = VARIINT3(paikka);
 	  aseta_vari(vari);
-	  piirra_suunnikas(rtu, 3);
+	  piirra_suunnikas(rtu);
 	}
       }
     /*pysähdys*/
@@ -696,7 +683,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
       if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
 	vari vari = VARIINT3(paikka);
 	aseta_vari(vari);
-	piirra_suunnikas(rtu, 3);
+	piirra_suunnikas(rtu);
       }
     }
   if(!piirto_tulee_paalle)
