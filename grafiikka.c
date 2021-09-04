@@ -54,45 +54,37 @@ void piirra() {
   if(laitot & kellolai) {
     if(KELLO[0])
       laita_teksti_ttf(&kellool, rend);
-    laitot &= ~kellolai;
   }
   if(laitot & vntalai) {
     laita_valinta(&tarknap, rend);
-    laitot &= ~vntalai;
   }
   if(laitot & muutlai) {
     laita_vierekkain(muut_a, muut_b, 0, &muutol, rend);
-    laitot &= ~muutlai;
   }
   if(laitot & sektuslai) {
     sektusol.sij.h = ikkuna_h - sektusol.sij.y;
     laita_tekstilista(sektus, 1, &sektusol, rend);
-    laitot &= ~sektuslai;
   }
   if(laitot & tuloslai) {
     tulosol.sij.h = ikkuna_h - tulosol.sij.y;
     laita_oikealle(&kellool, 10, stulos, 1, &tulosol, rend);
-    laitot &= ~tuloslai;
   }
   if(laitot & tkstallai) {
     laita_teksti_ttf_vasemmalle(&tulosol, 10, &tkstalol, rend);
-    laitot &= ~tkstallai;
   }
   if(laitot & jarjlai) {
     laita_jarjestus();
-    laitot &= ~jarjlai;
   }
   if(laitot & tiedtlai) {
     /*tässä muuttujien nimet ovat aivan epäloogiset*/
     laita_oikealle(&jarjol1, 25, tietoalut, 1, &tiedotol, rend);
     laita_oikealle(&tiedotol, 0, tietoloput, 1, &tluvutol, rend);
-    laitot &= ~tiedtlai;
   }
   if(laitot & lisatdlai) {
     lisaol.sij.h = ikkuna_h - lisaol.sij.y;
     laita_oikealle(&jarjol1, 20, lisatd, 0, &lisaol, rend);
-    laitot &= ~lisatdlai;
   }
+  laitot = 0;
   SDL_RenderPresent(rend);
 }
 
