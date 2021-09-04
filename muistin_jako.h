@@ -7,7 +7,8 @@ enum viesti_e {
   ipcAnna_sekoitus = 1,
   ipcTarkastelu,
   ipcAloita,
-  ipcLopeta
+  ipcLopeta,
+  ipcJatka
 };
 
 typedef struct {

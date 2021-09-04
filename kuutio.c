@@ -545,6 +545,12 @@ int main(int argc, char** argv) {
 	      viimeViesti = ipcAloita;
 	    }
 	    break;
+	  case SDLK_TAB:
+	    if(viimeViesti == ipcLopeta) {
+	      ipc->viesti = ipcJatka;
+	      viimeViesti = ipcAloita;
+	    }
+	    break;
 #endif
 #ifdef __PYTHON_SAVEL__
 	  case SDLK_F2:; //käynnistää tai sammuttaa sävelkuuntelijan

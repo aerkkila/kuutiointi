@@ -130,6 +130,13 @@ int kaunnista() {
 		MUUTA_TULOS;
 	      }
 	      break;
+	    case SDLK_TAB:
+	    JATKA:
+	      if(tila == seis) {
+		tila = juoksee;
+		nostotoimi = ei_mitaan;
+	      }
+	      break;
 	    case SDLK_LCTRL:
 	    case SDLK_RCTRL:
 	      kontrol = 1;
@@ -684,6 +691,9 @@ int kaunnista() {
     case ipcLopeta:
       ipc->viesti = 0;
       goto LOPETA;
+    case ipcJatka:
+      ipc->viesti = 0;
+      goto JATKA;
     }
 
   JUOKSU_YMS:
