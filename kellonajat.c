@@ -10,22 +10,28 @@
   Palauttaa taulukon montako tulosta on saatu kullakin vuorokauden minuutilla*/
 
 #define KERROIN 0.39894228 // 1/sqrt(2*pi)
-#define GAUSSPIT 45
-#define SIGMA (GAUSSPIT/3.0)
+#define SIGMA (gausspit*0.3333333333333)
 #define GAUSSPAINO(t) ( KERROIN/SIGMA * exp(-0.5*(t)*(t)/(SIGMA*SIGMA)) )
 
-static float* gausskert;
-static float* suodata(int* restrict);
-float* kellonajat(const char*);
-void vapauta(void*);
+float* gausskertoimet;
+static int* toistot0;
+int* toistot;
+float* palaute;
 
-float* kellonajat(const char* tiedosto) {
+float* suodata(int);
+float* kellonajat(const char*);
+void vapauta();
+
+void alusta(const char* tiedosto) {
   FILE *f = fopen(tiedosto, "r");
   if(!f) {
     fprintf(stderr, "Ei tiedostoa \"%s\"\n", tiedosto);
-    return NULL;
+    return;
   }
   ilista* ajat = alusta_lista(512, int);
+  gausskertoimet = malloc(1440*sizeof(float));
+  toistot0 = calloc(2880,sizeof(int)); //1440*2
+  palaute = malloc(1440*sizeof(float));
   setlocale(LC_ALL, "fi_FI.utf8");
   while(1) {
     int tulos, valiluku;
@@ -42,40 +48,34 @@ float* kellonajat(const char* tiedosto) {
     if(tulos == 0 && fscanf(f, "%*s") == EOF)
       break;
   }
-  /*alkuun ja loppuun laitetaan ympärimenot suodatusta varten*/
-  int *toistot = calloc(1440+2*GAUSSPIT,sizeof(int));
-  int *toistot1 = toistot+GAUSSPIT;
+  toistot = toistot0+720; //1440/2
   for(int i=0; i<ajat->pit; i++)
-    toistot1[ajat->taul[i]]++;
+    toistot[ajat->taul[i]]++;
   tuhoa_lista(&ajat);
-  /*ympärimenot*/
-  for(int i=0; i<GAUSSPIT; i++) {
-    toistot[i] = toistot[i+1440];
-    toistot1[i+1440] = toistot1[i];
+  /*alkuun ja loppuun laitetaan ympärimenot suodatusta varten*/
+  for(int i=0; i<720; i++) { //1440/2
+    toistot0[i] = toistot0[i+1440];
+    toistot[i+1440] = toistot[i];
   }
-  /*nopeutetaan laskemalla gaussin kertoimet vain kerran*/
-  float* gausskert0 = malloc((2*GAUSSPIT+1)*sizeof(float));
-  gausskert = gausskert0 + GAUSSPIT;
-  for(int t=-GAUSSPIT; t<=GAUSSPIT; t++)
+}
+
+void vapauta() {
+  free(toistot0);
+  free(gausskertoimet);
+  free(palaute);
+}
+
+float* suodata(int gausspit) {
+  float* gausskert = gausskertoimet + 720; //1440/2
+  for(int t=0; t<=gausspit; t++) {
     gausskert[t] = GAUSSPAINO(t);
-  
-  float* palaute = suodata(toistot1);
-  free(toistot);
-  free(gausskert0);
-  return palaute;
-}
-
-void vapauta(void* taul) {
-  free(taul);
-}
-
-static float* suodata(int* restrict itaul) {
-  float* tulos = malloc(1440*sizeof(float));
+    gausskert[-t] = GAUSSPAINO(t);
+  }
   for(int i=0; i<1440; i++) {
     float summa = 0;
-    for(int T=-GAUSSPIT; T<=GAUSSPIT; T++)
-      summa += itaul[i+T]*gausskert[T];
-    tulos[i] = summa;
+    for(int T=-gausspit; T<=gausspit; T++)
+      summa += toistot[i+T]*gausskert[T];
+    palaute[i] = summa;
   }
-  return tulos;
+  return palaute;
 }
