@@ -1,4 +1,4 @@
-all: kajastin kuutio
+all: kajastin kuutio kellonajat
 
 tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c muistin_jako.c asetelma.c listat.c lomituslajittelu.c
 otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h
@@ -15,3 +15,9 @@ kuutio: ${kuutiotied} ${kuut_ots}
 
 kuutio0: ${kuutiotied} ${kuut_ots}
 	gcc -gdwarf-2 -g3 -Wall -o kuutio ${kuutiotied} ${kuut_libs} -O0
+
+kellonajat: kellonajat.c listat.c
+	gcc -g -Wall -shared -o kellonajat.so -fPIC kellonajat.c listat.c -lm -O3
+
+kellonajat0: kellonajat.c listat.c
+	gcc -g -Wall -shared -o kellonajat.so -fPIC kellonajat.c listat.c -lm -O0
