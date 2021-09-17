@@ -44,6 +44,6 @@ Kuutiossa on myös jotain hiirellä ja nuolilla toimivia tahkojen tai ruutujen k
 
 Tulokset voi tallentaa ctrl+s-komennolla. Tämä tallentaa ajat ja niitten saamisajankohdat, mutta ei sekoituksia. Kirjoitettavan tiedoston nimi lukee kohdassa ulosnimi ja sitä voi vaihtaa yllä kuvatulla tavalla. Jos tiedosto on jo olemassa, kirjoitetaan sen loppuun, mutta jos on samaan aikaan saatuja tuloksia, kirjoitetaan niitten päälle, jottei kaksi peräkkäistä tallennusta tuottaisi samoja tuloksia kahdesti.
 
-Aiemmin tallennettujen tulosten tarkastelu tällä sovellukeslla onnistuu antamalla tiedoston nimi komentoriviargumenttina: ./kajastin TIEDOSTON_NIMI. Tiedostosta voi myös lukea vain osan antamalla rajausargumentin komentorivillä. Esimerkiksi viimeiset tuhat tulosta rajataan komennolla "./kajastin tulokset.txt -1000:", tai ensimmäiset tuhat rajataan argumentilla ":1000". Tarkempi selitys on tiedostossa main.c.
+Aiemmin tallennettujen tulosten tarkastelu tällä sovellukeslla onnistuu antamalla tiedoston nimi komentoriviargumenttina: ./skello TIEDOSTON_NIMI. Tiedostosta voi myös lukea vain osan antamalla rajausargumentin komentorivillä. Esimerkiksi viimeiset tuhat tulosta rajataan komennolla "./skello tulokset.txt -1000:", tai ensimmäiset tuhat rajataan argumentilla ":1000". Tarkempi selitys on tiedostossa main.c.
 
 Joittenkin alueitten fonttikokoa voi muuttaa ctrl+rullaus toiminnolla.

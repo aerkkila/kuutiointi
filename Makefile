@@ -1,4 +1,4 @@
-all: kajastin kuutio kellonajat
+all: skello kuutio kellonajat
 
 tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c muistin_jako.c asetelma.c listat.c lomituslajittelu.c
 otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h
@@ -7,8 +7,8 @@ kuutiotied=kuutio.c kuution_grafiikka.c kuution_kommunikointi.c muistin_jako.c p
 kuut_ots=kuutio.h kuution_grafiikka.h kuution_kommunikointi.h muistin_jako.h python_savel.h
 kuut_libs=-lSDL2 -lm
 
-kajastin: ${tiedostot} ${otsakkeet}
-	gcc -gdwarf-2 -g3 -Wall -o kajastin ${tiedostot} ${libs}
+skello: ${tiedostot} ${otsakkeet}
+	gcc -gdwarf-2 -g3 -Wall -o skello ${tiedostot} ${libs}
 
 kuutio: ${kuutiotied} ${kuut_ots}
 	gcc -gdwarf-2 -g3 -Wall -o kuutio ${kuutiotied} ${kuut_libs} -O3

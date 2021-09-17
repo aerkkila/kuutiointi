@@ -9,13 +9,13 @@ unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 float jarjsuhde = 0.70;
 
-const char* ohjelman_nimi = "Kajastin";
+const char* ohjelman_nimi = "Skello";
 const char* ulosnimi0 = "tulokset.txt";
 const char* uloskansio = "/home/antterkk/kuutiointi/";
 const char* url_valittu = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
 const char* url_eivalittu = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";
 const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|karsintakuvaaja";
+const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
