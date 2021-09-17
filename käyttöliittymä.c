@@ -34,6 +34,7 @@ void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 void laita_sekoitus(shmRak_s* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
+void ulosnimeksi(const char*);
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -96,7 +97,7 @@ int kaunnista() {
 			"Avattava tiedosto",		\
 			"Kuution koko (NxNxN)",		\
 			"Keskiarvon karsinta"};
-  char kontrol = 0;
+  int kontrol = 0;
   ipc = NULL;
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
   alue_e alue = muual;
@@ -207,9 +208,7 @@ int kaunnista() {
 		continue;
 	      case ulosnimiKirj:
 		/*vaihdetaan ulosnimi ja kelloon taas aika*/
-		poista_slistalta_viimeinen(muut_b);
-		slistalle_kopioiden(muut_b, KELLO);
-		ulosnimi = muut_b->taul[0];
+		ulosnimeksi(KELLO);
 		TEKSTI[0] = '\0';
 		break;
 	      case tulosalkuKirj:
@@ -468,8 +467,8 @@ int kaunnista() {
 	      }
 	    }
 	    ipc = liity_muistiin();
-	    if(ipc)
-	      ;//liput |= ipc_auki; //tarkista, onko kuutio auki
+	    sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi
+	    ulosnimeksi(apuc);
 	  }
 	  break;
 	default:
@@ -929,4 +928,12 @@ void rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
   o->rullaus += tapaht.wheel.y;
   o->rullaus *= o->rullaus >= 0;
   return;
+}
+
+
+void ulosnimeksi(const char* nimi) {
+  poista_slistalta_viimeinen(muut_b);
+  slistalle_kopioiden(muut_b, nimi);
+  ulosnimi = muut_b->taul[0];
+  laitot |= muutlai;
 }
