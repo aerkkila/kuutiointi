@@ -26,8 +26,8 @@ ctulos = c_ajat.suodata(alkusuod);
 for i,arvo in enumerate(ctulos.contents):
     ajat[i] = arvo
 
-fig,ax = plt.subplots()
-viiva, = plt.plot(np.linspace(0,24,len(ajat)), ajat)
+fig,ax = plt.subplots(figsize=(14,9))
+viiva, = ax.plot(np.linspace(0,24,len(ajat)), ajat)
 plt.xlim([0,24])
 plt.xticks(np.arange(0,25,2))
 plt.xlabel("Vuorokauden tunti")
@@ -58,10 +58,14 @@ def paivita(arvo):
     plt.draw()
 
 def painettaessa(tapaht):
+    global ax
     if tapaht.key == 'left':
         gauss_liuku.set_val(gauss_liuku.val-1)
     elif tapaht.key == 'right':
         gauss_liuku.set_val(gauss_liuku.val+1)
+    elif tapaht.key == 'enter':
+        ax.set_ylim(np.min(ajat),np.max(ajat))
+        plt.draw()
 
 gauss_liuku.on_changed(paivita)
 fig.canvas.mpl_connect('key_press_event', painettaessa)
