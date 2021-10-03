@@ -13,14 +13,17 @@
 #define SIGMA (gausspit*0.3333333333333)
 #define GAUSSPAINO(t) ( KERROIN/SIGMA * exp(-0.5*(t)*(t)/(SIGMA*SIGMA)) )
 
-float* gausskertoimet;
-static int* toistot0;
-int* toistot;
-float* palaute;
+static float* gausskertoimet;
+static int *toistot0, *toistot;
+static float* palaute;
+static ilista* ajat;
 
 float* suodata(int);
-float* kellonajat(const char*);
+void rajaa(int, int);
+void alusta(const char*);
 void vapauta();
+int pituus();
+int* tarkat_maarat();
 
 void alusta(const char* tiedosto) {
   FILE *f = fopen(tiedosto, "r");
@@ -28,9 +31,9 @@ void alusta(const char* tiedosto) {
     fprintf(stderr, "Ei tiedostoa \"%s\"\n", tiedosto);
     return;
   }
-  ilista* ajat = alusta_lista(512, int);
+  ajat = alusta_lista(512, int);
   gausskertoimet = malloc(1440*sizeof(float));
-  toistot0 = calloc(2880,sizeof(int)); //1440*2
+  toistot0 = calloc(2880,sizeof(int)); //1440*2; ylimääräistä tilaa suodatusta varten
   palaute = malloc(1440*sizeof(float));
   setlocale(LC_ALL, "fi_FI.utf8");
   while(1) {
@@ -48,10 +51,9 @@ void alusta(const char* tiedosto) {
     if(tulos == 0 && fscanf(f, "%*s") == EOF)
       break;
   }
-  toistot = toistot0+720; //1440/2
+  toistot = toistot0+720; //1440/2; tämä osoittaa todelliseen alkuun
   for(int i=0; i<ajat->pit; i++)
     toistot[ajat->taul[i]]++;
-  tuhoa_lista(&ajat);
   /*alkuun ja loppuun laitetaan ympärimenot suodatusta varten*/
   for(int i=0; i<720; i++) { //1440/2
     toistot0[i] = toistot0[i+1440];
@@ -63,6 +65,7 @@ void vapauta() {
   free(toistot0);
   free(gausskertoimet);
   free(palaute);
+  tuhoa_lista(&ajat);
 }
 
 float* suodata(int gausspit) {
@@ -78,4 +81,22 @@ float* suodata(int gausspit) {
     palaute[i] = summa;
   }
   return palaute;
+}
+
+int* tarkat_maarat() {
+  return toistot;
+}
+
+void rajaa(int alku, int loppu) {
+  for(int i=alku; i<loppu; i++)
+    toistot[ajat->taul[i]]++;
+  /*alkuun ja loppuun laitetaan ympärimenot suodatusta varten*/
+  for(int i=alku; i<720; i++) { //1440/2
+    toistot0[i] = toistot0[i+1440];
+    toistot[i+1440] = toistot[i];
+  }
+}
+
+int pituus() {
+  return ajat->pit;
 }
