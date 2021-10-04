@@ -8,7 +8,7 @@ kuut_ots=kuutio.h kuution_grafiikka.h kuution_kommunikointi.h muistin_jako.h pyt
 kuut_libs=-lSDL2 -lm
 
 skello: ${tiedostot} ${otsakkeet}
-	gcc -gdwarf-2 -g3 -Wall -o skello ${tiedostot} ${libs}
+	gcc -gdwarf-2 -g3 -o skello ${tiedostot} ${libs}
 
 kuutio: ${kuutiotied} ${kuut_ots}
 	gcc -gdwarf-2 -g3 -Wall -o kuutio ${kuutiotied} ${kuut_libs} -O3

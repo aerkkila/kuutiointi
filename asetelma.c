@@ -11,15 +11,15 @@ float jarjsuhde = 0.70;
 
 const char* ohjelman_nimi = "Skello";
 const char* ulosnimi0 = "tulokset.txt";
-const char* uloskansio = "/home/antterkk/kuutiointi/";
-const char* url_valittu = "/home/antterkk/kuutiointi/kuva_valittu.bmp";
-const char* url_eivalittu = "/home/antterkk/kuutiointi/kuva_valittu_ei.bmp";
+const char* uloskansio = "/home/aerk/kuutiointi/";
+const char* url_valittu = "/home/aerk/kuutiointi/kuva_valittu.bmp";
+const char* url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
 const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
-			.fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
+			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
 			.sij = {0, 100, 1000, 300}};
 
 SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
@@ -29,14 +29,14 @@ SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 
 tekstiolio_s tulosol = {.ttflaji = 2,					\
 			.sij = {820, 20, 200, 550},			\
-			.fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
+			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
 			.fonttikoko = 19,				\
 			.vari = {100, 200, 150, 255},			\
 			.numerointi = 1};
 
 tekstiolio_s jarjol1 = {.ttflaji = 1,					\
 			.fonttikoko = 19,				\
-			.fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
+			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
 			.vari = {140, 150, 170, 255},			\
 			.sij = {.w=300}};
 
@@ -45,7 +45,7 @@ tekstiolio_s jarjol2 = {.vari = {170, 100, 110, 255}};
 /*tähän tulee esim "avg5 = \navg12 = " jne.*/
 tekstiolio_s tiedotol = {.ttflaji = 0,					\
 			 .fonttikoko = 20,				\
-			 .fonttied = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf", \
+			 .fonttied = "/usr/share/fonts/truetype/SourceCodePro-Regular.ttf", \
 			 .vari = {150, 255, 150, 255},			\
 			 .sij = {900, 20, 500, 500}};
 
@@ -54,26 +54,26 @@ tekstiolio_s tluvutol;
 
 tekstiolio_s lisaol = {.ttflaji = 2,					\
 		       .fonttikoko = 19,				\
-		       .fonttied = "/usr/share/fonts/truetype/msttcorefonts/Verdana.ttf", \
+		       .fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
 		       .vari = {255, 255, 255, 255},			\
 		       .sij = {920, 230, 800, 500}};
 
 tekstiolio_s sektusol = {.ttflaji = 0,					\
 			 .fonttikoko = 20,				\
-			 .fonttied = "/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf", \
+			 .fonttied = "/usr/share/fonts/truetype/SourceCodePro-Regular.ttf", \
 			 .vari = {255, 255, 255, 255},			\
 			 .sij = {0, 390, 1500, 200},			\
 			 .numerointi = 1};
 
 tekstiolio_s muutol = {.ttflaji = 1,					\
 		       .fonttikoko = 14,				\
-		       .fonttied = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",	\
+		       .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf",	\
 		       .vari = {230, 210, 200, 255},			\
 		       .sij = {60, 35, 800, 75}};
 
 tekstiolio_s tkstalol = {.ttflaji = 2,					\
 			 .fonttikoko = 16,				\
-			 .fonttied = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", \
+			 .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf", \
 			 .vari = {230, 230, 230, 255},			\
 			 .sij = {75, 10, 800, 75},			\
 			 .numerointi = 1};
@@ -81,7 +81,7 @@ tekstiolio_s tkstalol = {.ttflaji = 2,					\
 vnta_s tarknap = {.valittu = 1,						\
 		  .teksti = {.ttflaji = 1,				\
 			     .fonttikoko = 12,				\
-			     .fonttied = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", \
+			     .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf", \
 			     .vari = {255, 255, 255, 255},		\
 			     .teksti = "Tarkasteluaika"}};
 
