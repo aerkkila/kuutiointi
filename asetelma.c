@@ -17,6 +17,8 @@ const char* url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
 const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
 
+#define MONOFONTTI "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
+
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
 			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
@@ -27,7 +29,7 @@ SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 			  (SDL_Color){255, 0,   0,   255},	\
 			  (SDL_Color){200, 80,  100, 255}}; 
 
-tekstiolio_s tulosol = {.ttflaji = 2,					\
+tekstiolio_s tulosol = {.ttflaji = 1,					\
 			.sij = {820, 20, 200, 550},			\
 			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
 			.fonttikoko = 19,				\
@@ -43,9 +45,9 @@ tekstiolio_s jarjol1 = {.ttflaji = 1,					\
 tekstiolio_s jarjol2 = {.vari = {170, 100, 110, 255}};
 
 /*tähän tulee esim "avg5 = \navg12 = " jne.*/
-tekstiolio_s tiedotol = {.ttflaji = 0,					\
+tekstiolio_s tiedotol = {.ttflaji = 1,					\
 			 .fonttikoko = 20,				\
-			 .fonttied = "/usr/share/fonts/truetype/SourceCodePro-Regular.ttf", \
+			 .fonttied = MONOFONTTI, \
 			 .vari = {150, 255, 150, 255},			\
 			 .sij = {900, 20, 500, 500}};
 
@@ -60,20 +62,20 @@ tekstiolio_s lisaol = {.ttflaji = 2,					\
 
 tekstiolio_s sektusol = {.ttflaji = 0,					\
 			 .fonttikoko = 20,				\
-			 .fonttied = "/usr/share/fonts/truetype/SourceCodePro-Regular.ttf", \
+			 .fonttied = MONOFONTTI,			\
 			 .vari = {255, 255, 255, 255},			\
 			 .sij = {0, 390, 1500, 200},			\
 			 .numerointi = 1};
 
 tekstiolio_s muutol = {.ttflaji = 1,					\
-		       .fonttikoko = 14,				\
-		       .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf",	\
+		       .fonttikoko = 12,				\
+		       .fonttied = MONOFONTTI,				\
 		       .vari = {230, 210, 200, 255},			\
 		       .sij = {60, 35, 800, 75}};
 
 tekstiolio_s tkstalol = {.ttflaji = 2,					\
 			 .fonttikoko = 16,				\
-			 .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf", \
+			 .fonttied = MONOFONTTI,			\
 			 .vari = {230, 230, 230, 255},			\
 			 .sij = {75, 10, 800, 75},			\
 			 .numerointi = 1};
@@ -81,7 +83,7 @@ tekstiolio_s tkstalol = {.ttflaji = 2,					\
 vnta_s tarknap = {.valittu = 1,						\
 		  .teksti = {.ttflaji = 1,				\
 			     .fonttikoko = 12,				\
-			     .fonttied = "/usr/share/fonts/truetype/SometypeMonoRegular.ttf", \
+			     .fonttied = MONOFONTTI,			\
 			     .vari = {255, 255, 255, 255},		\
 			     .teksti = "Tarkasteluaika"}};
 
@@ -153,8 +155,8 @@ int asetelma() {
   return 0;
 }
 
-void fonttivirhe(int n) {
-  fprintf(stderr, "Virhe: Ei avattu fonttia %i: %s\n", n, TTF_GetError());
+void fonttivirhe(int n, const char* mjon) {
+  fprintf(stderr, "Virhe: Ei avattu fonttia %i\n%s\n: %s\n", n, mjon, TTF_GetError());
 }
 
 int avaa_fontti(tekstiolio_s* teol) {
@@ -171,7 +173,7 @@ int avaa_fontit(int n, ...) {
   for(int i=0; i<n; i++) {
     ol = va_arg(ap, tekstiolio_s*);
     if(avaa_fontti(ol)) {
-      fonttivirhe(i);
+      fonttivirhe(i, ol->fonttied);
       return 1;
     }
   }
