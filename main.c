@@ -36,6 +36,8 @@ int main(int argc, char** argv) {
   ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
+  SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
 
   apuc = malloc(1500);
   if(asetelma())
@@ -60,9 +62,6 @@ int main(int argc, char** argv) {
   srand((unsigned) time(&t));
   strcpy(kellool.teksti, " ");
 
-  SDL_RenderClear(rend);
-  SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-
   /*luetaan tiedosto tarvittaessa*/
   /*luettavaa voidaan rajata:
     viimeiset 1000 --> -1000:
@@ -83,6 +82,7 @@ int main(int argc, char** argv) {
  EI_FONTTI:
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(ikkuna);
+  SDL_DestroyTexture(tausta);
   TTF_Quit();
  EI_TTF:
   SDL_Quit();

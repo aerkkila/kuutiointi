@@ -39,7 +39,6 @@ void ulosnimeksi(const char*);
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
 #define HETKI tuloshetki
-#define MUUTA_TULOS laitot |= muuta_tulos;
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
 				     (tapaht.tapahtlaji.y - (nimi).toteutuma.y) / \
 				     TTF_FontLineSkip((nimi).font))
@@ -51,10 +50,10 @@ void ulosnimeksi(const char*);
     kirjoituslaji = laji;				   \
     nostotoimi = ei_mitaan;				   \
     strcpy(KELLO, "");					   \
-    laitot |= kellolai;					   \
     strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
-    laitot |= tkstallai;				   \
+    laitot = kaikki_laitot;				   \
   }
+#define LAITOT (laitot = (tila == seis)? jaaduta : kaikki_laitot)
 
 extern float skaala;
 extern char* apuc;
@@ -128,7 +127,7 @@ int kaunnista() {
 	      lisaa_listoille(KELLO, nyt.tv_sec);
 	      slistalle_kopioiden(sektus, sekoitus(apuc));
 	      TEE_TIEDOT;
-	      MUUTA_TULOS;
+	      laitot = jaaduta;
 	    }
 	    break;
 	  case SDLK_TAB:
@@ -166,7 +165,7 @@ int kaunnista() {
 	      if(stulos->pit)
 		strcpy(KELLO, *VIIMEINEN(stulos));
 	      TEE_TIEDOT;
-	      MUUTA_TULOS;
+	      laitot = jaaduta;
 	    } else if (tila == kirjoitustila) {
 	      /*koko utf-8-merkki pois kerralla*/
 	      char jatka = 1;
@@ -175,73 +174,70 @@ int kaunnista() {
 		KELLO[strlen(KELLO)-1] = '\0';
 	      }
 	    }
-	    laitot |= kellolai;
 	    break;
 	  case SDLK_RETURN:
 	  case SDLK_KP_ENTER:
-	    SDL_RenderClear(rend);
-	    laitot = kaikki_laitot;
-	    if(tila == kirjoitustila) {
-	      SDL_StopTextInput();
-	      tila = seis;
-	      nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
-	      switch((int)kirjoituslaji) {
-	      case aikaKirj:
-		/*tällä voi kysyä SDL-version*/
-		if(!strcmp("SDL -v", KELLO)) {
-		  SDL_version v;
-		  SDL_VERSION(&v);
-		  sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
-		  laitot |= kellolai;
-		  continue; //jos olisi break, niin tulisi float_kelloksi
-		}
-		/*laitetaan tuloksiin se, mitä kirjoitettiin*/
-		while((apucp = strstr(KELLO, ".")))
-		  *apucp = ',';
-		float_kelloksi(KELLO, lue_kellosta(KELLO)); //tämä muotoilee syötteen
-		lisaa_listoille(KELLO, time(NULL));
-		TEE_TIEDOT;
-		slistalle_kopioiden(sektus, sekoitus(apuc));
-		MUUTA_TULOS;
-		KIRJOITUSLAJIKSI(aikaKirj); //usein halutaan syöttää monta peräkkäin
-		KELLO[0] = '\0';
-		continue;
-	      case ulosnimiKirj:
-		/*vaihdetaan ulosnimi ja kelloon taas aika*/
-		ulosnimeksi(KELLO);
-		TEKSTI[0] = '\0';
-		break;
-	      case tulosalkuKirj:
-		sscanf(KELLO, "%i", &apuind);
-		if(apuind <= stulos->pit) {
-		  tulosol.rullaus += tulosol.alku - (apuind-1);
-		  strcpy(TEKSTI, "");
-		} else {
-		  strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
-		}
-		break;
-	      case kuutionKokoKirj:
-		sscanf(KELLO, "%u", &NxN);
-		strcpy(TEKSTI, "");
-		poista_slistalta_viimeinen(sektus);
-		slistalle_kopioiden(sektus, sekoitus(apuc));
-		break;
-	      case avaa_tiedostoKirj:
-		lue_tiedosto(KELLO, "");
-		TEE_TIEDOT;
-		laitot = kaikki_laitot;
-		break;
-	      case karsintaKirj:
-		sscanf(KELLO, "%u", &karsinta);
-		strcpy(TEKSTI, "");
-		TEE_TIEDOT;
-		break;
-	      }
-	      /*koskee kaikkia kirjoituslajeja*/
-	      if(ftulos)
-		float_kelloksi(KELLO, *VIIMEINEN(ftulos));
+	    if(tila != kirjoitustila) {
+	      LAITOT;
 	      break;
 	    }
+	    laitot = jaaduta;
+	    SDL_StopTextInput();
+	    tila = seis;
+	    nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	    switch((int)kirjoituslaji) {
+	    case aikaKirj:
+	      /*tällä voi kysyä SDL-version*/
+	      if(!strcmp("SDL -v", KELLO)) {
+		SDL_version v;
+		SDL_VERSION(&v);
+		sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
+		continue; //jos olisi break, niin tulisi float_kelloksi
+	      }
+	      /*laitetaan tuloksiin se, mitä kirjoitettiin*/
+	      while((apucp = strstr(KELLO, ".")))
+		*apucp = ',';
+	      float_kelloksi(KELLO, lue_kellosta(KELLO)); //tämä muotoilee syötteen
+	      lisaa_listoille(KELLO, time(NULL));
+	      TEE_TIEDOT;
+	      slistalle_kopioiden(sektus, sekoitus(apuc));
+	      KIRJOITUSLAJIKSI(aikaKirj); //usein halutaan syöttää monta peräkkäin
+	      KELLO[0] = '\0';
+	      continue;
+	    case ulosnimiKirj:
+	      /*vaihdetaan ulosnimi ja kelloon taas aika*/
+	      ulosnimeksi(KELLO);
+	      TEKSTI[0] = '\0';
+	      break;
+	    case tulosalkuKirj:
+	      sscanf(KELLO, "%i", &apuind);
+	      if(apuind <= stulos->pit) {
+		tulosol.rullaus += tulosol.alku - (apuind-1);
+		strcpy(TEKSTI, "");
+	      } else {
+		strcpy(TEKSTI, "Hähää, eipäs onnistukaan");
+	      }
+	      break;
+	    case kuutionKokoKirj:
+	      sscanf(KELLO, "%u", &NxN);
+	      strcpy(TEKSTI, "");
+	      poista_slistalta_viimeinen(sektus);
+	      slistalle_kopioiden(sektus, sekoitus(apuc));
+	      break;
+	    case avaa_tiedostoKirj:
+	      lue_tiedosto(KELLO, "");
+	      TEE_TIEDOT;
+	      break;
+	    case karsintaKirj:
+	      sscanf(KELLO, "%u", &karsinta);
+	      strcpy(TEKSTI, "");
+	      TEE_TIEDOT;
+	      break;
+	    }
+	    /*koskee kaikkia kirjoituslajeja*/
+	    if(ftulos)
+	      float_kelloksi(KELLO, *VIIMEINEN(ftulos));
+	    break;
 	  case SDLK_END:
 	    switch(alue) {
 	    default:
@@ -304,12 +300,11 @@ int kaunnista() {
 	      SDL_RenderClear(rend);
 	      skaala *= 1.1;
 	      SDL_RenderSetScale(rend, skaala, skaala);
-	      laitot = kaikki_laitot;
+	      LAITOT;
 	    } else if(tila != kirjoitustila) {
 	      muuta_sakko(KELLO, stulos->pit-1);
 	      TEE_TIEDOT;
-	      laitot |= kellolai;
-	      MUUTA_TULOS;
+	      LAITOT;
 	    }
 	    break;
 	  case SDLK_MINUS:
@@ -318,7 +313,7 @@ int kaunnista() {
 	      SDL_RenderClear(rend);
 	      skaala /= 1.1;
 	      SDL_RenderSetScale(rend, skaala, skaala);
-	      laitot = kaikki_laitot;
+	      LAITOT;
 	    }
 	    break;
 	  case SDLK_PAUSE:
@@ -343,6 +338,7 @@ int kaunnista() {
 	      if(sakko==plus)
 		alku.tv_sec -= 2;
 	      strcpy(TEKSTI, "");
+	      laitot = kaikki_laitot;
 	      break;
 	    case tarkastelu:
 	    TARKASTELU:
@@ -353,6 +349,7 @@ int kaunnista() {
 	      tila = tarkastelee;
 	      kellool.vari = kellovarit[1];
 	      strcpy(TEKSTI, "");
+	      laitot = kaikki_laitot;
 	      break;
 	    case ei_mitaan:
 	      if(tila != kirjoitustila) //pysäytetty juuri äsken
@@ -523,8 +520,7 @@ int kaunnista() {
 	    muuta_sakko((apuind==stulos->pit-1)? KELLO: apuc, apuind);
 	    TEE_TIEDOT;
 	  }
-	  MUUTA_TULOS;
-	  laitot |= kellolai;
+	  LAITOT;
 	  break;
 	default:
 	  break;
@@ -658,7 +654,6 @@ int kaunnista() {
 	break;
       case SDL_TEXTINPUT:
 	strcat(KELLO, tapaht.text.text);
-	laitot |= kellolai;
 	break;
       case SDL_WINDOWEVENT:
 	switch(tapaht.window.event) {
@@ -666,7 +661,9 @@ int kaunnista() {
 	  SDL_RenderClear(rend);
 	  ikkuna_w = tapaht.window.data1;
 	  ikkuna_h = tapaht.window.data2;
-	  laitot = kaikki_laitot;
+	  SDL_DestroyTexture(tausta);
+	  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
+	  LAITOT;
 	  break;
 	}
 	break;
@@ -695,7 +692,7 @@ int kaunnista() {
     goto JATKA;
   }
 
-JUOKSU_YMS:
+ JUOKSU_YMS:
   if(tila == juoksee) {
     gettimeofday(&nyt, NULL);
     sek = (int)( (nyt.tv_sec + nyt.tv_usec/1.0e6) - (alku.tv_sec + alku.tv_usec/1.0e6) );
@@ -711,7 +708,6 @@ JUOKSU_YMS:
 	      (sakko==dnf)? "Ø(" : "",				\
 	      min, sek/10, sek%10, csek/10, csek%10,			\
 	      (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
-    laitot |= kellolai;
   } else if (tila == tarkastelee) {
     gettimeofday(&nyt, NULL);
     dnyt = nyt.tv_sec + nyt.tv_usec/1.0e6;
@@ -727,11 +723,10 @@ JUOKSU_YMS:
       sakko = dnf;
       kellool.vari = kellovarit[3];
     }
-    laitot |= kellolai;
   }
 
-  if(laitot)
-    piirra();
+  piirra();
+  laitot = kellolai * (tila != seis);
   SDL_Delay(viive);
   goto TOISTOLAUSE;
 }

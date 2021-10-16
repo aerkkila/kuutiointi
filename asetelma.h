@@ -22,6 +22,7 @@ extern char* ulosnimi;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;
+extern SDL_Texture* tausta;
 
 extern tekstiolio_s kellool;
 extern tekstiolio_s tulosol;

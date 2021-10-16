@@ -215,3 +215,4 @@ void tuhoa_asetelma() {
 
 SDL_Renderer* rend;
 SDL_Window* ikkuna;
+SDL_Texture* tausta;

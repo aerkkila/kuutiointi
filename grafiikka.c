@@ -7,8 +7,16 @@
 #define PYYHI(olio) SDL_RenderFillRect(rend, &olio.toteutuma)
 #define KELLO (kellool.teksti)
 
+/*Muuttuja 'laitot' määrittää, mitkä osat piirretään uudestaan.
+Jos laitot == jaaduta, koko kuva piirretään 'tausta'-tekstuuriin
+Jos laitot == 0, tausta vain kopioidaan näytölle.
+Jos laitot == kaikki_laitot, koko kuva paitsi kello piirretäan 'tausta'-tekstuuriin
+Jos laitot == kellolai, tausta kopioidaan näytölle ja laitetaan kello päälle.
+Jos laitot & JOTAINlai, kyseinen JOTAIN pyyhitään taustasta ja piirretään uudestaan
+Käyttöliittymässä asetettakoon tämän jälkeen aina laitot = kellolai * (tila != seis)*/
+
 void laita_jarjestus();
-unsigned short laitot = 0x01ff;
+unsigned short laitot = 0x03ff;
 const unsigned short kellolai  = 0x0001;
 const unsigned short sektuslai = 0x0002;
 const unsigned short tuloslai  = 0x0004;
@@ -18,12 +26,29 @@ const unsigned short lisatdlai = 0x0020;
 const unsigned short muutlai   = 0x0040;
 const unsigned short tkstallai = 0x0080;
 const unsigned short vntalai   = 0x0100;
-const unsigned short muuta_tulos = 0x3e; //sektuslai | tuloslai | jarjlai | tiedtlai | lisatdlai;
 const unsigned short kaikki_laitot = 0x01ff;
+const unsigned short jaaduta   = 0x03ff; //myös kello laitetaan taustaan
 
 float skaala = 1.0;
 
 void piirra() {
+  if(laitot == kellolai) {
+    SDL_RenderCopy(rend, tausta, NULL, NULL);
+    if(KELLO[0])
+      laita_teksti_ttf(&kellool, rend);
+    SDL_RenderPresent(rend);
+    return;
+  }
+  if(!laitot) {
+    SDL_RenderCopy(rend, tausta, NULL, NULL);
+    SDL_RenderPresent(rend);
+    return;
+  }
+  SDL_SetRenderTarget(rend, tausta);
+  if( (laitot & kaikki_laitot) == kaikki_laitot ) {
+    SDL_RenderClear(rend);
+    goto LAITOT;
+  }
   /*pyyhitään vanhat*/
   if(laitot & kellolai)
     PYYHI(kellool);
@@ -50,11 +75,7 @@ void piirra() {
   if(laitot & tkstallai)
     PYYHI(tkstalol);
 
-  /*laitetaan uudet*/
-  if(laitot & kellolai) {
-    if(KELLO[0])
-      laita_teksti_ttf(&kellool, rend);
-  }
+ LAITOT:
   if(laitot & vntalai) {
     laita_valinta(&tarknap, rend);
   }
@@ -84,7 +105,19 @@ void piirra() {
     lisaol.sij.h = ikkuna_h - lisaol.sij.y;
     laita_oikealle(&jarjol1, 20, lisatd, 0, &lisaol, rend);
   }
-  laitot = 0;
+  /*Kelloa ei laiteta taustaan ellei jäädytetä*/
+  if(laitot != jaaduta) {
+    SDL_SetRenderTarget(rend, NULL);
+    SDL_RenderCopy(rend, tausta, NULL, NULL);
+    if(KELLO[0]) //ei tarkisteta, onko kelloa käsketty laittaa, 0:sta on palattu jo aiemmin
+      laita_teksti_ttf(&kellool, rend);
+    SDL_RenderPresent(rend);
+    return;
+  }
+  if(KELLO[0]) //jäädytä
+    laita_teksti_ttf(&kellool, rend);
+  SDL_SetRenderTarget(rend, NULL);
+  SDL_RenderCopy(rend, tausta, NULL, NULL);
   SDL_RenderPresent(rend);
 }
 
@@ -212,7 +245,7 @@ void laita_jarjestus() {
     laita_teksti_ttf(&jarjol2, rend);
     jarjol2.sij.y += rvali;
     if(jarjol2.toteutuma.w > leveystot)
-      leveystot = jarjol1.toteutuma.w;
+      leveystot = jarjol2.toteutuma.w;
   }
   jarjol2.toteutuma.y = jarjol1.toteutuma.y + jarjol1.toteutuma.h;
   jarjol2.toteutuma.h = rvali*raja;

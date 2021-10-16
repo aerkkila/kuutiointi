@@ -42,8 +42,8 @@ extern const unsigned short tiedtlai;
 extern const unsigned short lisatdlai;
 extern const unsigned short muutlai;
 extern const unsigned short tkstallai;
-extern const unsigned short muuta_tulos;
 extern const unsigned short kaikki_laitot;
+extern const unsigned short jaaduta;
 
 void piirra();
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
