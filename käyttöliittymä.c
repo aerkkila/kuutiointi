@@ -466,6 +466,22 @@ int kaunnista() {
 	    ipc = liity_muistiin();
 	    sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi
 	    ulosnimeksi(apuc);
+	  } else if(!strcmp(tmpstr, "autokuutio")) {
+	    /*avataan autokuutio taustaprosessina, tämä on pelkkää pelleilyä*/
+	    int pid1 = fork();
+	    if(pid1 > 0)
+	      waitpid(pid1, NULL, 0);
+	    else if(!pid1) {
+	      int pid2 = fork();
+	      if(pid2 > 0)
+		_exit(0);
+	      else if(!pid2) {
+		sprintf(apuc, "./autokuutio %u", NxN);
+		system(apuc);
+		exit(0);
+	      }
+	    }
+	    ipc = liity_muistiin();
 	  }
 	  break;
 	default:

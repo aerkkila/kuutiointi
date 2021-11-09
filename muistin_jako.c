@@ -21,6 +21,7 @@ shmRak_s* liity_muistiin() {
     return NULL;
   }
   shmRak_s *r = shmat(shmid, NULL, 0);
+  r->viesti = 0;
   if(r < 0) {
     perror("Virhe, shmat");
     return NULL;

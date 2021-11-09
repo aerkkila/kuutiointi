@@ -16,6 +16,9 @@ kuutio: ${kuutiotied} ${kuut_ots}
 kuutio0: ${kuutiotied} ${kuut_ots}
 	gcc -gdwarf-2 -g3 -Wall -o kuutio ${kuutiotied} ${kuut_libs} -O0
 
+autokuutio: ${kuutiotied} ${kuut_ots} automaattikuutio.c automaattisiirrot.c
+	gcc -Wall -o autokuutio kuutio.c kuution_grafiikka.c kuution_kommunikointi.c muistin_jako.c ${kuut_libs} -Ofast -D EI_SAVEL_MAKRO -D AUTOMAATTI
+
 kellonajat: kellonajat.c listat.c
 	gcc -g -Wall -shared -o kellonajat.so -fPIC kellonajat.c listat.c -lm -O3
 

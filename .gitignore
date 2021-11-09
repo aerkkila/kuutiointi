@@ -1,5 +1,7 @@
 skello
 kuutio
+autokuutio
+automaattisiirrot.c
 *.txt*
 *~
 *.so

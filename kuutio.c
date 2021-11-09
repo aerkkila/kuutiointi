@@ -11,7 +11,9 @@
 #include "kuution_grafiikka.h"
 #include "muistin_jako.h"
 #include "kuution_kommunikointi.h"
+#ifndef EI_SAVEL_MAKRO
 #include "python_savel.h"
+#endif
 
 #define PI 3.14159265358979
 
@@ -21,7 +23,7 @@ int3 akst[6];
 int3 akst_tij[6];
 SDL_Texture* alusta[2];
 #ifdef __KUUTION_KOMMUNIKOINTI__
-int viimeViesti;
+int viimeViesti=0;
 shmRak_s *ipc;
 volatile float* savelPtr;
 #endif
@@ -386,8 +388,11 @@ int main(int argc, char** argv) {
     return 1;
 #endif
 
+#ifdef AUTOMAATTI
+#include "automaattikuutio.c" //toistetaan jotain sarjaa automaattisesti
+#endif
+  
 #define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
- 
   SDL_Event tapaht; 
   int xVanha, yVanha;
   char hiiri_painettu = 0;

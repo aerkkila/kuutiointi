@@ -15,7 +15,7 @@ const char* uloskansio = "/home/aerk/kuutiointi/";
 const char* url_valittu = "/home/aerk/kuutiointi/kuva_valittu.bmp";
 const char* url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
 const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio";
+const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
 #define MONOFONTTI "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
 
