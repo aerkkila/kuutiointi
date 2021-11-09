@@ -6,9 +6,7 @@
 #include "kuution_grafiikka.h"
 
 int minKoordInd(koordf *ktit, int akseli, int pit);
-int minKoordInd2(koordf2 *ktit, int akseli, int pit);
 koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
-koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit);
 
 #define TEE_RUUTU kuutio.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
 void tee_ruutujen_koordtit() {
@@ -158,34 +156,6 @@ int minKoordInd(koordf *ktit, int akseli, int pit) {
       minInd = i;
     }
   return minInd;
-}
-
-int minKoordInd2(koordf2 *ktit, int akseli, int pit) {
-  int minInd = 0;
-  float min = ktit[0].a[akseli];
-  for(int i=1; i<pit; i++)
-    if(ktit[i].a[akseli] < min) {
-      min = ktit[i].a[akseli];
-      minInd = i;
-    }
-  return minInd;
-}
-
-koordf2* jarjestaKoord2(koordf2* ret, koordf2* ktit, int akseli, int pit) {
-  if(!ret)
-    ret = malloc(pit*sizeof(koordf));
-  koordf2* juoksu = ret;
-  koordf2 apu;
-  for(int i=0; i<pit; i++)
-    ret[i] = ktit[i];
-  for(int i=0; i<pit; i++) {
-    int ind = minKoordInd2(juoksu, akseli, pit-i);
-    apu = *juoksu;
-    *juoksu = juoksu[ind];
-    juoksu[ind] = apu;
-    juoksu++;
-  }
-  return ret;
 }
 
 /*luo uuden, jos ret == NULL*/
@@ -571,7 +541,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
-	  rtu = kuutio.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
+	rtu = kuutio.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
 	for(int n=0; n<4; n++) {
 	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
 	  A = yleispuorautus(A, akseli, askel);
@@ -587,7 +557,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	paikka = hae_ruutu(tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
-	  rtu = kuutio.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
+	rtu = kuutio.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
 	for(int n=0; n<4; n++) {
 	  A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
 	  A = yleispuorautus(A, akseli, askel);
@@ -606,7 +576,6 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
   /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
   /*normaalin tahkon pyörittäminen*/
 
-  
   /*Paikallaan pysyvä osa piirretään alussa toiseen tekstuuriin.
     Vain liikkuva osa piirretään aina uudestaan*/
   SDL_SetRenderTarget(kuva.rend, *alusta);

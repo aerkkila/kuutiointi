@@ -394,7 +394,7 @@ int main(int argc, char** argv) {
   
 #define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
   SDL_Event tapaht; 
-  int xVanha, yVanha;
+  int xVanha=0, yVanha=0; //alustetaan, ettei kääntäjä varoittele turhaan
   char hiiri_painettu = 0;
   int siirtokaista = 1;
   int raahattiin = 0;
