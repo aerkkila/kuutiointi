@@ -8,6 +8,7 @@ Uint32 viive = 3;
 unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 float jarjsuhde = 0.70;
+const char* paikallisuus = "fi_FI.utf8";
 
 const char* ohjelman_nimi = "Skello";
 const char* ulosnimi0 = "tulokset.txt";

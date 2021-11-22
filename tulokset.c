@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <time.h>
+#include <locale.h>
 #include "asetelma.h"
 #include "tulokset.h"
 
@@ -172,7 +173,7 @@ void poista_listoilta_viimeinen() {
   free(*VIIMEINEN(stulos));
   sektus->pit--; stulos->pit--; ftulos->pit--; thetki->pit--;
 }
-
+#include <stdio.h>
 float lue_kellosta(const char* restrict s) {
   if(strstr(s, "Ø"))
     return INFINITY;
@@ -210,7 +211,8 @@ int lue_tiedosto(const char* tiednimi, char* rajaus) {
   int i;
   char c;
   char* kello = kellool.teksti;
-  
+  setlocale(LC_NUMERIC, "C");
+  int fpit0 = ftulos->pit;
   while(1) {
     while((c=fgetc(f)) < 0x21) //välien yli
       if(c == EOF)
@@ -226,10 +228,12 @@ int lue_tiedosto(const char* tiednimi, char* rajaus) {
     }
     flistalle(ftulos, faika);
     ilistalle(thetki, i);
-    slistalle_kopioiden(stulos, float_kelloksi(kello, faika));
   }
-  fclose(f);
  LUETTU:
+  fclose(f);
+  setlocale(LC_NUMERIC, paikallisuus);
+  for(int i=fpit0; i<ftulos->pit; i++)
+    slistalle_kopioiden(stulos, float_kelloksi(kello, ftulos->taul[i]));
   /*rajataan*/
   if(strlen(rajaus)) {
     int alku, loppu; //loppu on 1., jota ei tule
@@ -316,6 +320,7 @@ int tallenna(const char* restrict tiednimi) {
   if(ftulos->pit <= 0)
     return 1;
   
+  setlocale(LC_NUMERIC, "C");
   FILE *f = fopen(tiednimi, "r+");
   /*jos tiedostoa ei ollut, se tehdään, muuten haetaan oikea kohta*/
   if(!f) {
@@ -347,6 +352,7 @@ int tallenna(const char* restrict tiednimi) {
 	goto KIRJOITA;
       default:
 	fprintf(stderr, "Virhe: Lukeminen epäonnistui, c = %hhx (hexa) '%c'\n", c, c);
+	setlocale(LC_NUMERIC, paikallisuus);
 	return 0;
       }
     } else {
@@ -360,9 +366,9 @@ int tallenna(const char* restrict tiednimi) {
   for(int i=0; i<ftulos->pit; i++)
     fprintf(f, "%.2f\t%i\n", ftulos->taul[i], thetki->taul[i]);
   fclose(f);
+  setlocale(LC_NUMERIC, paikallisuus);
   return 0;
 }
-
 
 inline int __attribute__((always_inline)) fmaxind(float* taul, int n) {
   int m = 0;

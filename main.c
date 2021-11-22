@@ -17,7 +17,7 @@ int lue_tiedosto(const char* tiednimi, char* rajaus);
 char* apuc;
 
 int main(int argc, char** argv) {
-  setlocale(LC_ALL, "fi_FI.utf8");
+  setlocale(LC_ALL, paikallisuus);
   chdir(uloskansio);
   int r = 0;
   

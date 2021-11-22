@@ -10,6 +10,7 @@ extern Uint32 viive;
 extern unsigned NxN;
 extern unsigned karsinta;
 extern float jarjsuhde;
+extern const char* paikallisuus;
 
 extern const char* ohjelman_nimi;
 extern const char* ulosnimi0;
