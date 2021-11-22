@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <time.h>
 #include "listat.h"
+#include <locale.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
 #include <math.h>
 
 /*Tätä kutsutaan python-ohjelmasta kellonajat.py kuvaajan piirtämiseksi.
@@ -26,6 +26,7 @@ int pituus();
 int* tarkat_maarat();
 
 void alusta(const char* tiedosto) {
+  setlocale(LC_NUMERIC, "C");
   FILE *f = fopen(tiedosto, "r");
   if(!f) {
     fprintf(stderr, "Ei tiedostoa \"%s\"\n", tiedosto);
@@ -35,7 +36,6 @@ void alusta(const char* tiedosto) {
   gausskertoimet = malloc(1440*sizeof(float));
   toistot0 = calloc(2880,sizeof(int)); //1440*2; ylimääräistä tilaa suodatusta varten
   palaute = malloc(1440*sizeof(float));
-  setlocale(LC_ALL, "fi_FI.utf8");
   while(1) {
     int tulos, valiluku;
     tulos = fscanf(f, "%*f%i", &valiluku);

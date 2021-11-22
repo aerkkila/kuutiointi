@@ -2,6 +2,7 @@ skello
 kuutio
 autokuutio
 automaattisiirrot.c
+*.tar
 *.txt*
 *~
 *.so
