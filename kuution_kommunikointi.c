@@ -3,12 +3,12 @@
 #include <sys/shm.h>
 #include <unistd.h>
 #include "muistin_jako.h"
-#include "kuution_kommunikointi.h"
 #include "kuutio.h"
 
 extern kuutio_t kuutio;
 extern kuva_t kuva;
 extern int viimeViesti;
+void lue_siirrot(shmRak_s*);
 
 inline int __attribute__((always_inline)) kaistaksi(char c) {
   int kaista = 1;

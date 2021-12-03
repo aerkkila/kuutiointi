@@ -10,7 +10,6 @@
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
 #include "muistin_jako.h"
-#include "kuution_kommunikointi.h"
 #ifndef EI_SAVEL_MAKRO
 #include "python_savel.h"
 #endif
@@ -22,7 +21,8 @@ kuva_t kuva;
 int3 akst[6];
 int3 akst_tij[6];
 SDL_Texture* alusta[2];
-#ifdef __KUUTION_KOMMUNIKOINTI__
+#ifndef __EI_AJANOTTOA__
+void lue_siirrot(shmRak_s*);
 int viimeViesti=0;
 shmRak_s *ipc;
 volatile float* savelPtr;
@@ -303,7 +303,7 @@ static inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaist
   siirto(tahko, kaista, maara);
   kuva.paivita = 1;
   kuutio.ratkaistu = onkoRatkaistu();
-#ifdef __KUUTION_KOMMUNIKOINTI__
+#ifndef __EI_SEKUNTIKELLOA__
   if(viimeViesti == ipcTarkastelu) {
     ipc->viesti = ipcAloita;
     viimeViesti = ipcAloita;
@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
   }
   SDL_SetRenderDrawBlendMode(kuva.rend, SDL_BLENDMODE_NONE); //muualla otetaan sellaisenaan
   
-#ifdef __KUUTION_KOMMUNIKOINTI__
+#ifndef __EI_SEKUNTIKELLOA__
   ipc = liity_muistiin();
   if(!ipc)
     return 1;
@@ -535,7 +535,7 @@ int main(int argc, char** argv) {
 	    break;
 #undef A
 #undef B
-#ifdef __KUUTION_KOMMUNIKOINTI__
+#ifndef __EI_SEKUNTIKELLOA__
 	  case SDLK_F1:
 	    lue_siirrot(ipc);
 	    ipc->viesti = ipcTarkastelu;
