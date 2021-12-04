@@ -6,3 +6,4 @@ automaattisiirrot.c
 *.txt*
 *~
 *.so
+vgcore*
