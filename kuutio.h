@@ -29,20 +29,21 @@ typedef struct {int a[3];} int3;
 #define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
 #define SIVU(tahko, i, j) ((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))
 #define SIVUINT3(A) SIVU((A).a[0],(A).a[1],(A).a[2])
-#define VARIINT3(rtu) (kuutio.varit[(int)kuutio.sivut[SIVUINT3(rtu)]])
+#define VARIINT3(rtu) (kuva.varit[(int)kuutio.sivut[SIVUINT3(rtu)]])
 
 typedef struct {
   char* sivut;
-  koordf* ruudut;
-  koordf kannat[3];
-  vari* varit;
   int N; //NxNxN-kuutio
+  int N2; //N²
   char ratkaistu;
 } kuutio_t;
 
 typedef struct {
   SDL_Window* ikkuna;
   SDL_Renderer* rend;
+  vari varit[6];
+  koordf kannat[3];
+  koordf* ruudut;
   int xRes;
   int yRes;
   int sij0; //nurkan paikka katsottaessa suoraan edestä
@@ -63,7 +64,6 @@ inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p
 }
 
 #define RISTITULO(v1,v2,tyyppi) (tyyppi){{v1.a[1]*v2.a[2] - v1.a[2]*v2.a[1], v1.a[2]*v2.a[0] - v1.a[0]*v2.a[2], v1.a[0]*v2.a[1] - v2.a[0]*v1.a[1]}}
-#endif
 
 extern kuutio_t kuutio;
 extern kuva_t kuva;
@@ -79,3 +79,5 @@ void paivita();
 int3 hae_ruutu(int tahko, int i0, int j0);
 int3 hae_siivu(int3 ruutu);
 double hetkiNyt();
+
+#endif

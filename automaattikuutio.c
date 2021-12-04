@@ -1,7 +1,7 @@
-/*lisätään #include-komennolla tiedostoon kuutio.c*/
+/*lisätään #include-komennolla tiedoston kuutio.c pääfunktioon*/
   
 #define KAANTO(tahko, kaista, maara, aika) {				\
-    koordf akseli = kuutio.kannat[tahko%3];				\
+    koordf akseli = kuva.kannat[tahko%3];				\
     if(tahko/3)								\
       for(int i=0; i<3; i++)						\
 	akseli.a[i] *= -1;						\
@@ -46,4 +46,4 @@ do {
 ipc->viesti = ipcLopeta;
 viimeViesti = ipcLopeta;
 paivita();
-printf("siirtoja: %i\n", autolasku);
+printf("%i siirtoa\n", autolasku);
