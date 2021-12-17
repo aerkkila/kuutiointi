@@ -19,10 +19,11 @@ const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
 #define MONOFONTTI "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
+#define YLEISFONTTI "/usr/share/fonts/noto/NotoSans-Medium.ttf"
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
-			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
+			.fonttied = YLEISFONTTI, \
 			.sij = {0, 100, 1000, 300}};
 
 SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
@@ -32,14 +33,14 @@ SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 
 tekstiolio_s tulosol = {.ttflaji = 1,					\
 			.sij = {820, 20, 200, 550},			\
-			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
+			.fonttied = YLEISFONTTI, \
 			.fonttikoko = 19,				\
 			.vari = {100, 200, 150, 255},			\
 			.numerointi = 1};
 
 tekstiolio_s jarjol1 = {.ttflaji = 1,					\
 			.fonttikoko = 19,				\
-			.fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
+			.fonttied = YLEISFONTTI, \
 			.vari = {140, 150, 170, 255},			\
 			.sij = {.w=300}};
 
@@ -57,7 +58,7 @@ tekstiolio_s tluvutol;
 
 tekstiolio_s lisaol = {.ttflaji = 2,					\
 		       .fonttikoko = 19,				\
-		       .fonttied = "/usr/share/fonts/truetype/verdana.ttf", \
+		       .fonttied = YLEISFONTTI, \
 		       .vari = {255, 255, 255, 255},			\
 		       .sij = {920, 230, 800, 500}};
 
