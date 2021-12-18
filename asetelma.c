@@ -10,21 +10,21 @@ unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskia
 float jarjsuhde = 0.70;
 const char* paikallisuus = "fi_FI.utf8";
 
-const char* ohjelman_nimi = "Skello";
-const char* ulosnimi0 = "tulokset.txt";
-const char* uloskansio = "/home/aerk/kuutiointi/";
-const char* url_valittu = "/home/aerk/kuutiointi/kuva_valittu.bmp";
-const char* url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
-const char* tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
+const char* restrict ohjelman_nimi = "Skello";
+const char* restrict ulosnimi0 = "tulokset.txt";
+const char* restrict uloskansio = "/home/aerk/kuutiointi/";
+const char* restrict url_valittu = "/home/aerk/kuutiointi/kuva_valittu.bmp";
+const char* restrict url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
+const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
+const char* restrict muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
-#define MONOFONTTI "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
-#define YLEISFONTTI "/usr/share/fonts/noto/NotoSans-Medium.ttf"
+#define MONOFONTTI "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"
+#define YLEISFONTTI "/usr/share/fonts/liberation/LiberationSans-Regular.ttf"
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
-			.fonttied = YLEISFONTTI, \
-			.sij = {0, 100, 1000, 300}};
+			.fonttied = "/usr/share/fonts/liberation/LiberationSans-Regular.ttf", \
+			.sij = {0, 50, 2500, 4000}};
 
 SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 			  (SDL_Color){0,   255, 0,   255},	\
@@ -32,15 +32,15 @@ SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\
 			  (SDL_Color){200, 80,  100, 255}}; 
 
 tekstiolio_s tulosol = {.ttflaji = 1,					\
-			.sij = {820, 20, 200, 550},			\
+			.sij = {770, 20, 200, 550},			\
 			.fonttied = YLEISFONTTI, \
-			.fonttikoko = 19,				\
+			.fonttikoko = 21,				\
 			.vari = {100, 200, 150, 255},			\
 			.numerointi = 1};
 
 tekstiolio_s jarjol1 = {.ttflaji = 1,					\
-			.fonttikoko = 19,				\
-			.fonttied = YLEISFONTTI, \
+			.fonttikoko = 21,				\
+			.fonttied = YLEISFONTTI,			\
 			.vari = {140, 150, 170, 255},			\
 			.sij = {.w=300}};
 
@@ -62,7 +62,7 @@ tekstiolio_s lisaol = {.ttflaji = 2,					\
 		       .vari = {255, 255, 255, 255},			\
 		       .sij = {920, 230, 800, 500}};
 
-tekstiolio_s sektusol = {.ttflaji = 0,					\
+tekstiolio_s sektusol = {.ttflaji = 1,					\
 			 .fonttikoko = 20,				\
 			 .fonttied = MONOFONTTI,			\
 			 .vari = {255, 255, 255, 255},			\
@@ -181,6 +181,17 @@ int avaa_fontit(int n, ...) {
   }
   va_end(ap);
   return 0;
+}
+
+void vakiosijainnit() {
+  unsigned laitot0 = laitot;
+  laitot = jaaduta;
+  piirra();
+  kellool.sij.y = muutol.toteutuma.y + muutol.toteutuma.h;
+  piirra(); //toistetaan varalta
+  sektusol.sij.y = kellool.toteutuma.y + kellool.toteutuma.h + 5;
+  piirra();
+  laitot = laitot0;
 }
 
 void tuhoa_asetelma() {

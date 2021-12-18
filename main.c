@@ -10,6 +10,7 @@
 
 int kaunnista();
 int lue_tiedosto(const char* tiednimi, char* rajaus);
+void piirra();
 
 /*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
   käynnistää käyttöliittymän*/
@@ -75,6 +76,8 @@ int main(int argc, char** argv) {
     if( lue_tiedosto(argv[1], "") )
       return 1;
   }
+  
+  vakiosijainnit();
   
   r = kaunnista();
 

@@ -99,6 +99,7 @@ int kaunnista() {
   int kontrol = 0;
   ipc = NULL;
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+  LAITOT;
   alue_e alue = muual;
   sakko_e sakko;
   SDL_Cursor* kursori;
@@ -570,6 +571,7 @@ int kaunnista() {
 	  default:
 	    break;
 	  }
+	  vakiosijainnit();
 	} else {
 	  switch(alue) {
 	  case tuloksetal:
