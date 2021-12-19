@@ -76,9 +76,7 @@ int main(int argc, char** argv) {
     if( lue_tiedosto(argv[1], "") )
       return 1;
   }
-  
-  vakiosijainnit();
-  
+    
   r = kaunnista();
 
   tuhoa_asetelma();
