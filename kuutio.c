@@ -135,10 +135,9 @@ inline char __attribute__((always_inline)) onkoRatkaistu() {
 
 int main(int argc, char** argv) {
   int N;
-  if(argc < 2)
+  if( argc < 2 || !(sscanf(argv[1], "%i", &N)) )
     N = 3;
-  else
-    sscanf(argv[1], "%i", &N);
+  
   /*akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
   i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)

@@ -21,15 +21,20 @@ static const char* tahkot = "RUFLDB";
 static const char* suunnat = " '2";
 static const int isuunnat[] = {1,3,2};
 
-#define MAXPIT 5
-#define PIT_SARJA (MAXPIT*3+1)
-#define PIT_ISARJA (MAXPIT*2*sizeof(int))
+int maxpit_l = 4;
+for(int i=0; i<argc-1; i++)
+  if(!strcmp(argv[i], "--maxpit"))
+    if(!(sscanf(argv[i+1], "%i", &maxpit_l)))
+      puts("Ei luettu maksimipituutta");
+
+#define PIT_SARJA (maxpit_l*3+1)
+#define PIT_ISARJA (maxpit_l*2*sizeof(int))
 char* sarja = malloc(PIT_SARJA);
 int* isarja = malloc(PIT_ISARJA);
 char* sarja0 = malloc(PIT_SARJA);
 int* isarja0 = malloc(PIT_ISARJA);
 memset(sarja,suunnat[0],PIT_SARJA);
-for(int i=0; i<MAXPIT*2; i++)
+for(int i=0; i<maxpit_l*2; i++)
   isarja[i] = isuunnat[0];
 sarja[PIT_SARJA-1] = '\0';
 
@@ -131,7 +136,7 @@ int sarjantekofunktio(int pit, char* sarja, int* isarja) {
   return 0;
 }
 
-for(int pit=1; pit<=MAXPIT; pit++) {
+for(int pit=1; pit<=maxpit_l; pit++) {
   int sarjoja = 0;
   sarja[pit*3] = '\0';
   while(!sarjantekofunktio(pit,sarja,isarja)) {
@@ -150,6 +155,5 @@ free(sarja); free(isarja);
 free(sarja0); free(isarja0);
 sarja = sarja0 = NULL;
 isarja = isarja0 = NULL;
-#undef MAXPIT
 #undef PIT_SARJA
 #undef PIT_ISARJA
