@@ -166,7 +166,9 @@ int main(int argc, char** argv) {
     return 1;
 #endif
 
-#ifndef __EI_GRAFIIKKAA__
+#ifdef __EI_GRAFIIKKAA__
+#include "laskentakuutio.c"
+#else //__on_grafiikka__
   char oli_sdl = 0;
   if(!SDL_WasInit(SDL_INIT_VIDEO))
     SDL_Init(SDL_INIT_VIDEO);
@@ -205,7 +207,7 @@ int main(int argc, char** argv) {
   free(kuva.ruudut);
   if(!oli_sdl)
     SDL_Quit();
-#endif //ifndef __EI_GRAFIIKKAA__
+#endif // __on_grafiikka__
   free(kuutio.sivut);
   return 0;
 }
