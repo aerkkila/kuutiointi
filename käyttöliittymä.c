@@ -35,6 +35,8 @@ void laita_sekoitus(shmRak_s* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 void ulosnimeksi(const char*);
+void taustaprosessina(const char* restrict);
+void avaa_kuutio();
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -158,6 +160,14 @@ int kaunnista() {
 	    } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);
 	    }
+	    break;
+	  case SDLK_a:
+	    if(tila == seis)
+	      KIRJOITUSLAJIKSI(aikaKirj);
+	    break;
+	  case SDLK_k:
+	    if(tila == seis)
+	      avaa_kuutio();
 	    break;
 	  case SDLK_BACKSPACE:
 	    if(tila == seis && stulos->pit>0) {
@@ -290,8 +300,7 @@ int kaunnista() {
 	      if(stulos->pit>0)
 		strcpy(KELLO, *VIIMEINEN(stulos));
 	      TEKSTI[0] = '\0';
-	      laitot |= tkstallai;
-	      laitot |= kellolai;
+	      laitot = jaaduta;
 	    }
 	    break;
 	  case SDLK_PLUS:
@@ -449,39 +458,14 @@ int kaunnista() {
 	      }   
 	    }
 	  } else if(!strcmp(tmpstr, "kuutio")) {
-	    /*avataan kuutio taustaprosessina*/
-	    int pid1 = fork();
-	    if(pid1 > 0)
-	      waitpid(pid1, NULL, 0);
-	    else if(!pid1) {
-	      int pid2 = fork();
-	      if(pid2 > 0)
-		_exit(0);
-	      else if(!pid2) {
-		sprintf(apuc, "./kuutio %u", NxN);
-		system(apuc);
-		exit(0);
-	      }
-	    }
-	    ipc = liity_muistiin();
-	    sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi
-	    ulosnimeksi(apuc);
+	    avaa_kuutio();
 	  } else if(!strcmp(tmpstr, "autokuutio")) {
 	    /*avataan autokuutio taustaprosessina, tämä on pelkkää pelleilyä*/
-	    int pid1 = fork();
-	    if(pid1 > 0)
-	      waitpid(pid1, NULL, 0);
-	    else if(!pid1) {
-	      int pid2 = fork();
-	      if(pid2 > 0)
-		_exit(0);
-	      else if(!pid2) {
-		sprintf(apuc, "./autokuutio %u", NxN);
-		system(apuc);
-		exit(0);
-	      }
-	    }
+	    sprintf(apuc, "./autokuutio %u", NxN);
+	    taustaprosessina(apuc);
 	    ipc = liity_muistiin();
+	    strcpy(TEKSTI, "Aloita välilyönnillä");
+	      laitot |= tkstallai;
 	  }
 	  break;
 	default:
@@ -666,7 +650,6 @@ int kaunnista() {
 	  else
 	    strcpy(TEKSTI, tekstialue[kirjoituslaji]);
 	}
-
 	break;
       case SDL_TEXTINPUT:
 	strcat(KELLO, tapaht.text.text);
@@ -717,11 +700,11 @@ int kaunnista() {
     csek = (nyt.tv_usec - alku.tv_usec + 1000000)/10000 % 100;
     if(!min)
       sprintf(KELLO, "%s%hi,%hi%hi%s",				\
-	      (sakko==dnf)? "Ø(" : "", sek, csek/10, csek%10,		\
+	      (sakko==dnf)? "Ø(" : "", sek, csek/10, csek%10,	\
 	      (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
     else
       sprintf(KELLO, "%s%hi:%hi%hi,%hi%hi%s",				\
-	      (sakko==dnf)? "Ø(" : "",				\
+	      (sakko==dnf)? "Ø(" : "",					\
 	      min, sek/10, sek%10, csek/10, csek%10,			\
 	      (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
   } else if (tila == tarkastelee) {
@@ -786,11 +769,7 @@ alue_e hae_alue(int x, int y) {
 }
 
 char* sekoitus(char* s) {
-  short pit;
-  if(NxN == 2)
-    pit = 9;
-  else
-    pit = (NxN-2)*20;
+  short pit = (NxN==2)? 9 : (NxN-2)*20;
   unsigned paksuus = NxN/2;
   const char pinnat[] = "RLUDFBrludfb";
   const char suunnat[] = " '2";
@@ -947,4 +926,27 @@ void ulosnimeksi(const char* nimi) {
   slistalle_kopioiden(muut_b, nimi);
   ulosnimi = muut_b->taul[0];
   laitot |= muutlai;
+}
+
+void taustaprosessina(const char* restrict komento) {
+  int pid1 = fork();
+  if(pid1 > 0)
+    waitpid(pid1, NULL, 0);
+  else if(!pid1) {
+    int pid2 = fork();
+    if(pid2 > 0)
+      _exit(0);
+    else if(!pid2) {
+      system(komento);
+      exit(0);
+    }
+  }
+}
+
+void avaa_kuutio() {
+  sprintf(apuc, "./kuutio %u", NxN);
+  taustaprosessina(apuc);
+  ipc = liity_muistiin();
+  sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi
+  ulosnimeksi(apuc);
 }
