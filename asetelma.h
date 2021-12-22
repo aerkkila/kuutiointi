@@ -12,13 +12,13 @@ extern unsigned karsinta;
 extern float jarjsuhde;
 extern const char* paikallisuus;
 
-extern const char* ohjelman_nimi;
-extern const char* ulosnimi0;
-extern const char* uloskansio;
-extern const char* url_valittu;
-extern const char* url_eivalittu;
-extern const char* tietoalkustr;
-extern const char* muut_a_str;
+extern const char* restrict ohjelman_nimi;
+extern const char* restrict ulosnimi0;
+extern const char* restrict uloskansio;
+extern const char* restrict url_valittu;
+extern const char* restrict url_eivalittu;
+extern const char* restrict tietoalkustr;
+extern const char* restrict muut_a_str;
 extern char* ulosnimi;
 
 extern SDL_Renderer* rend;
@@ -53,6 +53,7 @@ extern int* jarjes;
 extern float* fjarje;
 
 int asetelma();
+void vakiosijainnit();
 void tuhoa_asetelma();
 
 #endif

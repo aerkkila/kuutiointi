@@ -135,10 +135,9 @@ inline char __attribute__((always_inline)) onkoRatkaistu() {
 
 int main(int argc, char** argv) {
   int N;
-  if(argc < 2)
+  if( argc < 2 || !(sscanf(argv[1], "%i", &N)) )
     N = 3;
-  else
-    sscanf(argv[1], "%i", &N);
+  
   /*akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki*/
   /*esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
   i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
@@ -166,7 +165,9 @@ int main(int argc, char** argv) {
     return 1;
 #endif
 
-#ifndef __EI_GRAFIIKKAA__
+#ifdef __EI_GRAFIIKKAA__
+#include "laskentakuutio.c"
+#else //__on_grafiikka__
   char oli_sdl = 0;
   if(!SDL_WasInit(SDL_INIT_VIDEO))
     SDL_Init(SDL_INIT_VIDEO);
@@ -205,7 +206,7 @@ int main(int argc, char** argv) {
   free(kuva.ruudut);
   if(!oli_sdl)
     SDL_Quit();
-#endif //ifndef __EI_GRAFIIKKAA__
+#endif // __on_grafiikka__
   free(kuutio.sivut);
   return 0;
 }

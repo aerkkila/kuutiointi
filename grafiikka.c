@@ -161,7 +161,6 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
 		  pinta->w,						\
 		  pinta->h};
 
-  SDL_RenderFillRect(rend, &o->toteutuma);
   SDL_RenderCopy(rend, ttuuri, &osa, &o->toteutuma);
   SDL_FreeSurface(pinta);
   SDL_DestroyTexture(ttuuri);

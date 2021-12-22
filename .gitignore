@@ -1,6 +1,7 @@
 skello
 kuutio
 autokuutio
+laskentakuutio
 automaattisiirrot.c
 *.tar
 *.txt*

@@ -110,6 +110,8 @@ int kaunnista() {
   char* apucp;
 
   TEE_TIEDOT;
+  vakiosijainnit();
+  LAITOT;
   SDL_StopTextInput();
   slistalle_kopioiden(sektus, sekoitus(apuc));
  TOISTOLAUSE:
@@ -554,6 +556,7 @@ int kaunnista() {
 	  default:
 	    break;
 	  }
+	  vakiosijainnit();
 	} else {
 	  switch(alue) {
 	  case tuloksetal:
