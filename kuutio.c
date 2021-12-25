@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <stdarg.h>
+#include <pthread.h> //käytetään vain laskentakuutiossa
 #include "kuutio.h"
 #include "muistin_jako.h"
 #ifndef EI_SAVEL_MAKRO
@@ -33,10 +34,10 @@ kuutio_t luo_kuutio(int N) {
   return kuutio;
 }
 
-void siirto(int tahko, int siirtokaista, int maara) {
+void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
   if(maara == 0)
     return;
-  int N = kuutio.N;
+  int N = kuutp->N;
   if(siirtokaista < 0 || siirtokaista > N)
     return;
   else if(siirtokaista == N && N > 1) {
@@ -56,16 +57,16 @@ void siirto(int tahko, int siirtokaista, int maara) {
       int3 ruutu1 = hae_ruutu(ruutu0.a[0],				\
 			      ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki, \
 			      ruutu0.a[2] + (ABS(IvaiJ)-1) * j*N * etumerkki);
-      VAIHDA(kuutio.sivut[SIVUINT3(ruutu0)], kuutio.sivut[SIVUINT3(ruutu1)], char);
+      VAIHDA(kuutp->sivut[SIVUINT3(ruutu0)], kuutp->sivut[SIVUINT3(ruutu1)], char);
     }
   }
   /*siivusiirrolle (slice move) kääntö on nyt suoritettu*/
   if(siirtokaista > 1) {
-    siirto(tahko, siirtokaista, maara-1);
+    siirto(kuutp, tahko, siirtokaista, maara-1);
     return;
   }
   /*käännetään käännetty sivu*/
-  char* sivu = kuutio.sivut+tahko*N*N;
+  char* sivu = kuutp->sivut+tahko*N*N;
   char apu[N*N];
   memcpy(apu, sivu, N*N);
 
@@ -75,7 +76,7 @@ void siirto(int tahko, int siirtokaista, int maara) {
     for(int j=0; j<N; j++)
       *sivu++ = arvo(apu,N-1-i,j);
 #undef arvo
-  siirto(tahko, siirtokaista, maara-1);
+  siirto(kuutp, tahko, siirtokaista, maara-1);
 }
 
 /*esim _u, 3, 0 (3x3x3-kuutio) --> _r, 2, 0:
@@ -118,10 +119,10 @@ int3 hae_ruutu(int tahko0, int i0, int j0) {
   return hae_ruutu(tahko1, ij1[0], ij1[1]);
 }
 
-inline char __attribute__((always_inline)) onkoRatkaistu() {
-  int N2 = kuutio.N*kuutio.N;
+inline char __attribute__((always_inline)) onkoRatkaistu(kuutio_t* kuutp) {
+  int N2 = kuutp->N*kuutp->N;
   for(int sivu=0; sivu<6; sivu++) {
-    char* restrict s = kuutio.sivut+sivu*N2;
+    char* restrict s = kuutp->sivut+sivu*N2;
     for(int i=1; i<N2; i++)
       if(s[i] != *s)
 	return 0;

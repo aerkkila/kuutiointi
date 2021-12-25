@@ -94,7 +94,7 @@ void lue_siirrot(shmRak_s* ipc) {
       puoli  = puoleksi(ipc->data[i++]);
       maara  = maaraksi(ipc->data[i++]);
       for(int j=1; j<=kaista; j++)
-	siirto(puoli, j, maara);
+	siirto(&kuutio, puoli, j, maara);
       while(ipc->data[i] == ' ')
 	i++;
     }
@@ -104,7 +104,7 @@ void lue_siirrot(shmRak_s* ipc) {
       puoli  = puoleksi(ipc->data[i++]);
       maara  = maaraksi(ipc->data[i++]);
       for(int j=1; j<=kaista; j++)
-	siirto(puoli, j, maara);
+	siirto(&kuutio, puoli, j, maara);
       while(ipc->data[i] == ' ')
 	i++;
     }
@@ -114,7 +114,7 @@ void lue_siirrot(shmRak_s* ipc) {
       puoli  = puoleksi(ipc->data[i++]);
       maara  = maaraksi(ipc->data[i++]);
       for(int j=1; j<=kaista; j++)
-	siirto(puoli, j, maara);
+	siirto(&kuutio, puoli, j, maara);
       while(ipc->data[i] == ' ')
 	i++;
     }

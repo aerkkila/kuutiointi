@@ -73,7 +73,7 @@ extern SDL_Texture* alusta[];
 
 int mika_tahko(int x, int y);
 int piste_alueella(float x, float y, int n, ...);
-void siirto(int puoli, int kaista, int maara);
+void siirto(kuutio_t* kuutio, int tahko, int kaista, int maara);
 kuva_t* suora_sivu_kuvaksi(int puoli);
 void paivita();
 int3 hae_ruutu(int tahko, int i0, int j0);

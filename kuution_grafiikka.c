@@ -185,15 +185,15 @@ static inline void __attribute__((always_inline)) kaantoInl(char akseli, int maa
   animoi(tahko, -kuutio.N, maara);
   for(int m=0; m<maara; m++)
     for(int i=1; i<=kuutio.N; i++)
-      siirto(tahko, i, 1);
+      siirto(&kuutio, tahko, i, 1);
   kuva.paivita = 1;
 }
 
 static inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaista, int maara) {
   animoi(tahko, kaista, maara);
-  siirto(tahko, kaista, maara);
+  siirto(&kuutio, tahko, kaista, maara);
   kuva.paivita = 1;
-  kuutio.ratkaistu = onkoRatkaistu();
+  kuutio.ratkaistu = onkoRatkaistu(&kuutio);
 #ifndef __EI_SEKUNTIKELLOA__
   if(viimeViesti == ipcTarkastelu) {
     ipc->viesti = ipcAloita;
