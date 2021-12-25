@@ -4,7 +4,8 @@ autokuutio
 laskentakuutio
 automaattisiirrot.c
 *.tar
-*.txt*
+*.txt
+*.csv
 *~
 *.so
 vgcore*

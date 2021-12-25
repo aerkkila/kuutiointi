@@ -23,9 +23,9 @@ autokuutio0: ${kuutiotied} ${kuut_ots} automaattikuutio.c automaattisiirrot.c ku
 	gcc -gdwarf-2 -g3 -Wall -o autokuutio kuutio.c kuution_kommunikointi.c muistin_jako.c ${kuut_libs} -O0 -D EI_SAVEL_MAKRO -D AUTOMAATTI
 
 laskentakuutio: kuutio.c laskentakuutio.c kuutio.h
-	gcc -o laskentakuutio kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -Ofast
+	gcc -o laskentakuutio kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -Ofast -pthread
 laskentakuutio0: kuutio.c laskentakuutio.c kuutio.h
-	gcc -o laskentakuutio -gdwarf-2 -g3 -Wall kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -O0
+	gcc -o laskentakuutio -gdwarf-2 -g3 -Wall kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -O0 -pthread
 
 kellonajat: kellonajat.c listat.c
 	gcc -g -Wall -shared -o kellonajat.so -fPIC kellonajat.c listat.c -lm -Ofast
