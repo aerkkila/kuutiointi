@@ -8,7 +8,7 @@ skello: ${tiedostot} ${otsakkeet}
 	gcc -gdwarf-2 -g3 -o skello ${tiedostot} ${libs} -Og
 
 kuutio:
-	cd ktio && make
+	cd kuutio.d && make
 
 kellonajat: kellonajat.c listat.c
 	gcc -g -Wall -shared -o kellonajat.so -fPIC kellonajat.c listat.c -lm -Ofast
