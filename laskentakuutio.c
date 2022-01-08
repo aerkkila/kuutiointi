@@ -61,13 +61,18 @@ void* ohita(void*) {
 }
 
 /*tämän osion pääfunktio*/
-#if 1
+#ifndef DEBUG
 for(int pit=1; pit<=maxpit_l; pit++) {
 #else
   int pit = maxpit_l;
 #endif
   long sexa0 = 0; long trexa=-1;
-  sexa0 = sarjantekofunktio(pit, &sexa0, &trexa);
+  if(sarjantekofunktio(pit, &sexa0, &trexa))
+#ifndef DEBUG
+    continue;
+#else
+    return 0;
+#endif
   long sexa1 = powi(6,pit-1); //rajana on, että ensimmäinen siirto on U[] eli 1
   long patka = (sexa1-sexa0)/toita;
   saikeen_tiedot t[toita];
@@ -90,7 +95,7 @@ for(int pit=1; pit<=maxpit_l; pit++) {
   char snimi[12];
   sprintf(apu, "sarjat%i.csv", pit);
   FILE *ulos = fopen(apu, "w");
-  fprintf(ulos, "sarja,\tsiirtoja\n");
+  fprintf(ulos, "sarja\tsiirtoja\n");
   /*Liitetään siihen säikeitten tekemät tiedostot*/
   char c;
   for(int i=0; i<toita; i++) {
@@ -101,11 +106,13 @@ for(int pit=1; pit<=maxpit_l; pit++) {
     while((c=fgetc(f)) > 0)
       fputc(c, ulos);
     fclose(f);
+#ifndef DEBUG
     sprintf(apu, "rm %s", snimi);
     system(apu);
+#endif
   }
   fclose(ulos);
-#if 1
+#ifndef DEBUG
  }
 #endif
 
@@ -131,7 +138,9 @@ void* laskenta(void* vp) {
   char nimi[10];
   sprintf(nimi, "tmp%i.csv", tied.id);
   FILE *f = fopen(nimi, "w");
-  while(!sarjantekofunktio(pit,&tied.sexa,&trexa) && tied.sexa < tied.raja) {
+  do {
+    if ( !(tied.sexa < tied.raja) )
+      break;
     unsigned kohta=0;
     int lasku=0;
     /*sarja kirjalliseen ja lukumuotoon*/
@@ -148,8 +157,8 @@ void* laskenta(void* vp) {
       kohta = (kohta+1) % pit;
       lasku++;
     } while(!onkoRatkaistu(&kuutio1));
-    fprintf(f, "%s,\t%i\n", sarja,lasku);
-  }
+    fprintf(f, "%s\t%i\n", sarja,lasku);
+  } while(!sarjantekofunktio(pit,&tied.sexa,&trexa));
   fclose(f);
   free(sarja); free(isarja);
   free(sarja0); free(isarja0);
@@ -171,8 +180,6 @@ long powi(long a, int b) {
   Kumpikin funktio kutsuu siksi kumpaakin funktiota aina, kun jotain muutetaan
   korjaa_sexa() huolehtii tästä, sitä kutsutaan molemmissa funktioissa.*/
 long korjaa_sexa(long sexa, int pit) {
-  if(sexa==18)
-    ;//asm("int $3");
   long tah = korjaa_sexa_tahko(sexa, pit);
   long aks = korjaa_sexa_akseli(sexa, pit);
   if(tah==sexa) return aks;
@@ -228,10 +235,14 @@ inline int onkoLoppu(long *sexa, int pit) {
 int sarjantekofunktio(int pit, long *sexa, long *trexa) {
   if(onkoLoppu(sexa, pit))
     return 1;
+#ifndef DEBUG //suuntia ei käsitellä virheenjäljityksessä
   if(++trexa[0] >= powi(3,pit)) { //jos kaikki suuntayhdistelmät on käytetty
+#endif
     *trexa = 0;
     *sexa = korjaa_sexa(++sexa[0], pit);
     return onkoLoppu(sexa, pit);
+#ifndef DEBUG
   }
+#endif
   return 0;
 }
