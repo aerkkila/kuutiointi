@@ -8,7 +8,9 @@
 #include <stdarg.h>
 #include <pthread.h> //käytetään vain laskentakuutiossa
 #include "kuutio.h"
-#include "muistin_jako.h"
+#ifndef __EI_SEKUNTIKELLOA__
+#include "liity_muistiin.h"
+#endif
 #ifndef EI_SAVEL_MAKRO
 #include "python_savel.h"
 #endif

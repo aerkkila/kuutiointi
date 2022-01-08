@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include "muistin_jako.h"
+#include "liity_muistiin.h"
 
-const int projId = 55;
-const char shmTied[] = "/tmp";
-const int savelId = 44;
+static const int projId = 55;
+static const char* shmTied = "/tmp";
 
 shmRak_s* liity_muistiin() {
   static char luotu = 0;

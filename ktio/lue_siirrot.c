@@ -2,7 +2,9 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#include "muistin_jako.h"
+#ifndef __EI_SEKUNTIKELLOA__
+#include "liity_muistiin.h"
+#endif
 #include "kuutio.h"
 
 extern kuutio_t kuutio;

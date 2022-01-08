@@ -9,7 +9,7 @@
 #include <math.h>
 #include "grafiikka.h"
 #include "tulokset.h"
-#include "muistin_jako.h"
+#include "liity_muistiin.h"
 #include "asetelma.h"
 
 typedef enum {
@@ -463,7 +463,7 @@ int kaunnista() {
 	    avaa_kuutio();
 	  } else if(!strcmp(tmpstr, "autokuutio")) {
 	    /*avataan autokuutio taustaprosessina, tämä on pelkkää pelleilyä*/
-	    sprintf(apuc, "./autokuutio %u", NxN);
+	    sprintf(apuc, "./ktio/autokuutio %u", NxN);
 	    taustaprosessina(apuc);
 	    ipc = liity_muistiin();
 	    strcpy(TEKSTI, "Aloita välilyönnillä");
@@ -947,7 +947,7 @@ void taustaprosessina(const char* restrict komento) {
 }
 
 void avaa_kuutio() {
-  sprintf(apuc, "./kuutio %u", NxN);
+  sprintf(apuc, "./ktio/kuutio %u", NxN);
   taustaprosessina(apuc);
   ipc = liity_muistiin();
   sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi

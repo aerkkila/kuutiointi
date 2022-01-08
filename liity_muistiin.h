@@ -16,7 +16,7 @@ typedef struct {
   char data[SHM_KOKO];
 } shmRak_s;
 
-#endif
-
 shmRak_s* liity_muistiin();
 float* savelmuistiin();
+
+#endif
