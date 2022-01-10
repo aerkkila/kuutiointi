@@ -59,7 +59,6 @@ void avaa_kuutio();
 
 extern float skaala;
 extern char* apuc;
-shmRak_s* ipc;
 
 int kaunnista() {
   SDL_Event tapaht;

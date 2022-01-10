@@ -19,4 +19,7 @@ typedef struct {
 shmRak_s* liity_muistiin();
 float* savelmuistiin();
 
+extern shmRak_s* ipc;
+extern int viimeViesti;
+
 #endif

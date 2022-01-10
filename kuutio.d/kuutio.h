@@ -2,35 +2,6 @@
 #define __kuutio__
 #include <SDL2/SDL.h>
 
-typedef enum {
-  _r,
-  _u,
-  _f,
-  _l,
-  _d,
-  _b
-} sivu_e;
-
-typedef struct{ unsigned char v[3]; } vari;
-typedef struct{ float a[3]; } koordf;
-typedef struct {float a[2];} koordf2;
-typedef struct {int a[3];} int3;
-
-#define VARI(r,g,b) ((vari){{r,g,b}})
-#define SIGN(i) ((i<0)? -1: 1)
-#define ABS(i) ((i<0)? -i: i)
-#define VAIHDA(a,b,tyyppi) {			\
-    tyyppi apu = a;				\
-    a = b;					\
-    b = apu;					\
-  }
-#define HAE_RUUTUint3(A) hae_ruutu((A).a[0], (A).a[1], (A).a[2])
-#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
-#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
-#define SIVU(tahko, i, j) ((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))
-#define SIVUINT3(A) SIVU((A).a[0],(A).a[1],(A).a[2])
-#define VARIINT3(rtu) (kuva.varit[(int)kuutio.sivut[SIVUINT3(rtu)]])
-
 typedef struct {
   char* sivut;
   int N; //NxNxN-kuutio
@@ -38,46 +9,37 @@ typedef struct {
   char ratkaistu;
 } kuutio_t;
 
-typedef struct {
-  SDL_Window* ikkuna;
-  SDL_Renderer* rend;
-  vari varit[6];
-  koordf kannat[3];
-  koordf* ruudut;
-  int xRes;
-  int yRes;
-  int sij0; //nurkan paikka katsottaessa suoraan edestä
-  float resKuut;
-  float mustaOsuus;
-  char paivita;
-  int korostus;
-  int3 ruutuKorostus;
-  vari korostusVari;
-} kuva_t;
+typedef struct{ unsigned char v[3]; } vari;
+typedef struct{ float a[3]; } koordf;
+typedef struct {float a[2];} koordf2;
+typedef struct {int a[3];} int3;
 
-inline float __attribute__((always_inline)) ristitulo_z(koordf a, koordf b) {
-  return a.a[0]*b.a[1] - a.a[1]*b.a[0];
-}
+#define SIGN(i) ((i<0)? -1: 1)
+#define ABS(i) ((i<0)? -i: i)
+#define SIVU(N, tahko, i, j) ((tahko)*(N)*(N) + (i)*(N) + (j))
+#define SIVUINT3(N,A) SIVU(N, (A).a[0], (A).a[1], (A).a[2])
+#define VAIHDA(a,b,tyyppi) do {			\
+    tyyppi apu_makro_VAIHDA = a;		\
+    a = b;					\
+    b = apu_makro_VAIHDA;			\
+  } while(0)
 
-inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p1) {
-  return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
-}
-
-#define RISTITULO(v1,v2,tyyppi) (tyyppi){{v1.a[1]*v2.a[2] - v1.a[2]*v2.a[1], v1.a[2]*v2.a[0] - v1.a[0]*v2.a[2], v1.a[0]*v2.a[1] - v2.a[0]*v1.a[1]}}
+#define _r 0
+#define _u 1
+#define _f 2
+#define _l 3
+#define _d 4
+#define _b 5
 
 extern kuutio_t kuutio;
-extern kuva_t kuva;
-extern int3 akst[6];
-extern int3 akst_tij[6];
-extern SDL_Texture* alusta[];
+extern const int3 akst[6];
+extern const int3 akst_tij[6];
 
-int mika_tahko(int x, int y);
-int piste_alueella(float x, float y, int n, ...);
+kuutio_t luo_kuutio(int);
+int onkoRatkaistu(kuutio_t*);
 void siirto(kuutio_t* kuutio, int tahko, int kaista, int maara);
-kuva_t* suora_sivu_kuvaksi(int puoli);
 void paivita();
-int3 hae_ruutu(int tahko, int i0, int j0);
+int3 hae_ruutu(int kuutio_N, int tahko, int i0, int j0);
 int3 hae_siivu(int3 ruutu);
-double hetkiNyt();
 
 #endif

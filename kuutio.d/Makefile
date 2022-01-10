@@ -1,26 +1,23 @@
-all: kuutio
+kaikki: kuutio
 
-kuutiotied=kuutio.c lue_siirrot.c python_savel.c liity_muistiin.c
-kuut_ots=kuutio.h kuution_grafiikka.h python_savel.h
+kuutiotied=main.c kuutio.c kuution_käyttöliittymä.c kuution_grafiikka.c liity_muistiin.c python_savel.c
+kuut_ots=kuutio.h kuution_grafiikka.h liity_muistiin.h
 kuut_libs=-lSDL2 -lm
 
-kuutio: liity_muistiin ${kuutiotied} ${kuut_ots} kuution_käyttöliittymä.c kuution_grafiikka.c
-	gcc -Wall -o kuutio ${kuutiotied} ${kuut_libs} -Ofast
+kuutio: ${kuut_ots} ${kuutiotied}
+	gcc -Wall -o $@ main.c ${kuut_libs} -Ofast
 
-kuutio0: liity_muistiin ${kuutiotied} ${kuut_ots} kuution_käyttöliittymä.c kuution_grafiikka.c
-	gcc -gdwarf-2 -g3 -Wall -o kuutio ${kuutiotied} ${kuut_libs} -O0
+autokuutio: ${kuutiotied} ${kuut_ots} automaattikuutio.c
+	gcc -Wall -o $@ main.c ${kuut_libs} -Ofast -DEI_SAVEL_MAKRO -DAUTOMAATTI
 
-autokuutio: liity_muistiin ${kuutiotied} ${kuut_ots} automaattikuutio.c automaattisiirrot.c kuution_grafiikka.c
-	gcc -Wall -o autokuutio kuutio.c kuution_kommunikointi.c muistin_jako.c ${kuut_libs} -Ofast -D EI_SAVEL_MAKRO -D AUTOMAATTI
+laskentakuutio: kuutio.[ch] laskentakuutio.c
+	gcc -Wall -o $@ laskentakuutio.c -Ofast -pthread
 
-autokuutio0: liity_muistiin ${kuutiotied} ${kuut_ots} automaattikuutio.c automaattisiirrot.c kuution_grafiikka.c
-	gcc -gdwarf-2 -g3 -Wall -o autokuutio kuutio.c kuution_kommunikointi.c muistin_jako.c ${kuut_libs} -O0 -D EI_SAVEL_MAKRO -D AUTOMAATTI
-
-laskentakuutio: kuutio.c laskentakuutio.c kuutio.h
-	gcc -o laskentakuutio kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -Ofast -pthread
 laskentakuutio0: kuutio.c laskentakuutio.c kuutio.h
-	gcc -o laskentakuutio -gdwarf-2 -g3 -Wall kuutio.c -D__EI_GRAFIIKKAA__ -D__EI_SEKUNTIKELLOA__ -O0 -pthread -DDEBUG
+	gcc -Wall -o $@ laskentakuutio.c -O0 -gdwarf-2 -g3 -pthread -DDEBUG
 
-liity_muistiin: ../liity_muistiin.[ch]
+liity_muistiin.c: ../liity_muistiin.c
 	ln -sf ../liity_muistiin.c .
+
+liity_muistiin.h: ../liity_muistiin.h
 	ln -sf ../liity_muistiin.h .

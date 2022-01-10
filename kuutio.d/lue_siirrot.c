@@ -2,13 +2,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#ifndef __EI_SEKUNTIKELLOA__
 #include "liity_muistiin.h"
-#endif
-#include "kuutio.h"
 
-extern kuutio_t kuutio;
-extern kuva_t kuva;
 extern int viimeViesti;
 void lue_siirrot(shmRak_s*);
 
@@ -26,7 +21,7 @@ inline int __attribute__((always_inline)) kaistaksi_iso(char c) {
 
 /*Jos kuution koko saavuttaa 20, kaista voi olla suurempi kuin yksinumeroinen luku
   Tämä lukee kaistan ja kasvattaa indeksiä sopivan määrän*/
-int kaistaksi_valtava(char* str, int* id) {
+inline int __attribute__((always_inline)) kaistaksi_valtava(char* str, int* id) {
   int kaista;
   if(sscanf(str + *id, "%i", &kaista) != 1)
     kaista = 1;
@@ -120,5 +115,4 @@ void lue_siirrot(shmRak_s* ipc) {
       while(ipc->data[i] == ' ')
 	i++;
     }
-  kuva.paivita = 1;
 }

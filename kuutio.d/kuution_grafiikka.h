@@ -2,50 +2,38 @@
 #define __KUUTION_GRAFIIKKA__
 #include "kuutio.h"
 
-inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
-  float x = xyz.a[0], y = xyz.a[1], z = xyz.a[2];
-  float x1,y1,z1;
-  /*x-pyöräytys*/
-  y1 = y*cosf(kulmat.a[0]) - z*sinf(kulmat.a[0]);
-  z1 = y*sinf(kulmat.a[0]) + z*cosf(kulmat.a[0]);
-  y = y1; z = z1;
-  /*y-pyöräytys*/
-  x1 = x*cosf(kulmat.a[1]) + z*sinf(kulmat.a[1]);
-  z1 = -x*sinf(kulmat.a[1]) + z*cosf(kulmat.a[1]);
-  x = x1; z = z1;
-  /*z-pyöräytys*/
-  x1 = x*cosf(kulmat.a[2]) - y*sinf(kulmat.a[2]);
-  y1 = x*sinf(kulmat.a[2]) + y*cosf(kulmat.a[2]);
-  x = x1; y = y1;
-  return (koordf){{x,y,z}};
-}
-#define k(i) (koord.a[i])
-#define u(i) (aks.a[i])
-#define co (cosf(kulma))
-#define si (sinf(kulma))
-inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
-  float x,y,z;
-  x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
-       k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
-       k(2) * (u(0)*u(2)*(1-co) + u(1)*si));
-  
-  y = (k(0) * (u(1)*u(0)*(1-co) + u(2)*si) +	\
-       k(1) * (co + u(1)*u(1)*(1-co)) +		\
-       k(2) * (u(1)*u(2)*(1-co) - u(0)*si));
+typedef struct {
+  SDL_Window* ikkuna;
+  SDL_Renderer* rend;
+  vari varit[6];
+  koordf kannat[3];
+  koordf* ruudut;
+  int xRes;
+  int yRes;
+  int sij0; //nurkan paikka katsottaessa suoraan edestä
+  float resKuut;
+  float mustaOsuus;
+  char paivita;
+  int korostus;
+  int3 ruutuKorostus;
+  vari korostusVari;
+} kuva_t;
 
-  z = (k(0) * (u(2)*u(0)*(1-co) - u(1)*si) + \
-       k(1) * (u(2)*u(1)*(1-co) + u(0)*si) + \
-       k(2) * (co + u(2)*u(2)*(1-co)));
-  return (koordf){{x,y,z}};
-}
-#undef k
-#undef u
-#undef co
-#undef si
-inline void __attribute((always_inline)) aseta_vari(vari v) {
-  SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
-}
+#define VARI(r,g,b) ((vari){{r,g,b}})
+#define HAE_RUUTUint3(N,A) hae_ruutu(N, (A).a[0], (A).a[1], (A).a[2])
+#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+#define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
+#define VARIINT3(rtu) (kuva.varit[(int)kuutio.sivut[SIVUINT3(kuutio.N,rtu)]])
+#define RISTITULO(v1,v2,tyyppi) ((tyyppi){{v1.a[1]*v2.a[2] - v1.a[2]*v2.a[1], v1.a[2]*v2.a[0] - v1.a[0]*v2.a[2], v1.a[0]*v2.a[1] - v2.a[0]*v1.a[1]}})
 
+extern kuva_t kuva;
+extern SDL_Texture* alusta[];
+
+koordf yleispuorautus(koordf koord, koordf aks, float kulma);
+koordf puorauta(koordf xyz, koordf kulmat);
+kuva_t* suora_sivu_kuvaksi(int puoli);
+int mika_tahko(int x, int y);
+int piste_alueella(float x, float y, int n, ...);
 void tee_ruutujen_koordtit();
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd);
 void piirra_suunnikas(koordf*);
@@ -56,5 +44,18 @@ int korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
 void korosta_siivu(int3 siivu);
 void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);
+double hetkiNyt();
+
+inline void __attribute__((always_inline)) aseta_vari(vari v) {
+  SDL_SetRenderDrawColor(kuva.rend, v.v[0], v.v[1], v.v[2], 255);
+}
+
+inline float __attribute__((always_inline)) ristitulo_z(koordf a, koordf b) {
+  return a.a[0]*b.a[1] - a.a[1]*b.a[0];
+}
+
+inline koordf __attribute__((always_inline)) suuntavektori(koordf* p0, koordf* p1) {
+  return (koordf){{p1->a[0]-p0->a[0], p1->a[1]-p0->a[1], p1->a[2]-p0->a[2]}};
+}
 
 #endif

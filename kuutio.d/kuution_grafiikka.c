@@ -5,14 +5,6 @@
 #include "kuutio.h"
 #include "kuution_grafiikka.h"
 
-int minKoordInd(koordf *ktit, int akseli, int pit);
-koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
-#define PI 3.14159265358979
-
-//tästä etenpäin oli alunperin kuutio.c:ssä
-#include "kuution_grafiikka.h"
-#include <SDL2/SDL.h>
-
 char ohjelman_nimi[] = "Kuutio";
 int ikkuna_x = 300;
 int ikkuna_y = 300;
@@ -21,6 +13,52 @@ int ikkuna_h = 500;
 kuva_t kuva;
 float kaantoaika;
 float kaantoaika0 = 0.2;
+
+int minKoordInd(koordf *ktit, int akseli, int pit);
+koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
+#define PI 3.14159265358979
+SDL_Texture* alusta[2];
+
+inline koordf __attribute((always_inline)) puorauta(koordf xyz, koordf kulmat) {
+  float x = xyz.a[0], y = xyz.a[1], z = xyz.a[2];
+  float x1,y1,z1;
+  /*x-pyöräytys*/
+  y1 = y*cosf(kulmat.a[0]) - z*sinf(kulmat.a[0]);
+  z1 = y*sinf(kulmat.a[0]) + z*cosf(kulmat.a[0]);
+  y = y1; z = z1;
+  /*y-pyöräytys*/
+  x1 = x*cosf(kulmat.a[1]) + z*sinf(kulmat.a[1]);
+  z1 = -x*sinf(kulmat.a[1]) + z*cosf(kulmat.a[1]);
+  x = x1; z = z1;
+  /*z-pyöräytys*/
+  x1 = x*cosf(kulmat.a[2]) - y*sinf(kulmat.a[2]);
+  y1 = x*sinf(kulmat.a[2]) + y*cosf(kulmat.a[2]);
+  x = x1; y = y1;
+  return (koordf){{x,y,z}};
+}
+#define k(i) (koord.a[i])
+#define u(i) (aks.a[i])
+#define co (cosf(kulma))
+#define si (sinf(kulma))
+inline koordf __attribute__((always_inline)) yleispuorautus(koordf koord, koordf aks, float kulma) {
+  float x,y,z;
+  x = (k(0) * (co + u(0)*u(0)*(1-co)) +		\
+       k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +	\
+       k(2) * (u(0)*u(2)*(1-co) + u(1)*si));
+  
+  y = (k(0) * (u(1)*u(0)*(1-co) + u(2)*si) +	\
+       k(1) * (co + u(1)*u(1)*(1-co)) +		\
+       k(2) * (u(1)*u(2)*(1-co) - u(0)*si));
+
+  z = (k(0) * (u(2)*u(0)*(1-co) - u(1)*si) + \
+       k(1) * (u(2)*u(1)*(1-co) + u(0)*si) + \
+       k(2) * (co + u(2)*u(2)*(1-co)));
+  return (koordf){{x,y,z}};
+}
+#undef k
+#undef u
+#undef co
+#undef si
 
 int luo_kuva() {
   kuva.ikkuna = SDL_CreateWindow\
@@ -204,7 +242,6 @@ static inline void __attribute__((always_inline)) siirtoInl(int tahko, int kaist
   }
 #endif
 }
-//tähän asti kuutio.c:ssä alunperin
 
 #define TEE_RUUTU kuva.ruudut[RUUTU(tahko,i,j)+nurkka] = ruudun_nurkka(tahko, i, j, nurkka);
 void tee_ruutujen_koordtit() {
@@ -220,7 +257,7 @@ void piirra_kuvaksi() {
   for(int tahko=0; tahko<6; tahko++)
     for(int i=0; i<kuutio.N; i++)
       for(int j=0; j<kuutio.N; j++) {
-	vari vari = kuva.varit[(int)kuutio.sivut[SIVU(tahko,i,j)]];
+	vari vari = kuva.varit[(int)kuutio.sivut[SIVU(kuutio.N,tahko,i,j)]];
 	aseta_vari(vari);
 #define A(n) (kuva.ruudut+RUUTU(tahko,i,j)+n)
 	if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
@@ -233,10 +270,10 @@ void _piirra_kaistoja(int tahko, int kaistaraja) {
   int3 rtu;
   for(int i=-kaistaraja; i<kuutio.N+kaistaraja; i++)
     for(int j=-kaistaraja; j<kuutio.N+kaistaraja; j++) {
-      rtu = hae_ruutu(tahko, i, j);
+      rtu = hae_ruutu(kuutio.N, tahko, i, j);
       if(rtu.a[0] < 0)
 	continue;
-      vari vari = kuva.varit[(int)kuutio.sivut[SIVUINT3(rtu)]];
+      vari vari = kuva.varit[(int)kuutio.sivut[SIVUINT3(kuutio.N,rtu)]];
       aseta_vari(vari);
 #define A(n) kuva.ruudut+RUUTUINT3(rtu)+n
       if(ristitulo_z(suuntavektori(A(0), A(3)), suuntavektori(A(0), A(1))) > 0)
@@ -451,7 +488,7 @@ void korosta_siivu(int3 siivu) {
   for(tahko0=0; tahko0<6; tahko0++)
     if(akst[tahko0].a[siivu.a[0]] == 3)
       break;
-  ruutu[0] = hae_ruutu(tahko0, -1-siivu.a[1], 0); //valitaan 0. ruuduksi alimeno i:ltä
+  ruutu[0] = hae_ruutu(kuutio.N, tahko0, -1-siivu.a[1], 0); //valitaan 0. ruuduksi alimeno i:ltä
   ruutu[1] = ruutu[0];
   
   /*mitkä 4:stä nurkasta ovat kaksi oikeaa*/
@@ -463,7 +500,7 @@ void korosta_siivu(int3 siivu) {
   b1 = (koordf2){{(apukoord+nurkka2)->a[0], (apukoord+nurkka2)->a[1]}};
   
   /*piirretäänkö viivat ruutu[1]:n vai ruutu2:n osoittamalle tahkolle*/
-  ruutu[2] = hae_ruutu(ruutu[1].a[0], ruutu[1].a[1] + (2-IvaiJ), ruutu[1].a[2] + (IvaiJ-1));
+  ruutu[2] = hae_ruutu(kuutio.N, ruutu[1].a[0], ruutu[1].a[1] + (2-IvaiJ), ruutu[1].a[2] + (IvaiJ-1));
   if(ruutu[2].a[0] == ruutu[1].a[0])
     kumpi = 1; //tahko ei vaihtunut, siirryttäessä vain yhden ruudun verran
   else
@@ -471,9 +508,9 @@ void korosta_siivu(int3 siivu) {
 
   for(int i=1; i<=4; i++) {
     /*viivan päätepisteet*/
-    ruutu[2] = hae_ruutu(ruutu[0].a[0],					\
-		       ruutu[0].a[1] + (2-IvaiJ) * i*kuutio.N,		\
-		       ruutu[0].a[2] + (IvaiJ-1) * i*kuutio.N);
+    ruutu[2] = hae_ruutu(kuutio.N, ruutu[0].a[0],			\
+			 ruutu[0].a[1] + (2-IvaiJ) * i*kuutio.N,	\
+			 ruutu[0].a[2] + (IvaiJ-1) * i*kuutio.N);
     nurkka1 = nurkan_haku(siivu, ruutu[2], 1);
     nurkka2 = nurkan_haku(siivu, ruutu[2], 2);
     apukoord = kuva.ruudut+RUUTUINT3(ruutu[2]);
@@ -686,7 +723,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 #define A (rtu[n])
       for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
 	for(int j=0; j<kuutio.N; j++) {
-	  paikka = hae_ruutu(tahko,i,j);
+	  paikka = hae_ruutu(kuutio.N, tahko,i,j);
 	  if(paikka.a[0] < 0)
 	    continue;
 	  rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
@@ -702,7 +739,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
 	}
       for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
 	for(int i=0; i<kuutio.N; i++) {
-	  paikka = hae_ruutu(tahko,i,j);
+	  paikka = hae_ruutu(kuutio.N, tahko,i,j);
 	  if(paikka.a[0] < 0)
 	    continue;
 	  rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
@@ -735,7 +772,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
     float askel = kokoKulma-kulmaNyt;
     for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
       for(int j=0; j<kuutio.N; j++) {
-	paikka = hae_ruutu(tahko,i,j);
+	paikka = hae_ruutu(kuutio.N, tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
 	rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
@@ -751,7 +788,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
       }
     for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
       for(int i=0; i<kuutio.N; i++) {
-	paikka = hae_ruutu(tahko,i,j);
+	paikka = hae_ruutu(kuutio.N, tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
 	rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
@@ -802,7 +839,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
     // A = (rtu[n])
     for(int i=-1; i<kuutio.N+1; i++)
       for(int j=-1; j<kuutio.N+1; j++) {
-	paikka = hae_ruutu(tahko,i,j);
+	paikka = hae_ruutu(kuutio.N, tahko,i,j);
 	if(paikka.a[0] < 0)
 	  continue;
 	rtu = kuva.ruudut+RUUTUINT3(paikka);
@@ -837,7 +874,7 @@ void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double 
   float askel = kokoKulma-kulmaNyt;
   for(int i=-1; i<kuutio.N+1; i++)
     for(int j=-1; j<kuutio.N+1; j++) {
-      paikka = hae_ruutu(tahko,i,j);
+      paikka = hae_ruutu(kuutio.N, tahko,i,j);
       if(paikka.a[0] < 0)
 	continue;
       rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);

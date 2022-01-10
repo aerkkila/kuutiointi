@@ -3,7 +3,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <stdio.h>
-#include "python_savel.h"
+
+volatile float* savelPtr;
 
 float* savelmuistiin() {
   int avain = ftok("/tmp", 44);

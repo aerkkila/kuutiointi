@@ -1,4 +1,4 @@
-/*Tämä liitetään include-komennolla kuutio.c:n main-funktioon*/
+/*Tämä liitetään include-komennolla pääfunktioon*/
 
 #define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
 SDL_Event tapaht; 
@@ -121,11 +121,11 @@ while(SDL_PollEvent(&tapaht)) {
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
       case SDLK_LEFT:
-	A = hae_ruutu(B(0), B(1)-1, B(2));
+	A = hae_ruutu(kuutio.N, B(0), B(1)-1, B(2));
 	kuva.paivita=1;
 	break;
       case SDLK_RIGHT:
-	A = hae_ruutu(B(0), B(1)+1, B(2));
+	A = hae_ruutu(kuutio.N, B(0), B(1)+1, B(2));
 	kuva.paivita=1;
 	break;
       case SDLK_UP:
@@ -134,11 +134,11 @@ while(SDL_PollEvent(&tapaht)) {
 	else if(vaihto)
 	  A.a[0] = -1;
 	else
-	  A = hae_ruutu(B(0), B(1), B(2)-1);
+	  A = hae_ruutu(kuutio.N, B(0), B(1), B(2)-1);
 	kuva.paivita=1;
 	break;
       case SDLK_DOWN:
-	A = hae_ruutu(B(0), B(1), B(2)+1);
+	A = hae_ruutu(kuutio.N, B(0), B(1), B(2)+1);
 	kuva.paivita=1;
 	break;
 #undef A
@@ -146,6 +146,7 @@ while(SDL_PollEvent(&tapaht)) {
 #ifndef __EI_SEKUNTIKELLOA__
       case SDLK_F1:
 	lue_siirrot(ipc);
+	kuva.paivita = 1;
 	ipc->viesti = ipcTarkastelu;
 	viimeViesti = ipcTarkastelu;
 	break;
@@ -165,7 +166,7 @@ while(SDL_PollEvent(&tapaht)) {
 	}
 	break;
 #endif
-#ifdef __PYTHON_SAVEL__
+#ifndef EI_SAVEL_MAKRO
       case SDLK_F2:; //käynnistää tai sammuttaa sävelkuuntelijan
 	if(!savelPtr) {
 	  pid_t pid1, pid2;
@@ -280,7 +281,7 @@ while(SDL_PollEvent(&tapaht)) {
     break;
   }
  } //while poll_event
-#ifdef __PYTHON_SAVEL__
+#ifndef EI_SAVEL_MAKRO
 if(savelPtr) {
   static char suunta = 1;
   static double savLoppuHetki = 1.0;

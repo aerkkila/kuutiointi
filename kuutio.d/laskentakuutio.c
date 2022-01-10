@@ -1,6 +1,5 @@
 /*
   Lasketaan monellako siirrolla pääsee takaisin alkuun toistamalla jotain yhdistelmää.
-  Tämä liitetään includella pääfunktioon, mutta gcc sallii määritellä funktioita myös funktion sisällä.
  
   1. siirto on aina r[], koska kuutiota kääntämällä muut siirrot voidaan muuntaa siksi.
   2. siirto on aina l[] tai u[], koska kuutiota kääntämällä muut voidaan muuttaa niiksi.
@@ -17,37 +16,23 @@
   R2 L2 U' D -sarjan jälkeen myös x2 tai z2 on mahdollinen, koska kaikki suunnat ovat kiinnittymättä
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+
+#include "kuutio.c"
+
 static const char* tahkot = "RUFLDB";
 static const char* suunnat = " '2";
 static const int isuunnat[] = {1,3,2};
 
-auto long korjaa_sexa_tahko(long, int); //Luokka pitää olla auto, kun funktio kuulutetaan funktion sisällä.
-auto long korjaa_sexa_akseli(long, int);
-auto long korjaa_sexa(long, int);
-auto int sarjantekofunktio(int pit, long *sexa, long *trexa);
-auto long powi(long a, int b);
-
-auto void* laskenta(void* vp);
-
-/*kun 'luku' muutetaan 'kanta'-kantaiseksi, mikä on vähiten merkitsevästä alkaen i. numero*/
-#define NLUKU(luku, i, kanta) ( (luku) % powi(kanta,(i)+1) / powi(kanta,i) )
-
-/*merkitään siirtotahkot kuusikantaisilla "sexaluvuilla"
-  esim. 0135 olisi R U L B
-  lisättäessä 1 saadaan 0140 eli R U D R*/
-
-/*komentoriviargumentit*/
-int maxpit_l = 4;
-int toita = 1;
-for(int i=0; i<argc-1; i++)
-  if(!strcmp(argv[i], "--maxpit")) {
-    if(!(sscanf(argv[i+1], "%i", &maxpit_l)))
-      puts("Ei luettu maksimipituutta");
-  } else if(!strcmp(argv[i], "--töitä")) {
-    if(!(sscanf(argv[i+1], "%i", &toita)))
-      puts("Ei luettu töitten määrää");
-  }
-pthread_t saikeet[toita];
+long korjaa_sexa_tahko(long, int);
+long korjaa_sexa_akseli(long, int);
+long korjaa_sexa(long, int);
+int sarjantekofunktio(int pit, long *sexa, long *trexa);
+long powi(long a, int b);
+void* laskenta(void* vp);
 
 typedef struct {
   long sexa;
@@ -60,68 +45,87 @@ void* ohita(void*) {
   return NULL;
 }
 
-/*tämän osion pääfunktio*/
+/*kun 'luku' muutetaan 'kanta'-kantaiseksi, mikä on vähiten merkitsevästä alkaen i. numero*/
+#define NLUKU(luku, i, kanta) ( (luku) % powi(kanta,(i)+1) / powi(kanta,i) )
+
+/*merkitään siirtotahkot kuusikantaisilla "sexaluvuilla"
+  esim. 0135 olisi R U L B
+  lisättäessä 1 saadaan 0140 eli R U D R*/
+
+int main(int argc, char** argv) {
+  /*komentoriviargumentit*/
+  int maxpit_l = 4;
+  int toita = 1;
+  for(int i=0; i<argc-1; i++)
+    if(!strcmp(argv[i], "--maxpit")) {
+      if(!(sscanf(argv[i+1], "%i", &maxpit_l)))
+	puts("Ei luettu maksimipituutta");
+    } else if(!strcmp(argv[i], "--töitä")) {
+      if(!(sscanf(argv[i+1], "%i", &toita)))
+	puts("Ei luettu töitten määrää");
+    }
+  pthread_t saikeet[toita];
+
 #ifndef DEBUG
-for(int pit=1; pit<=maxpit_l; pit++) {
+  for(int pit=1; pit<=maxpit_l; pit++) {
 #else
-  int pit = maxpit_l;
+    int pit = maxpit_l;
 #endif
-  long sexa0 = 0; long trexa=-1;
-  if(sarjantekofunktio(pit, &sexa0, &trexa))
+    long sexa0 = 0; long trexa=-1;
+    if(sarjantekofunktio(pit, &sexa0, &trexa))
 #ifndef DEBUG
-    continue;
+      continue;
 #else
     return 0;
 #endif
-  long sexa1 = powi(6,pit-1); //rajana on, että ensimmäinen siirto on U[] eli 1
-  long patka = (sexa1-sexa0)/toita;
-  saikeen_tiedot t[toita];
-  for(int i=0; i<toita; i++) {
-    long raja0 = sexa0+patka*i;
-    long raja1 = sexa0+patka*(i+1);
-    if(raja1==raja0) {
-      pthread_create(saikeet+i, NULL, ohita, t+i);
-      continue;
+    long sexa1 = powi(6,pit-1); //rajana on, että ensimmäinen siirto on U[] eli 1
+    long patka = (sexa1-sexa0)/toita;
+    saikeen_tiedot t[toita];
+    for(int i=0; i<toita; i++) {
+      long raja0 = sexa0+patka*i;
+      long raja1 = sexa0+patka*(i+1);
+      if(raja1==raja0) {
+	pthread_create(saikeet+i, NULL, ohita, t+i);
+	continue;
+      }
+      if(i==toita-1)
+	raja1 = sexa1;
+      t[i] = (saikeen_tiedot){.sexa=raja0, .raja=raja1, .pit=pit, .id=i};
+      pthread_create(saikeet+i, NULL, laskenta, t+i);
     }
-    if(i==toita-1)
-      raja1 = sexa1;
-    t[i] = (saikeen_tiedot){.sexa=raja0, .raja=raja1, .pit=pit, .id=i};
-    pthread_create(saikeet+i, NULL, laskenta, t+i);
-  }
-  for(int i=0; i<toita; i++)
-    pthread_join(saikeet[i], NULL);
-  /*Alustetaan uusi tiedosto*/
-  char apu[22];
-  char snimi[12];
-  sprintf(apu, "sarjat%i.csv", pit);
-  FILE *ulos = fopen(apu, "w");
-  fprintf(ulos, "sarja\tsiirtoja\n");
-  /*Liitetään siihen säikeitten tekemät tiedostot*/
-  char c;
-  for(int i=0; i<toita; i++) {
-    sprintf(snimi, "tmp%i.csv", i);
-    FILE *f = fopen(snimi, "r");
-    if(!f)
-      continue;
-    while((c=fgetc(f)) > 0)
-      fputc(c, ulos);
-    fclose(f);
+    for(int i=0; i<toita; i++)
+      pthread_join(saikeet[i], NULL);
+    /*Alustetaan uusi tiedosto*/
+    char apu[25];
+    char snimi[22];
+    sprintf(apu, "sarjat%i.csv", pit);
+    FILE *ulos = fopen(apu, "w");
+    fprintf(ulos, "sarja\tsiirtoja\n");
+    /*Liitetään siihen säikeitten tekemät tiedostot*/
+    char c;
+    for(int i=0; i<toita; i++) {
+      sprintf(snimi, "tmp%i.csv", i);
+      FILE *f = fopen(snimi, "r");
+      if(!f)
+	continue;
+      while((c=fgetc(f)) > 0)
+	fputc(c, ulos);
+      fclose(f);
 #ifndef DEBUG
-    sprintf(apu, "rm %s", snimi);
-    system(apu);
+      sprintf(apu, "rm %s", snimi);
+      system(apu);
 #endif
-  }
-  fclose(ulos);
+    }
+    fclose(ulos);
 #ifndef DEBUG
- }
+  }
 #endif
+}
 
 #define PIT_SARJA (pit*3)
 #define PIT_ISARJA (pit*2*sizeof(int))
 void* laskenta(void* vp) {
-  kuutio_t kuutio1 = kuutio; //säikeet eivät saa käyttää yhteistä kuutiota
-  kuutio1.sivut = malloc(6*kuutio1.N2);
-  memcpy(kuutio1.sivut, kuutio.sivut, 6*kuutio1.N2);
+  kuutio_t kuutio = luo_kuutio(3);
   saikeen_tiedot tied = *(saikeen_tiedot*)vp;
   int pit = tied.pit;
   long trexa = -1;
@@ -153,16 +157,16 @@ void* laskenta(void* vp) {
       isarja[(pit-i-1)*2+1] = isuunnat[ind];
     }
     do {
-      siirto(&kuutio1, isarja[kohta*2], 1, isarja[kohta*2+1]);
+      siirto(&kuutio, isarja[kohta*2], 1, isarja[kohta*2+1]);
       kohta = (kohta+1) % pit;
       lasku++;
-    } while(!onkoRatkaistu(&kuutio1));
+    } while(!onkoRatkaistu(&kuutio));
     fprintf(f, "%s\t%i\n", sarja,lasku);
   } while(!sarjantekofunktio(pit,&tied.sexa,&trexa));
   fclose(f);
   free(sarja); free(isarja);
   free(sarja0); free(isarja0);
-  free(kuutio1.sivut);
+  free(kuutio.sivut);
   return NULL;
 }
 #undef PIT_SARJA

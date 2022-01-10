@@ -6,6 +6,9 @@
 static const int projId = 55;
 static const char* shmTied = "/tmp";
 
+shmRak_s* ipc;
+int viimeViesti = 0;
+
 shmRak_s* liity_muistiin() {
   static char luotu = 0;
   int avain = ftok(shmTied, projId);
