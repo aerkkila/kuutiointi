@@ -153,10 +153,12 @@ int kaunnista() {
 	      break;
 	    if(kontrol) {
 	      sprintf(apuc, "%s/%s", uloskansio, ulosnimi);
-	      if(!tallenna(apuc))
-		sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
+	      if(!(apuind = tallenna(apuc)))
+		sprintf(TEKSTI, "Tallennettiin \"%s\"", apuc);
+	      else if (apuind < 0)
+		sprintf(TEKSTI, "Tallennettiin uusi tiedosto \"%s\"", apuc);
 	      else
-		sprintf(TEKSTI, "Ei tallennettu \"%s\"", ulosnimi);
+		sprintf(TEKSTI, "Ei tallennettu \"%s\"", apuc);
 	      laitot |= tkstallai;
 	    } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);

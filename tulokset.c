@@ -319,12 +319,14 @@ void muuta_sakko(char* teksti, int ind) {
 int tallenna(const char* restrict tiednimi) {
   if(ftulos->pit <= 0)
     return 1;
-  
+  int ret = 0;
   setlocale(LC_NUMERIC, "C");
   FILE *f = fopen(tiednimi, "r+");
   /*jos tiedostoa ei ollut, se tehdään, muuten haetaan oikea kohta*/
   if(!f) {
-    f = fopen(tiednimi, "w");
+    if(!(f=fopen(tiednimi, "w")))
+      return 2;
+    ret = -1; //uusi tiedosto
     goto KIRJOITA;
   }
   
@@ -351,9 +353,13 @@ int tallenna(const char* restrict tiednimi) {
       case 0:
 	goto KIRJOITA;
       default:
-	fprintf(stderr, "Virhe: Lukeminen epäonnistui, c = %hhx (hexa) '%c'\n", c, c);
+	sprintf(apuc+300, "Virhe: Luettiin virheellinen merkki: c = %hhx (hexa) '%c'", c, c);
+	fprintf(stderr, "%s\n", apuc+300);
+	tuhjenna_slista(lisatd);
+	slistalle_kopioiden(lisatd, apuc+300);
+	laitot |= lisatdlai;
 	setlocale(LC_NUMERIC, getenv("LANG"));
-	return 0;
+	return 1;
       }
     } else {
       if (yrite >= hetki) {
@@ -367,7 +373,7 @@ int tallenna(const char* restrict tiednimi) {
     fprintf(f, "%.2f\t%i\n", ftulos->taul[i], thetki->taul[i]);
   fclose(f);
   setlocale(LC_NUMERIC, getenv("LANG"));
-  return 0;
+  return ret;
 }
 
 inline int __attribute__((always_inline)) fmaxind(float* taul, int n) {
