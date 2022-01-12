@@ -1,3 +1,6 @@
+/*Make-komento kopioi asetelma.c:n tiedostoksi asetelma1.c ja korvaa MAKE_LIITÄ_*-ilmaisut sopivilla asioilla.
+  Muut kuin väliaikaiset muokkaukset pitää tehdä asetelma.c:hen eikä asetelma1.c:hen*/
+
 #include <stdarg.h>
 #include <string.h>
 #include <SDL2/SDL.h>
@@ -8,22 +11,21 @@ Uint32 viive = 3;
 unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 float jarjsuhde = 0.70;
-const char* paikallisuus = "fi_FI.utf8";
 
 const char* restrict ohjelman_nimi = "Skello";
 const char* restrict ulosnimi0 = "tulokset.txt";
-const char* restrict uloskansio = "/home/aerk/kuutiointi/";
-const char* restrict url_valittu = "/home/aerk/kuutiointi/kuva_valittu.bmp";
-const char* restrict url_eivalittu = "/home/aerk/kuutiointi/kuva_valittu_ei.bmp";
+const char* restrict uloskansio = "MAKE_LIITÄ_HOME/kuutiointi";
+const char* restrict url_valittu = "MAKE_LIITÄ_PWD/valittu.bmp";
+const char* restrict url_eivalittu = "MAKE_LIITÄ_PWD/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* restrict muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
-#define MONOFONTTI "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"
-#define YLEISFONTTI "/usr/share/fonts/liberation/LiberationSans-Regular.ttf"
+#define MONOFONTTI "MAKE_LIITÄ_MONOFONTTI"
+#define YLEISFONTTI "MAKE_LIITÄ_SANSFONTTI"
 
 tekstiolio_s kellool = {.ttflaji = 1,					\
 			.fonttikoko = 200,				\
-			.fonttied = "/usr/share/fonts/liberation/LiberationSans-Regular.ttf", \
+			.fonttied = YLEISFONTTI,			\
 			.sij = {0, 50, 2500, 4000}};
 
 SDL_Color kellovarit[] = {(SDL_Color){255, 255, 255, 255},	\

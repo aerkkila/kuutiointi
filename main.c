@@ -12,18 +12,12 @@ int kaunnista();
 int lue_tiedosto(const char* tiednimi, char* rajaus);
 void piirra();
 
-/*alustaa grafiikan ja ikkunan ja renderin yms ja lataa fontit,
-  käynnistää käyttöliittymän*/
-
 char* apuc;
 
 int main(int argc, char** argv) {
-  setlocale(LC_ALL, paikallisuus);
-  chdir(uloskansio);
   int r = 0;
-  
-  /*grafiikan alustaminen*/
-  if (SDL_Init(SDL_INIT_VIDEO)) {
+  setlocale(LC_ALL, getenv("LANG"));
+    if (SDL_Init(SDL_INIT_VIDEO)) {
     fprintf(stderr, "Virhe: Ei voi alustaa SDL-grafiikkaa: %s\n", SDL_GetError());
     r = 1;
     goto EI_SDL;
@@ -43,6 +37,7 @@ int main(int argc, char** argv) {
   apuc = malloc(1500);
   if(asetelma())
     goto EI_FONTTI;
+  chdir(uloskansio);
   
   /*valintaolion kuvat*/
   SDL_Surface* kuva;

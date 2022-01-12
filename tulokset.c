@@ -231,7 +231,7 @@ int lue_tiedosto(const char* tiednimi, char* rajaus) {
   }
  LUETTU:
   fclose(f);
-  setlocale(LC_NUMERIC, paikallisuus);
+  setlocale(LC_NUMERIC, getenv("LANG"));
   for(int i=fpit0; i<ftulos->pit; i++)
     slistalle_kopioiden(stulos, float_kelloksi(kello, ftulos->taul[i]));
   /*rajataan*/
@@ -352,7 +352,7 @@ int tallenna(const char* restrict tiednimi) {
 	goto KIRJOITA;
       default:
 	fprintf(stderr, "Virhe: Lukeminen epäonnistui, c = %hhx (hexa) '%c'\n", c, c);
-	setlocale(LC_NUMERIC, paikallisuus);
+	setlocale(LC_NUMERIC, getenv("LANG"));
 	return 0;
       }
     } else {
@@ -366,7 +366,7 @@ int tallenna(const char* restrict tiednimi) {
   for(int i=0; i<ftulos->pit; i++)
     fprintf(f, "%.2f\t%i\n", ftulos->taul[i], thetki->taul[i]);
   fclose(f);
-  setlocale(LC_NUMERIC, paikallisuus);
+  setlocale(LC_NUMERIC, getenv("LANG"));
   return 0;
 }
 

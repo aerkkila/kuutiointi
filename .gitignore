@@ -3,6 +3,7 @@ kuutio
 autokuutio
 laskentakuutio
 automaattisiirrot.c
+asetelma1.c
 *.tar
 *.txt
 *.csv

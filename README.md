@@ -1,8 +1,6 @@
 ![kuvapaappaus_kajastin](https://user-images.githubusercontent.com/78755456/129454816-a6a3d250-4494-4fd0-8a45-00ad0ba920f2.png)![kuvakaappaus_kuutio](https://user-images.githubusercontent.com/78755456/129454818-45133102-9efb-48da-a9ec-9adf859bb51c.png)
 
-Tämä vaatii grafiikkakirjastot SDL2 ja SDL_TTF. Tiedoston asetelma.c alkupuolella on muutama polku, jotka käyttäjän pitää asettaa itse.
-
-Tässä on kuutiointiin tarkoitettu ajanottosovellus ja virtuaalinen rubikin kuutio. Nämä ovat kaksi itsenäistä C-ohjelmaa, mutta ne voivat myös keskustella keskenään ja ovat siksi samassa kansiossa. Pieniä lisätoimintoja on kirjoitettu myös Pythonilla.
+Tässä on kuutiointiin tarkoitettu ajanottosovellus ja virtuaalinen rubikin kuutio. Nämä ovat kaksi itsenäistä C-ohjelmaa, mutta ne voivat myös keskustella keskenään ja ovat siksi samassa kansiossa. Pieniä lisätoimintoja on kirjoitettu myös Pythonilla. Ohjelma vaatii grafiikkakirjastot SDL2 ja SDL_TTF.
 
 Ajanottosovellus näyttää listan tuloksista sekä oikeassa että parhausjärjestyksessä; listan sekoituksista, jotka arvotaan joka kerralle; viiden ja kahdentoista keskiarvoista nykyisen, parhaan ja huonoimman sekä keskihajonnat; kaikista ajoista karsitun keskiarvon ja mediaanin. Parhausjärjestyksessä olevasta tuloslistasta näkyy alku- ja loppupää.
 
