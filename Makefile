@@ -3,7 +3,6 @@ all: skello kuutio.d kellonajat.so
 tiedostot=main.c grafiikka.c käyttöliittymä.c tulokset.c liity_muistiin.c asetelma1.c listat.c lomituslajittelu.c
 otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h liity_muistiin.h
 libs=-lSDL2 -lSDL2_ttf -lm
-DESTDIR=/usr
 
 skello: ${tiedostot} ${otsakkeet}
 	gcc -gdwarf-2 -g3 -o skello ${tiedostot} ${libs} -Og
