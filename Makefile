@@ -5,9 +5,9 @@ otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h liity_muistiin.h
 libs=-lSDL2 -lSDL2_ttf -lm
 
 skello: ${tiedostot} ${otsakkeet}
-	gcc -gdwarf-2 -g3 -o skello ${tiedostot} ${libs} -Og
+	gcc -g -o skello ${tiedostot} ${libs} -O3
 
-kuutio.d:
+kuutio.d: kuutio.d/kuutio
 	cd kuutio.d && make
 
 kellonajat.so: kellonajat.c listat.c
@@ -17,6 +17,7 @@ asetelma1.c: asetelma.c asetelma.sh
 	sh asetelma.sh $@
 
 install: ${tiedostot} ${otsakkeet} kellonajat.so
+	mkdir -p ${DESTDIR}/bin
 	cp -f skello ${DESTDIR}/bin
 	cp -f kellonajat.py ${DESTDIR}/bin/skello_kellonajat.py
 	cp -f kuutio.d/kuutio ${DESTDIR}/bin/skello_kuutio
