@@ -177,7 +177,7 @@ while(SDL_PollEvent(&tapaht)) {
 	    } else if (pid2) {
 	      _exit(0);
 	    } else {
-	      if(system("./sävel.py") < 0)
+	      if(system("../share/skello/sävel.py") < 0)
 		perror("sävel.py");
 	      exit(0);
 	    }

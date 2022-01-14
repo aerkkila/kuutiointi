@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import matplotlib.pyplot as plt
 import scipy.stats as stat
 import numpy as np

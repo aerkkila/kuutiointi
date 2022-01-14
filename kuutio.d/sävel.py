@@ -1,5 +1,4 @@
-#!/usr/bin/python3
-
+#!/usr/bin/python
 import sounddevice as sd
 import numpy as np
 import sysv_ipc as ipc

@@ -963,7 +963,7 @@ int viimeinen_sij(char* s, char c) {
 }
 
 void avaa_kuutio() {
-  sprintf(apuc, "./kuutio.d/kuutio %u", NxN);
+  sprintf(apuc, "skello_kuutio %u", NxN);
   taustaprosessina(apuc);
   ipc = liity_muistiin();
   strncpy(apuc, ulosnimi, viimeinen_sij(ulosnimi, '/')+1);
