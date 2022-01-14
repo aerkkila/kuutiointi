@@ -1,7 +1,9 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <locale.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
@@ -9,8 +11,8 @@
 #include <math.h>
 #include "grafiikka.h"
 #include "tulokset.h"
-#include "liity_muistiin.h"
 #include "asetelma.h"
+#include "muistin_jako.h"
 
 typedef enum {
   kelloal,
@@ -26,6 +28,7 @@ typedef enum {
   muual
 } alue_e;
 
+int kaunnista();
 int piste_alueella(int x, int y, SDL_Rect* alue);
 alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
@@ -60,7 +63,7 @@ void avaa_kuutio();
 #define LAITOT (laitot = (tila == seis)? jaaduta : kaikki_laitot)
 
 extern float skaala;
-extern char* apuc;
+char* apuc;
 
 int kaunnista() {
   SDL_Event tapaht;
@@ -966,4 +969,76 @@ void avaa_kuutio() {
   strncpy(apuc, ulosnimi, viimeinen_sij(ulosnimi, '/')+1);
   sprintf(apuc+viimeinen_sij(ulosnimi,'/')+1, "kuutio%i.txt", NxN);
   ulosnimeksi(apuc);
+}
+
+int main(int argc, char** argv) {
+  int r = 0;
+  setlocale(LC_ALL, getenv("LANG"));
+    if (SDL_Init(SDL_INIT_VIDEO)) {
+    fprintf(stderr, "Virhe: Ei voi alustaa SDL-grafiikkaa: %s\n", SDL_GetError());
+    r = 1;
+    goto EI_SDL;
+  }
+  if (TTF_Init()) {
+    fprintf(stderr, "Virhe: Ei voi alustaa SDL_ttf-fonttikirjastoa: %s\n", TTF_GetError());
+    SDL_Quit();
+    r = 1;
+    goto EI_TTF;
+  }
+  ikkuna = SDL_CreateWindow\
+    (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
+  rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
+  SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
+  SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
+
+  apuc = malloc(1500);
+  if(asetelma())
+    goto EI_FONTTI;
+  
+  /*valintaolion kuvat*/
+  SDL_Surface* kuva;
+  if(!(kuva = SDL_LoadBMP(url_valittu))) {
+    fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_valittu);
+    goto EI_FONTTI;
+  }
+  tarknap.kuvat.valittu = SDL_CreateTextureFromSurface(rend, kuva);
+  SDL_FreeSurface(kuva);
+  if(!(kuva = SDL_LoadBMP(url_eivalittu))) {
+    fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_eivalittu);
+    goto EI_FONTTI;
+  }
+  tarknap.kuvat.ei_valittu = SDL_CreateTextureFromSurface(rend, kuva);
+  SDL_FreeSurface(kuva);
+  
+  time_t t;
+  srand((unsigned) time(&t));
+  strcpy(kellool.teksti, " ");
+
+  /*luetaan tiedosto tarvittaessa*/
+  /*luettavaa voidaan rajata:
+    viimeiset 1000 --> -1000:
+    alkaen 1000:sta --> 1000:
+    1000 ensimmäistä --> :1000
+    alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne*/
+  if(argc > 2) {
+    if( lue_tiedosto(argv[1], argv[2]) )
+      return 1;
+  } else if(argc > 1) {
+    if( lue_tiedosto(argv[1], "") )
+      return 1;
+  }
+    
+  r = kaunnista();
+
+  tuhoa_asetelma();
+ EI_FONTTI:
+  SDL_DestroyRenderer(rend);
+  SDL_DestroyWindow(ikkuna);
+  SDL_DestroyTexture(tausta);
+  TTF_Quit();
+ EI_TTF:
+  SDL_Quit();
+ EI_SDL:
+  return r;
 }

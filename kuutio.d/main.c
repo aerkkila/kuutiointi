@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <stdarg.h>
-#include "liity_muistiin.h"
+#include "../muistin_jako.h"
 
 #include "kuutio.c"
 #include "kuution_grafiikka.c"
@@ -14,7 +14,6 @@
 kuutio_t kuutio;
 
 #ifndef __EI_SEKUNTIKELLOA__
-#include "liity_muistiin.c"
 #include "lue_siirrot.c"
 #endif
 

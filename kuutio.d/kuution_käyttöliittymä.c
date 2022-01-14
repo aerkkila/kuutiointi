@@ -2,7 +2,7 @@
 
 #define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
 SDL_Event tapaht; 
-int xVanha=0, yVanha=0; //alustetaan, ettei kääntäjä varoittele turhaan
+int xVanha=0, yVanha=0; //alustetaan ettei kääntäjä varoittele turhaan
 char hiiri_painettu = 0;
 int siirtokaista = 1;
 int raahattiin = 0;
@@ -114,9 +114,6 @@ while(SDL_PollEvent(&tapaht)) {
       case SDLK_PAUSE:
 	if(vaihto)
 	  asm("int $3");
-	break;
-      case SDLK_RETURN:
-	kaantoanimaatio(_f, 0, (koordf){{0,1,0}}, 1.0, 1);
 	break;
 #define A kuva.ruutuKorostus
 #define B(i) kuva.ruutuKorostus.a[i]
