@@ -80,7 +80,7 @@ void piirra() {
     laita_valinta(&tarknap, rend);
   }
   if(laitot & muutlai) {
-    laita_vierekkain(muut_a, muut_b, 0, &muutol, rend);
+    laita_tekstilista(muut_a, 0, &muutol, rend);
   }
   if(laitot & sektuslai) {
     sektusol.sij.h = ikkuna_h - sektusol.sij.y;
@@ -258,27 +258,6 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
     SDL_RenderCopy(rend, o->kuvat.ei_valittu, NULL, &o->kuvat.sij);
   laita_teksti_ttf(&(o->teksti), rend);
   return;
-}
-
-/*tämä palauttaa toteutumaksi näitten yhteisen alueen, vain muutol käyttää tätä*/
-void laita_vierekkain(slista* a, slista* b, int alku, tekstiolio_s* o, SDL_Renderer* r) {
-  laita_tekstilista(a, alku, o, r);
-  SDL_Rect sij0 = o->sij;
-  SDL_Rect tot0 = o->toteutuma;
-  
-  o->sij.x = o->toteutuma.x + o->toteutuma.w;
-  o->sij.y = o->toteutuma.y;
-  o->sij.w = o->sij.w - o->toteutuma.w;
-  o->sij.h = o->toteutuma.h;
-
-  if(-o->rullaus < b->pit)
-    laita_tekstilista(b, alku, o, r);
-  
-  o->sij = sij0;
-  o->toteutuma.x = tot0.x;
-  o->toteutuma.w += tot0.w;
-  if(o->toteutuma.h < tot0.h)
-    o->toteutuma.h = tot0.h;
 }
 
 void laita_oikealle(tekstiolio_s* ov, short vali, slista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {

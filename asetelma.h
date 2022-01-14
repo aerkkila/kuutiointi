@@ -13,7 +13,6 @@ extern float jarjsuhde;
 
 extern const char* restrict ohjelman_nimi;
 extern const char* restrict ulosnimi0;
-extern const char* restrict uloskansio;
 extern const char* restrict url_valittu;
 extern const char* restrict url_eivalittu;
 extern const char* restrict tietoalkustr;
@@ -39,7 +38,6 @@ extern vnta_s tarknap;
 extern SDL_Color kellovarit[];
 
 extern slista* muut_a;
-extern slista* muut_b;
 extern slista* tietoalut;
 extern slista* tietoloput;
 extern slista* lisatd;

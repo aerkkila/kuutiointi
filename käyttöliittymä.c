@@ -31,11 +31,13 @@ alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
+void vaihda_fonttikoko_abs(tekstiolio_s* olio, int y);
 void laita_sekoitus(shmRak_s* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 void ulosnimeksi(const char*);
 void taustaprosessina(const char* restrict);
+int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
 
 #define KELLO (kellool.teksti)
@@ -152,16 +154,16 @@ int kaunnista() {
 	    if(tila != seis)
 	      break;
 	    if(kontrol) {
-	      sprintf(apuc, "%s/%s", uloskansio, ulosnimi);
-	      if(!(apuind = tallenna(apuc)))
-		sprintf(TEKSTI, "Tallennettiin \"%s\"", apuc);
+	      if(!(apuind = tallenna(ulosnimi)))
+		sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
 	      else if (apuind < 0)
-		sprintf(TEKSTI, "Tallennettiin uusi tiedosto \"%s\"", apuc);
+		sprintf(TEKSTI, "Tallennettiin uusi tiedosto \"%s\"", ulosnimi);
 	      else
-		sprintf(TEKSTI, "Ei tallennettu \"%s\"", apuc);
+		sprintf(TEKSTI, "Ei tallennettu \"%s\"", ulosnimi);
 	      laitot |= tkstallai;
 	    } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);
+	      strncpy(KELLO, ulosnimi, viimeinen_sij(ulosnimi,'/')+1);
 	    }
 	    break;
 	  case SDLK_a:
@@ -890,6 +892,10 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
   return;
 }
 
+inline void __attribute__((always_inline)) vaihda_fonttikoko_abs(tekstiolio_s* olio, int y) {
+  vaihda_fonttikoko(olio, y-olio->fonttikoko);
+}
+
 inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio, int y) {
   TTF_CloseFont(olio->font);
   olio->font = NULL;
@@ -924,11 +930,8 @@ void rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
   return;
 }
 
-
 void ulosnimeksi(const char* nimi) {
-  poista_slistalta_viimeinen(muut_b);
-  slistalle_kopioiden(muut_b, nimi);
-  ulosnimi = muut_b->taul[0];
+  strcpy(ulosnimi, nimi); 
   laitot |= muutlai;
 }
 
@@ -947,10 +950,20 @@ void taustaprosessina(const char* restrict komento) {
   }
 }
 
+int viimeinen_sij(char* s, char c) {
+  int sij=-1, yrite=-1;
+  do
+    if(s[++yrite] == c)
+      sij = yrite;
+  while(s[yrite]);
+  return sij;
+}
+
 void avaa_kuutio() {
   sprintf(apuc, "./kuutio.d/kuutio %u", NxN);
   taustaprosessina(apuc);
   ipc = liity_muistiin();
-  sprintf(apuc, "kuutio%i.txt", NxN); //vaihdetaan ulosnimi
+  strncpy(apuc, ulosnimi, viimeinen_sij(ulosnimi, '/')+1);
+  sprintf(apuc+viimeinen_sij(ulosnimi,'/')+1, "kuutio%i.txt", NxN);
   ulosnimeksi(apuc);
 }

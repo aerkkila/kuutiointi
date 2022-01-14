@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <time.h>
@@ -33,11 +32,11 @@ int main(int argc, char** argv) {
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
+  SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
 
   apuc = malloc(1500);
   if(asetelma())
     goto EI_FONTTI;
-  chdir(uloskansio);
   
   /*valintaolion kuvat*/
   SDL_Surface* kuva;
