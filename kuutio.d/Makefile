@@ -1,7 +1,7 @@
 kaikki: kuutio
 
-kuutiotied=main.c kuutio.c kuution_käyttöliittymä.c kuution_grafiikka.c liity_muistiin.c python_savel.c
-kuut_ots=kuutio.h kuution_grafiikka.h liity_muistiin.h
+kuutiotied=main.c kuutio.c kuution_käyttöliittymä.c kuution_grafiikka.c python_savel.c
+kuut_ots=kuutio.h kuution_grafiikka.h ../muistin_jako.h
 kuut_libs=-lSDL2 -lm
 
 kuutio: ${kuut_ots} ${kuutiotied}
@@ -15,9 +15,3 @@ laskentakuutio: kuutio.[ch] laskentakuutio.c
 
 laskentakuutio0: kuutio.c laskentakuutio.c kuutio.h
 	gcc -Wall -o $@ laskentakuutio.c -O0 -gdwarf-2 -g3 -pthread -DDEBUG
-
-liity_muistiin.c: ../liity_muistiin.c
-	ln -sf ../liity_muistiin.c .
-
-liity_muistiin.h: ../liity_muistiin.h
-	ln -sf ../liity_muistiin.h .

@@ -13,12 +13,11 @@ unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskia
 float jarjsuhde = 0.70;
 
 const char* restrict ohjelman_nimi = "Skello";
-const char* restrict ulosnimi0 = "tulokset.txt";
-const char* restrict uloskansio = "MAKE_LIITÄ_HOME/kuutiointi";
+const char* restrict ulosnimi0 = "MAKE_LIITÄ_HOME/kuutiointi/tulokset.txt";
 const char* restrict url_valittu = "MAKE_LIITÄ_PWD/valittu.bmp";
 const char* restrict url_eivalittu = "MAKE_LIITÄ_PWD/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* restrict muut_a_str = "ulosnimi:|eri_sekunnit|kuvaaja|kuutio|autokuutio";
+const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
 #define MONOFONTTI "MAKE_LIITÄ_MONOFONTTI"
 #define YLEISFONTTI "MAKE_LIITÄ_SANSFONTTI"
@@ -93,7 +92,6 @@ vnta_s tarknap = {.valittu = 1,						\
 
 SDL_Rect tarknapsij = {60, 10, 800, 90};
 
-slista* muut_b;
 slista* muut_a;
 slista* tietoalut;
 slista* tietoloput;
@@ -105,7 +103,6 @@ flista* ftulos;
 ilista* thetki;
 int* jarjes;
 float* fjarje;
-
 char* ulosnimi;
 
 int avaa_fontit(int n, ...);
@@ -113,8 +110,6 @@ int avaa_fontit(int n, ...);
 #define tulospatka 10
 int asetelma() {
   muut_a     = slistaksi(muut_a_str, "|");
-  muut_b     = alusta_lista(1, char*);
-  slistalle_kopioiden(muut_b, ulosnimi0);
   tietoalut  = slistaksi(tietoalkustr, "|");
   tietoloput = alusta_lista(tietoalut->pit, char*);
   lisatd     = alusta_lista(13, char*);
@@ -126,7 +121,10 @@ int asetelma() {
   jarjes = malloc(1);
   fjarje = malloc(1);
 
-  ulosnimi = muut_b->taul[0];
+  int pit0 = strlen(muut_a->taul[0]);
+  muut_a->taul[0] = realloc(muut_a->taul[0], 150);
+  strcat(muut_a->taul[0], ulosnimi0);
+  ulosnimi = muut_a->taul[0] + pit0;
   
   if(avaa_fontit(9, &kellool, &tulosol, &jarjol1, &tiedotol, &lisaol, &sektusol, &muutol, &tkstalol, &tarknap.teksti))
     return 1;
@@ -190,6 +188,7 @@ void vakiosijainnit() {
   laitot = jaaduta;
   piirra();
   kellool.sij.y = muutol.toteutuma.y + muutol.toteutuma.h;
+  kellool.sij.w = ikkuna_w - kellool.toteutuma.x;
   piirra(); //toistetaan varalta
   sektusol.sij.y = kellool.toteutuma.y + kellool.toteutuma.h + 5;
   piirra();
@@ -207,7 +206,6 @@ void tuhoa_asetelma() {
   free(fjarje); fjarje=NULL;
   free(jarjes); jarjes=NULL;
   tuhoa_slista(&muut_a);
-  tuhoa_slista(&muut_b);
   tuhoa_slista(&tietoalut);
   tuhoa_slista(&tietoloput);
   if(lisatd)

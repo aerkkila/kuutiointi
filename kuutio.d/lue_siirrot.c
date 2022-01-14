@@ -2,7 +2,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#include "liity_muistiin.h"
+#include "../muistin_jako.h"
 
 extern int viimeViesti;
 void lue_siirrot(shmRak_s*);
