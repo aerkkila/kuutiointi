@@ -6,7 +6,7 @@
 #include <SDL2/SDL.h>
 #include "asetelma.h"
 
-int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1750, ikkuna_h=600;
+int ikkuna_x=0, ikkuna_y=0, ikkuna_w=1600, ikkuna_h=600;
 Uint32 viive = 3;
 unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
