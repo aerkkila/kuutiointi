@@ -202,9 +202,11 @@ char* float_kelloksi(char* kello, float f) {
 
 int lue_tiedosto(const char* tiednimi, char* rajaus) {
   FILE *f = fopen(tiednimi, "r");
-  if(!f) {
-    fprintf(stderr, "Virhe, ei tiedostoa \"%s\"\n", tiednimi);
-    return 1;
+  char apu[200];
+  sprintf(apu, "%s%s", TULOSKANSIO, tiednimi);
+  if( !f && !(f=fopen(apu, "r")) ) {
+      fprintf(stderr, "Virhe, ei tiedostoa \"%s\"\n", tiednimi);
+      return 1;
   }
 
   float faika;

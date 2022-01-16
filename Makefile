@@ -5,27 +5,27 @@ otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h muistin_jako.h
 libs=-lSDL2 -lSDL2_ttf -lm
 
 skello: ${tiedostot} ${otsakkeet}
-	${CC} -g -o skello ${tiedostot} ${libs} -O3
+	${CC} -O2 -D_FORTIFY_SOURCE=2 -g -o skello ${tiedostot} ${libs}
 
 kuutio.d/kuutio: kuutio.d
 	cd kuutio.d && make
 
 kellonajat.so: kellonajat.c listat.c listat.h
-	${CC} -Wall -shared -o $@ -fPIC kellonajat.c listat.c -lm -Ofast
+	${CC} ${CFLAGS} -Wall -shared -o $@ -fPIC kellonajat.c listat.c -lm -Ofast
 
-asetelma1.c: asetelma.c asetelma.sh
-	sh asetelma.sh $@
+asetelma1.c: asetelma.c configure.sh
+	env KANSIO=/usr/share/skello sh configure.sh $@
 
 install: ${tiedostot} ${otsakkeet} kellonajat.so
-	mkdir -p ${DESTDIR}/bin
-	cp -f skello ${DESTDIR}/bin
-	cp -f kellonajat.py ${DESTDIR}/bin/skellonajat
-	chmod 755 ${DESTDIR}/bin/skellonajat
-	cp -f kuutio.d/kuutio ${DESTDIR}/bin/skello_kuutio
-	mkdir -p ${DESTDIR}/share/skello
-	cp -f *.bmp *.so kuvaaja.py kuutio.d/sävel.py ${DESTDIR}/share/skello
-	chmod 755 ${DESTDIR}/share/skello/*.py
+	mkdir -p ${DESTDIR}/usr/bin
+	cp -f skello ${DESTDIR}/usr/bin
+	cp -f kellonajat.py ${DESTDIR}/usr/bin/skellonajat
+	chmod 755 ${DESTDIR}/usr/bin/skellonajat
+	cp -f kuutio.d/kuutio ${DESTDIR}/usr/bin/skello_kuutio
+	mkdir -p ${DESTDIR}/usr/share/skello
+	cp -f *.bmp *.so kuvaaja.py kuutio.d/savel.py ${DESTDIR}/usr/share/skello
+	chmod 755 ${DESTDIR}/usr/share/skello/*.py
 
 uninstall:
-	rm -rf ${DESTDIR}/share/skello
-	rm -f ${DESTDIR}/bin/skello ${DESTDIR}/bin/skello_kuutio ${DESTDIR}/bin/skellonajat
+	rm -rf /usr/share/skello
+	rm -f /usr/bin/skello /usr/bin/skello_kuutio /usr/bin/skellonajat

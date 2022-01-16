@@ -5,6 +5,9 @@
 #include "listat.h"
 #include "grafiikka.h"
 
+#define TULOSKANSIO ""
+#define KOTIKANSIO "/usr/share/skello"
+
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
 extern Uint32 viive;
 extern unsigned NxN;

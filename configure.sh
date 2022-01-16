@@ -1,4 +1,6 @@
-sed 's@MAKE_LIITÄ_PWD@'"${PWD}"'@g' asetelma.c > $@
+#!/bin/sh
+sed 's@MAKE_LIITÄ_KANSIO@'"${KANSIO}"'@g' asetelma.c > $@
+echo $KANSIO > /home/aerk/kansio.txt
 sed -i 's@MAKE_LIITÄ_HOME@'"${HOME}"'@g' $@
 fontti=`fc-match -v monospace |grep file: |sed 's@.*"\(.*\)".*@\1@'`
 sed -i 's@MAKE_LIITÄ_MONOFONTTI@'"${fontti}"'@g' $@

@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
  ULOS:
 #ifndef EI_SAVEL_MAKRO
   if(savelPtr) {
-    if(system("pkill sävel.py") < 0)
+    if(system("pkill savel.py") < 0)
       printf("Sävel-ohjelmaa ei suljettu\n");
     savelPtr = NULL;
   }

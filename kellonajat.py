@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 #Tämä kutsuu c-ohjelmaa tiedostossa kellonajat.c
 #Piirtää kuvaajan montako tulosta on kullakin vuorokauden minuutilla
@@ -11,10 +11,10 @@ import sys, time
 from ctypes import *
 
 if len(sys.argv) < 2:
-    print("Käyttö ./kellonajat.py tulostiedosto.txt")
+    print("Käyttö skellonajat tulostiedosto.txt")
     exit()
 
-c_ajat = CDLL("./kellonajat.so")
+c_ajat = CDLL("/usr/share/skello/kellonajat.so")
 c_ajat.suodata.restype = POINTER(c_float*1440)
 c_ajat.tarkat_maarat.restype = POINTER(c_int*1440)
 

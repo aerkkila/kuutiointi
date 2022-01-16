@@ -13,9 +13,9 @@ unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskia
 float jarjsuhde = 0.70;
 
 const char* restrict ohjelman_nimi = "Skello";
-const char* restrict ulosnimi0 = "MAKE_LIITÄ_HOME/kuutiointi/tulokset.txt";
-const char* restrict url_valittu = "MAKE_LIITÄ_PWD/valittu.bmp";
-const char* restrict url_eivalittu = "MAKE_LIITÄ_PWD/eivalittu.bmp";
+const char* restrict ulosnimi0 = "MAKE_LIITÄ_HOME/" TULOSKANSIO "tulokset.txt";
+const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
+const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|autokuutio";
 

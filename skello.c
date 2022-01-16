@@ -111,8 +111,6 @@ int kaunnista() {
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_SetCursor(kursori);
 
-  char* apucp;
-
   TEE_TIEDOT;
   vakiosijainnit();
   LAITOT;
@@ -213,6 +211,7 @@ int kaunnista() {
 		continue; //jos olisi break, niin tulisi float_kelloksi
 	      }
 	      /*laitetaan tuloksiin se, mitä kirjoitettiin*/
+	      char* apucp;
 	      while((apucp = strstr(KELLO, ".")))
 		*apucp = ',';
 	      float_kelloksi(KELLO, lue_kellosta(KELLO)); //tämä muotoilee syötteen
@@ -444,7 +443,7 @@ int kaunnista() {
 	  } else if(!strcmp(tmpstr, "eri_sekunnit")) {
 	    laita_eri_sekunnit(apuc);
 	  } else if(!strcmp(tmpstr, "kuvaaja")) {
-	    FILE *f = fopen(".kuvaaja.bin", "wb");
+	    FILE *f = fopen("/tmp/skello_kuvaaja.bin", "wb");
 	    FOR_LISTA(ftulos)
 	      fwrite(NYT_OLEVA(ftulos), 1, sizeof(ftulos->taul[0]), f);
 	    fclose(f);
@@ -460,8 +459,8 @@ int kaunnista() {
 	      } else if(pid2) { //1. alaprosessi
 		_exit(0);
 	      } else { //2. alaprosessi
-		system("python3 kuvaaja.py");
-		system("rm .kuvaaja.bin");
+		system(KOTIKANSIO "/kuvaaja.py /tmp/skello_kuvaaja.bin");
+		system("rm /tmp/skello_kuvaaja.bin");
 		exit(0);
 	      }   
 	    }

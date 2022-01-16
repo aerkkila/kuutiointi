@@ -1,12 +1,14 @@
 #!/usr/bin/python
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import scipy.stats as stat
 import numpy as np
 import struct, locale
 import pymannkendall as mk
 import pandas as pd
+import sys, os
 
-f = open(".kuvaaja.bin", "rb")
+f = open(sys.argv[1], "rb")
 ajat = []
 ind = []
 dnfind = []
@@ -44,9 +46,12 @@ dnfaika = np.zeros(np.shape(dnfind)) + ula
 plt.plot(dnfind, dnfaika, 'o', color='r')
 
 plt.legend()
-locale.setlocale(locale.LC_ALL, 'fi_FI.utf8')
+locale.setlocale(locale.LC_ALL, os.getenv('LANG'))
 plt.title(locale.format_string("theil-senn: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f\n"
                                    "pns: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f",
                                    (ts.slope*1000, ts.intercept, ts.p,
                                         pns.slope*1000, pns.intercept, pns.pvalue)))
+paikallistaja = ticker.ScalarFormatter(useLocale=True)
+plt.gca().yaxis.set_major_formatter(paikallistaja)
+plt.tight_layout()
 plt.show()

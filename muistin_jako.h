@@ -49,5 +49,4 @@ shmRak_s* liity_muistiin() {
   return r;
 }
 
-
 #endif
