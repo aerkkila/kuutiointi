@@ -12,12 +12,11 @@ float std(float* taul, int,  float ka, int otos);
 void karstaulkot(float** ulos, float* sis, int pit, int n, int pp, int ps);
 sakko_e hae_sakko(const char* s);
 
-extern char* apuc;
-
 /*Tämä kutsuttakoon aina, kun tuloksia on muutettu.
   Tämä huolehtii myös järjestyslistan ajantasaisuudesta
   ja muualla sen oletetaan olevan ajan tasalla.*/
 slista* tee_tiedot(int* avgind) {
+  char apuc[600];
   tuhjenna_slista(tietoloput);
   float ka[ftulos->pit];
   int a, b, c;
@@ -126,6 +125,7 @@ int* eri_sekunnit(const flista* restrict ftul) {
 
 /*laittaa yhden suurimman ja pienimmän sulkeisiin*/
 void tee_lisatiedot(char** sektus, int alkuind, int n) {
+  char apuc[700];
   if(alkuind+n > ftulos->pit)
     return;
   float *karstaul = malloc(n*sizeof(float));
@@ -134,11 +134,11 @@ void tee_lisatiedot(char** sektus, int alkuind, int n) {
 
   time_t aikatmp = thetki->taul[alkuind+n-1];
   struct tm *aika = localtime(&aikatmp);
-  strftime(apuc+500, 200, "%A %d.%m.%Y klo %H.%M", aika);
+  strftime(apuc+300, 200, "%A %d.%m.%Y klo %H.%M", aika);
 
   float ka = keskiarvo(karstaul, n-2);
   sprintf(apuc, "Avg%i: %s; σ = %.2f; %s",\
-	  n, float_kelloksi(apuc+1000,ka+0.005), std(karstaul, n-2, ka, 0), apuc+500);
+	  n, float_kelloksi(apuc+500,ka+0.005), std(karstaul, n-2, ka, 0), apuc+300);
   slistalle_kopioiden(lisatd, apuc);
 
   int ma = fmaxind(arr, n);
@@ -336,6 +336,7 @@ int tallenna(const char* restrict tiednimi) {
   time_t hetki = thetki->taul[0];
   time_t yrite = 0;
   char c = 0;
+  char apuc[300];
   while(1) {
     fflush(f);
     unsigned long sij = ftell(f);
@@ -355,10 +356,10 @@ int tallenna(const char* restrict tiednimi) {
       case 0:
 	goto KIRJOITA;
       default:
-	sprintf(apuc+300, "Virhe: Luettiin virheellinen merkki: c = %hhx (hexa) '%c'", c, c);
-	fprintf(stderr, "%s\n", apuc+300);
+	sprintf(apuc, "Virhe: Luettiin virheellinen merkki: c = %hhx (hexa) '%c'", c, c);
+	fprintf(stderr, "%s\n", apuc);
 	tuhjenna_slista(lisatd);
-	slistalle_kopioiden(lisatd, apuc+300);
+	slistalle_kopioiden(lisatd, apuc);
 	laitot |= lisatdlai;
 	setlocale(LC_NUMERIC, getenv("LANG"));
 	return 1;

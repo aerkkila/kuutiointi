@@ -63,7 +63,6 @@ void avaa_kuutio();
 #define LAITOT (laitot = (tila == seis)? jaaduta : kaikki_laitot)
 
 extern float skaala;
-char* apuc;
 
 int kaunnista() {
   SDL_Event tapaht;
@@ -72,6 +71,7 @@ int kaunnista() {
   double dalku, dnyt;
   int avgind[6];
   int apuind;
+  char apuc[1500];
   enum hiirilaji {
     perus,
     teksti,
@@ -788,9 +788,8 @@ char* sekoitus(char* s) {
   int paksKieltoja[2];
   paksKieltoja[0] = 0;
   paksKieltoja[1] = 0;
-  char *paksKiellot[2];
-  paksKiellot[0] = malloc(paksuus);
-  paksKiellot[1] = malloc(paksuus);
+  char paksKiellot[2][paksuus];
+  *s = '\0';
 
   for (int i=0; i<pit; i++) {
     /*akseli*/
@@ -848,24 +847,13 @@ char* sekoitus(char* s) {
 	  sallittuPuolisko = (j+1) % 2;
 	}
       }
-    
     /*tulostus*/
     if(NxN > 5 && paks)
-      if(i==0) {
-	sprintf(s, "%u%c%c", paks, pinnat[pinta], suunnat[rand() % 3]);
-      } else {
-	sprintf(s, "%s %u%c%c", s, paks, pinnat[pinta], suunnat[rand() % 3]);
-      }
+      sprintf(s+strlen(s), "%u%c%c ", paks, pinnat[pinta], suunnat[rand() % 3]);
     else
-      if(i==0) {
-	sprintf(s, "%c%c", pinnat[pinta], suunnat[rand() % 3]);
-      } else {
-	sprintf(s, "%s %c%c", s, pinnat[pinta], suunnat[rand() % 3]);
-      }
+      sprintf(s+strlen(s), "%c%c ", pinnat[pinta], suunnat[rand() % 3]);
   }
-
-  free(paksKiellot[0]);
-  free(paksKiellot[1]);
+  s[strlen(s)-1] = '\0';
   return s;
 }
 
@@ -962,6 +950,7 @@ int viimeinen_sij(char* s, char c) {
 }
 
 void avaa_kuutio() {
+  char apuc[200];
   sprintf(apuc, "skello_kuutio %u", NxN);
   taustaprosessina(apuc);
   ipc = liity_muistiin();
@@ -991,7 +980,6 @@ int main(int argc, char** argv) {
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
   SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
 
-  apuc = malloc(1500);
   if(asetelma())
     goto EI_FONTTI;
   

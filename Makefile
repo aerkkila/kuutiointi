@@ -5,13 +5,13 @@ otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h muistin_jako.h
 libs=-lSDL2 -lSDL2_ttf -lm
 
 skello: ${tiedostot} ${otsakkeet}
-	${CC} -O2 -D_FORTIFY_SOURCE=2 -g -o skello ${tiedostot} ${libs}
+	${CC} ${CFLAGS} -g -o skello ${tiedostot} ${libs}
 
 kuutio.d/kuutio: kuutio.d
 	cd kuutio.d && make
 
 kellonajat.so: kellonajat.c listat.c listat.h
-	${CC} ${CFLAGS} -Wall -shared -o $@ -fPIC kellonajat.c listat.c -lm -Ofast
+	${CC} ${CFLAGS} -Wall -shared -o $@ -fPIC kellonajat.c listat.c -lm
 
 asetelma1.c: asetelma.c configure.sh
 	env KANSIO=/usr/share/skello sh configure.sh $@

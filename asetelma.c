@@ -196,7 +196,6 @@ void vakiosijainnit() {
 }
 
 void tuhoa_asetelma() {
-  extern char* apuc;
   SDL_DestroyTexture(tarknap.kuvat.valittu);
   SDL_DestroyTexture(tarknap.kuvat.ei_valittu);
   tuhoa_slista(&sektus);
@@ -210,7 +209,6 @@ void tuhoa_asetelma() {
   tuhoa_slista(&tietoloput);
   if(lisatd)
     tuhoa_slista(&lisatd);
-  free(apuc);
   
   free(kellool.teksti);
   free(tkstalol.teksti);
