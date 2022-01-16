@@ -148,8 +148,10 @@ int kaunnista() {
 	    kontrol = 1;
 	    break;
 	  case SDLK_o:
-	    if(tila == seis)
+	    if(tila == seis) {
 	      KIRJOITUSLAJIKSI(avaa_tiedostoKirj);
+	      strncpy(KELLO, ulosnimi, viimeinen_sij(ulosnimi,'/')+1);
+	    }
 	    break;
 	  case SDLK_s:
 	    if(tila != seis)
@@ -1008,14 +1010,17 @@ int main(int argc, char** argv) {
     alkaen 1000:sta --> 1000:
     1000 ensimmäistä --> :1000
     alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne*/
-  if(argc > 2) {
-    if( lue_tiedosto(argv[1], argv[2]) )
-      return 1;
-  } else if(argc > 1) {
-    if( lue_tiedosto(argv[1], "") )
-      return 1;
+  if(argc > 1) {
+    strncpy(KELLO,ulosnimi,viimeinen_sij(ulosnimi,'/')+1);
+    strcat(KELLO,argv[1]);
+    if(argc > 2) {
+      if(lue_tiedosto(argv[1], argv[2]))
+	return 1;
+    } else
+      if(lue_tiedosto(KELLO, ""))
+	return 1;
   }
-    
+  
   r = kaunnista();
 
   tuhoa_asetelma();
