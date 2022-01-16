@@ -68,7 +68,7 @@ int kaunnista() {
   SDL_Event tapaht;
   struct timeval alku, nyt;
   short min, sek, csek;
-  double dalku, dnyt;
+  double dalku=0, dnyt;
   int avgind[6];
   int apuind;
   char apuc[1500];

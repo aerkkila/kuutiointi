@@ -19,7 +19,7 @@ slista* tee_tiedot(int* avgind) {
   char apuc[600];
   tuhjenna_slista(tietoloput);
   float ka[ftulos->pit];
-  int a, b, c;
+  int a=0, b=0, c=0;
 
   /*Avg5 ja Avg12*/
   float** kars = malloc(ftulos->pit*sizeof(float*));
@@ -37,7 +37,7 @@ slista* tee_tiedot(int* avgind) {
       b = fminind(ka, ftulos->pit-q+1);
       c = fmaxind(ka, ftulos->pit-q+1);
       /*Tuloksiin lisätään 5 ms, jotta pyöristys menee oikein*/
-      sprintf(apuc, " = %s  (%s – %s)",			\
+      sprintf(apuc, " = %.99s  (%.99s – %.99s)",	\
 	      float_kelloksi(apuc+200,ka[a]+0.005),	\
 	      float_kelloksi(apuc+300,ka[b]+0.005),	\
 	      float_kelloksi(apuc+400,ka[c]+0.005));
