@@ -5,7 +5,7 @@
 #include "listat.h"
 #include "grafiikka.h"
 
-#define TULOSKANSIO ""
+#define TULOSKANSIO "skello/"
 #define KOTIKANSIO "/usr/share/skello"
 
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
