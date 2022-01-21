@@ -45,6 +45,9 @@ extern const unsigned short tkstallai;
 extern const unsigned short kaikki_laitot;
 extern const unsigned short jaaduta;
 
+void aseta_vari(SDL_Renderer*, SDL_Color*);
+int xsijainti(tekstiolio_s* ol, int p);
+void saada_kohdistin();
 void piirra();
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
 int laita_tekstilista(slista*, int, tekstiolio_s*, SDL_Renderer*);

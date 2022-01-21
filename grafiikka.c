@@ -30,12 +30,46 @@ const unsigned short kaikki_laitot = 0x01ff;
 const unsigned short jaaduta   = 0x03ff; //myös kello laitetaan taustaan
 
 float skaala = 1.0;
+SDL_Rect kohdistinsij;
+extern int kohdistin;
+
+int xsijainti(tekstiolio_s* o, int p) {
+  int lev;
+  char c0 = o->teksti[p];
+  o->teksti[p] = '\0';
+  TTF_SizeUTF8(o->font, o->teksti, &lev, NULL);
+  o->teksti[p] = c0;
+  return lev + o->toteutuma.x;
+}
+
+void saada_kohdistin() {
+  kohdistinsij.y = kellool.sij.y;
+  kohdistinsij.h = TTF_FontLineSkip(kellool.font);
+  TTF_GlyphMetrics(kellool.font, ' ', NULL, NULL, NULL, NULL, &kohdistinsij.w);
+  kohdistinsij.w /= 10;
+  if(!kohdistinsij.w)
+    kohdistinsij.w = 1;
+}
+
+void aseta_vari(SDL_Renderer* rend, SDL_Color* vari) {
+  SDL_SetRenderDrawColor(rend, vari->g, vari->b, vari->b, vari->a);
+}
+
+void laita_ehka_kohdistin() {
+  if(kohdistin >= 0) {
+    saada_kohdistin();
+    aseta_vari(rend, &kohdistinvari);
+    kohdistinsij.x = xsijainti(&kellool, strlen(kellool.teksti)-kohdistin);
+    SDL_RenderFillRect(rend, &kohdistinsij);
+  }
+}
 
 void piirra() {
   if(laitot == kellolai) {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
     if(KELLO[0])
       laita_teksti_ttf(&kellool, rend);
+    laita_ehka_kohdistin();
     SDL_RenderPresent(rend);
     return;
   }
@@ -45,6 +79,7 @@ void piirra() {
     return;
   }
   SDL_SetRenderTarget(rend, tausta);
+  aseta_vari(rend, &taustavari);
   if( (laitot & kaikki_laitot) == kaikki_laitot ) {
     SDL_RenderClear(rend);
     goto LAITOT;
@@ -111,11 +146,13 @@ void piirra() {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
     if(KELLO[0]) //ei tarkisteta, onko kelloa käsketty laittaa, 0:sta on palattu jo aiemmin
       laita_teksti_ttf(&kellool, rend);
+    laita_ehka_kohdistin();
     SDL_RenderPresent(rend);
     return;
   }
   if(KELLO[0]) //jäädytä
     laita_teksti_ttf(&kellool, rend);
+  laita_ehka_kohdistin(); //tuskin tulee näkyviin tästä
   SDL_SetRenderTarget(rend, NULL);
   SDL_RenderCopy(rend, tausta, NULL, NULL);
   SDL_RenderPresent(rend);

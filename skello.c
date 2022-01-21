@@ -29,6 +29,9 @@ typedef enum {
 } alue_e;
 
 int kaunnista();
+int edellinen_kohta(const char* suote, int* kohta);
+int seuraava_kohta(const char* suote, int* kohta);
+void pyyhi(char* suote, int kohta);
 int piste_alueella(int x, int y, SDL_Rect* alue);
 alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
@@ -56,6 +59,7 @@ void avaa_kuutio();
     tila = kirjoitustila;				   \
     kirjoituslaji = laji;				   \
     nostotoimi = ei_mitaan;				   \
+    kohdistin = 0;					   \
     strcpy(KELLO, "");					   \
     strcpy(TEKSTI, tekstialue[kirjoituslaji]);		   \
     laitot = kaikki_laitot;				   \
@@ -63,6 +67,7 @@ void avaa_kuutio();
 #define LAITOT (laitot = (tila == seis)? jaaduta : kaikki_laitot)
 
 extern float skaala;
+int kohdistin=-1; //kasvaa vasemmalle ja negatiivinen on piilotettu
 
 int kaunnista() {
   SDL_Event tapaht;
@@ -166,7 +171,9 @@ int kaunnista() {
 	      laitot |= tkstallai;
 	    } else { //s ilman ctrl:ia, vaihdetaan ulosnimi
 	      KIRJOITUSLAJIKSI(ulosnimiKirj);
-	      strncpy(KELLO, ulosnimi, viimeinen_sij(ulosnimi,'/')+1);
+	      int viim = viimeinen_sij(ulosnimi,'/')+1;
+	      strncpy(KELLO, ulosnimi, viim);
+	      KELLO[viim] = '\0';
 	    }
 	    break;
 	  case SDLK_a:
@@ -184,14 +191,19 @@ int kaunnista() {
 		strcpy(KELLO, *VIIMEINEN(stulos));
 	      TEE_TIEDOT;
 	      laitot = jaaduta;
-	    } else if (tila == kirjoitustila) {
-	      /*koko utf-8-merkki pois kerralla*/
-	      char jatka = 1;
-	      while(jatka) {
-		jatka = ( (KELLO[strlen(KELLO)-1] & 0xc0) == 0x80 )? 1 : 0; //alkaako 10:lla
-		KELLO[strlen(KELLO)-1] = '\0';
-	      }
-	    }
+	    } else if (tila == kirjoitustila)
+	      pyyhi(KELLO,kohdistin);
+	    break;
+	  case SDLK_DELETE:
+	    if(tila == kirjoitustila)
+	      if(seuraava_kohta(KELLO, &kohdistin))
+		pyyhi(KELLO,kohdistin);
+	    break;
+	  case SDLK_LEFT:
+	    edellinen_kohta(KELLO, &kohdistin);
+	    break;
+	  case SDLK_RIGHT:
+	    seuraava_kohta(KELLO, &kohdistin);
 	    break;
 	  case SDLK_RETURN:
 	  case SDLK_KP_ENTER:
@@ -203,6 +215,7 @@ int kaunnista() {
 	    SDL_StopTextInput();
 	    tila = seis;
 	    nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	    kohdistin = -1;
 	    switch((int)kirjoituslaji) {
 	    case aikaKirj:
 	      /*tällä voi kysyä SDL-version*/
@@ -258,6 +271,10 @@ int kaunnista() {
 	      float_kelloksi(KELLO, *VIIMEINEN(ftulos));
 	    break;
 	  case SDLK_END:
+	    if(tila == kirjoitustila) {
+	      kohdistin = -(kohdistin<0);
+	      break;
+	    }
 	    switch(alue) {
 	    default:
 	    case tuloksetal:
@@ -280,6 +297,11 @@ int kaunnista() {
 	    }
 	    break;
 	  case SDLK_HOME:
+	    if(tila == kirjoitustila) {
+	      if(kohdistin >= 0)
+		kohdistin = strlen(KELLO);
+	      break;
+	    }
 	    switch(alue) {
 	    default:
 	    case tuloksetal:
@@ -306,6 +328,7 @@ int kaunnista() {
 	      SDL_StopTextInput();
 	      tila = seis;
 	      nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	      kohdistin = -1;
 	      if(stulos->pit>0)
 		strcpy(KELLO, *VIIMEINEN(stulos));
 	      TEKSTI[0] = '\0';
@@ -315,6 +338,7 @@ int kaunnista() {
 	  case SDLK_PLUS:
 	  case SDLK_KP_PLUS:
 	    if(kontrol) {
+	      aseta_vari(rend, &taustavari);
 	      SDL_RenderClear(rend);
 	      skaala *= 1.1;
 	      SDL_RenderSetScale(rend, skaala, skaala);
@@ -328,6 +352,7 @@ int kaunnista() {
 	  case SDLK_MINUS:
 	  case SDLK_KP_MINUS:
 	    if(kontrol) {
+	      aseta_vari(rend, &taustavari);
 	      SDL_RenderClear(rend);
 	      skaala /= 1.1;
 	      SDL_RenderSetScale(rend, skaala, skaala);
@@ -662,16 +687,22 @@ int kaunnista() {
 	}
 	break;
       case SDL_TEXTINPUT:
-	strcat(KELLO, tapaht.text.text);
+	int pit = strlen(KELLO);
+	char* loppuosa_ptr = KELLO+pit-kohdistin;
+	strcpy(apuc, loppuosa_ptr);
+	strcpy(loppuosa_ptr, tapaht.text.text);
+	strcat(KELLO, apuc);
 	break;
       case SDL_WINDOWEVENT:
 	switch(tapaht.window.event) {
 	case SDL_WINDOWEVENT_RESIZED:
+	  aseta_vari(rend, &taustavari);
 	  SDL_RenderClear(rend);
 	  ikkuna_w = tapaht.window.data1;
 	  ikkuna_h = tapaht.window.data2;
 	  SDL_DestroyTexture(tausta);
 	  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
+	  vakiosijainnit();
 	  LAITOT;
 	  break;
 	}
@@ -738,6 +769,35 @@ int kaunnista() {
   laitot = kellolai * (tila != seis);
   SDL_Delay(viive);
   goto TOISTOLAUSE;
+}
+
+/*näissä siirrytään eteen- tai taakespäin koko utf-8-merkin verran*/
+int edellinen_kohta(const char* restrict suote, int* kohta) {
+  if(kohta < 0)
+    return 0;
+  int jatka = 1;
+  int pit = strlen(suote);
+  int r = 0;
+  while(jatka && pit > *kohta) {
+    r=1;
+    jatka = (suote[pit- ++(*kohta)] & 0xc0) == 0x80;
+  }
+  return r;
+}
+
+int seuraava_kohta(const char* restrict suote, int* kohta) {
+  int pit = strlen(suote);
+  int r = 0;
+  while(*kohta && (r=1) && ((suote[pit- --(*kohta)] & 0xc0) == 0x80));
+  return r;
+}
+
+void pyyhi(char* suote, int kohta) {
+  int pit = strlen(suote);
+  char tmpc[pit+1];
+  strcpy(tmpc, suote+pit-kohta);
+  edellinen_kohta(suote, &kohta);
+  strcpy(suote+pit-kohta, tmpc);
 }
 
 int piste_alueella(int x, int y, SDL_Rect* alue) {
@@ -978,7 +1038,6 @@ int main(int argc, char** argv) {
   ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
-  SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
   SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
 

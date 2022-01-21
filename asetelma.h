@@ -21,6 +21,8 @@ extern const char* restrict url_eivalittu;
 extern const char* restrict tietoalkustr;
 extern const char* restrict muut_a_str;
 extern char* ulosnimi;
+extern SDL_Color kohdistinvari;
+extern SDL_Color taustavari;
 
 extern SDL_Renderer* rend;
 extern SDL_Window* ikkuna;

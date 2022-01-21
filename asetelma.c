@@ -19,6 +19,9 @@ const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
+SDL_Color kohdistinvari = {255,255,255,255};
+SDL_Color taustavari = {0,0,0,255};
+
 #define MONOFONTTI "MAKE_LIITÄ_MONOFONTTI"
 #define YLEISFONTTI "MAKE_LIITÄ_SANSFONTTI"
 
