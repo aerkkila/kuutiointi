@@ -13,7 +13,7 @@ unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskia
 float jarjsuhde = 0.70;
 
 const char* restrict ohjelman_nimi = "Skello";
-const char* restrict ulosnimi0 = "MAKE_LIITÄ_HOME/" TULOSKANSIO "tulokset.txt";
+const char* restrict ulosnimi0 = "tulokset.txt";
 const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
 const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
@@ -125,8 +125,10 @@ int asetelma() {
   fjarje = malloc(1);
 
   int pit0 = strlen(muut_a->taul[0]);
-  muut_a->taul[0] = realloc(muut_a->taul[0], 150);
-  strcat(muut_a->taul[0], ulosnimi0);
+  char tmpc[500];
+  sprintf(tmpc, "%s/%s/%s", getenv("HOME"), TULOSKANSIO, ulosnimi0);
+  muut_a->taul[0] = realloc(muut_a->taul[0], pit0+strlen(tmpc)+1);
+  strcat(muut_a->taul[0], tmpc);
   ulosnimi = muut_a->taul[0] + pit0;
   
   if(avaa_fontit(9, &kellool, &tulosol, &jarjol1, &tiedotol, &lisaol, &sektusol, &muutol, &tkstalol, &tarknap.teksti))
