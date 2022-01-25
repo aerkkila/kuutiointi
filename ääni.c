@@ -9,10 +9,11 @@
 
 snd_pcm_t* kahva;
 const int taaj = 48000;
-const int tallennusaika_ms = 800;
+const int tallennusaika_ms = 400;
 const int jaksonaika_ms = 30;
-const int testiaika_ms = 50;
-const int gauss_sigma_us = 800;
+const int testiaika_ms = 30;
+const int gauss_sigma_kpl = 7;
+const int maksimin_liike = 22;
 int tarkka_taaj;
 snd_pcm_uframes_t buffer_size;
 int virhe_id;
@@ -61,7 +62,7 @@ float mean2(float* suote, int pit) {
 #define KERROIN 0.39894228 // 1/sqrt(2*pi)
 #define GAUSSPAINO(t,sigma) ( KERROIN/sigma * exp(-0.5*(t)*(t)/(sigma*sigma)) )
 
-float* suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
+void suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
   int gausspit = pit_sigma*3;
   float gausskertoimet[gausspit*2+1];
   float* gausskert = gausskertoimet + gausspit; //osoitin keskikohtaan
@@ -73,7 +74,22 @@ float* suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
       summa += data[i+T]*gausskert[T];
     kohde[i-gausspit] = summa;
   }
-  return kohde;
+}
+
+void derivaatta(float* data, float* kohde, int pit) {
+  for(int i=0; i<pit-1; i++)
+    kohde[i] = data[i+1]-data[i];
+}
+
+void eimaksimien_poisto(float* data, float* kohde, int pit) {
+  for(int i=maksimin_liike; i<pit-maksimin_liike; i++)
+    for(int j=1; j<=maksimin_liike; j++) {
+      if( ! (data[i-j] < data[i] && data[i] > data[i+j]) ) {
+	kohde[i-maksimin_liike] = 0;
+	break;
+      }
+      kohde[i-maksimin_liike] = data[i];
+    }
 }
 
 int kumpi_valmis = -1;
@@ -106,8 +122,7 @@ void kasittele(void* datav) {
   int pit_data = taaj*tallennusaika_ms/1000;
   int pit_jakso = taaj*jaksonaika_ms/1000;
   int pit_testi = taaj*testiaika_ms/1000;
-  int pit_sigma = taaj*gauss_sigma_us/1000000;
-  int pit_raaka = pit_jakso+pit_sigma*6;
+  int pit_raaka = pit_jakso+gauss_sigma_kpl*6;
   while(nauh_jatka) {
     while(kumpi_valmis < 0)
       usleep(1000);
@@ -117,10 +132,13 @@ void kasittele(void* datav) {
     kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
     kumpi_valmis = -1; //merkki tälle funktiolle
     siirra_dataa(data[suodate], pit_data, pit_jakso);
-    suodata(data[raaka], data[suodate]+pit_data-pit_jakso, pit_raaka, pit_sigma);
-    float odote = mean2(data[suodate], pit_data-pit_testi);
-    float arvo = mean2(data[suodate]+pit_data-pit_testi, pit_testi);
-    if(arvo > odote*6)
+    suodata(data[raaka], data[suodate]+pit_data-pit_jakso, pit_raaka, gauss_sigma_kpl);
+    float* ptr = data[suodate]+pit_data-pit_jakso-1;
+    derivaatta(ptr, ptr, pit_jakso);
+    eimaksimien_poisto(ptr-1, ptr-1+maksimin_liike, pit_jakso-1);
+    float odote = mean2(data[suodate], pit_data-pit_testi-1);
+    float arvo = mean2(data[suodate]+pit_data-pit_testi, pit_testi-1);
+    if(arvo > odote*16)
       printf("\033[31mYlittyi\033[0m: odote=%.4e, arvo=%.3fodote\n", odote, arvo/odote);
   }
 }
@@ -132,7 +150,7 @@ int main() {
   float *data[4];
   for(int i=0; i<2; i++)
     data[i] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000);
-  data[2] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000 + taaj*sizeof(float)*gauss_sigma_us*6/1000000); //raakadata
+  data[2] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000 + gauss_sigma_kpl*6*sizeof(float)); //raakadata
   data[3] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000); //suodate
   pthread_create(&saie, NULL, nauhoita, data);
   kasittele(data);
@@ -140,6 +158,5 @@ int main() {
   snd_pcm_close(kahva);
   for(int i=0; i<4; i++)
     free(data[i]);
-  puts("\nLopetettiin asianmukaisesti");
   return 0;
 }
