@@ -1,4 +1,4 @@
-all: skello kuutio.d/kuutio kellonajat.so
+all: skello kuutio.d/kuutio kellonajat.so ääni
 
 tiedostot=skello.c grafiikka.c tulokset.c asetelma1.c listat.c
 otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h muistin_jako.h
@@ -15,6 +15,9 @@ kellonajat.so: kellonajat.c listat.c listat.h
 
 asetelma1.c: asetelma.c configure.sh
 	env KANSIO=/usr/share/skello ./configure.sh $@
+
+ääni: ääni.c
+	gcc -Wall -g -o ääni ääni.c -lasound -lm -pthread
 
 install: skello kuutio.d/kuutio kellonajat.so
 	cp -f skello /usr/bin
