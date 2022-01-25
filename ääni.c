@@ -5,13 +5,15 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <signal.h>
+#include <math.h>
 
 snd_pcm_t* kahva;
 const int taaj = 48000;
-int tallennusaika_ms = 1500; //millisekuntia
-int jaksonaika_ms = 30;
+const int tallennusaika_ms = 800;
+const int jaksonaika_ms = 30;
+const int testiaika_ms = 50;
+const int gauss_sigma_us = 800;
 int tarkka_taaj;
-const int periods = 2;
 snd_pcm_uframes_t buffer_size;
 int virhe_id;
 #define ALSAFUNK(fun,...) if( (virhe_id = fun(__VA_ARGS__)) < 0 )	\
@@ -39,9 +41,13 @@ int alusta_aani() {
   return 0;
 }
 
+void siirra_dataa(float* data, int pit_data, int siirto) {
+  for(int i=0; i<pit_data-siirto; i++)
+    data[i] = data[i+siirto];
+}
+
 void patka_dataan(float* data, float* patka, int pit_data, int pit_patka) {
-  for(int i=0; i<pit_data-pit_patka; i++)
-    data[i] = data[i+pit_patka];
+  siirra_dataa(data, pit_data, pit_patka);
   memcpy(data+pit_data-pit_patka, patka, pit_patka);
 }
 
@@ -52,7 +58,24 @@ float mean2(float* suote, int pit) {
   return r/pit;
 }
 
-int pit;
+#define KERROIN 0.39894228 // 1/sqrt(2*pi)
+#define GAUSSPAINO(t,sigma) ( KERROIN/sigma * exp(-0.5*(t)*(t)/(sigma*sigma)) )
+
+float* suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
+  int gausspit = pit_sigma*3;
+  float gausskertoimet[gausspit*2+1];
+  float* gausskert = gausskertoimet + gausspit; //osoitin keskikohtaan
+  for(int t=0; t<=gausspit; t++)
+    gausskert[t] = gausskert[-t] = GAUSSPAINO(t,pit_sigma);
+  for(int i=gausspit; i+gausspit<pit_data; i++) {
+    float summa = 0;
+    for(int T=-gausspit; T<=gausspit; T++)
+      summa += data[i+T]*gausskert[T];
+    kohde[i-gausspit] = summa;
+  }
+  return kohde;
+}
+
 int kumpi_valmis = -1;
 int kumpaa_luetaan = -1;
 int nauh_jatka = 1;
@@ -67,7 +90,7 @@ void* nauhoita(void* datav) {
   while(nauh_jatka) {
     while(id == kumpaa_luetaan)
       usleep(1000);
-    while(snd_pcm_readi( kahva, data[id], pit ) < 0) {
+    while(snd_pcm_readi( kahva, data[id], taaj*jaksonaika_ms/1000 ) < 0) {
       snd_pcm_prepare(kahva);
       fprintf(stderr, "Puskurin ylitäyttö\n");
     }
@@ -78,40 +101,45 @@ void* nauhoita(void* datav) {
 }
 
 void kasittele(void* datav) {
+  const int raaka = 2, suodate = 3;
   float** data = datav;
   int pit_data = taaj*tallennusaika_ms/1000;
-  int pit_patka = taaj*jaksonaika_ms/1000;
+  int pit_jakso = taaj*jaksonaika_ms/1000;
+  int pit_testi = taaj*testiaika_ms/1000;
+  int pit_sigma = taaj*gauss_sigma_us/1000000;
+  int pit_raaka = pit_jakso+pit_sigma*6;
   while(nauh_jatka) {
     while(kumpi_valmis < 0)
       usleep(1000);
     int id = kumpi_valmis;
     kumpaa_luetaan = id;
-    kumpi_valmis = -1;
-    float odote = mean2(data[2], pit_data);
-    float arvo = mean2(data[id], pit_patka);
-    if(arvo > odote*10)
-      printf("Ylittyi: odote=%.4e, arvo=%.4e\n", odote, arvo);
-    patka_dataan(data[2], data[id], pit_data, pit_patka);
+    patka_dataan(data[raaka], data[id], pit_raaka, pit_jakso);
+    kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
+    kumpi_valmis = -1; //merkki tälle funktiolle
+    siirra_dataa(data[suodate], pit_data, pit_jakso);
+    suodata(data[raaka], data[suodate]+pit_data-pit_jakso, pit_raaka, pit_sigma);
+    float odote = mean2(data[suodate], pit_data-pit_testi);
+    float arvo = mean2(data[suodate]+pit_data-pit_testi, pit_testi);
+    if(arvo > odote*6)
+      printf("\033[31mYlittyi\033[0m: odote=%.4e, arvo=%.3fodote\n", odote, arvo/odote);
   }
 }
 
 int main() {
   signal(SIGINT, sigint_f);
   alusta_aani();
-  pit = taaj*jaksonaika_ms/1000;
-  if(pit > buffer_size)
-    ; //tämä pitäisi käsitellä
   pthread_t saie;
-  float *data[3];
+  float *data[4];
   for(int i=0; i<2; i++)
-    data[i] = malloc(pit*sizeof(float)+1000);
-  data[2] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000);  
+    data[i] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000);
+  data[2] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000 + taaj*sizeof(float)*gauss_sigma_us*6/1000000); //raakadata
+  data[3] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000); //suodate
   pthread_create(&saie, NULL, nauhoita, data);
   kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva);
-  free(data[0]);
-  free(data[1]);
+  for(int i=0; i<4; i++)
+    free(data[i]);
   puts("\nLopetettiin asianmukaisesti");
   return 0;
 }
