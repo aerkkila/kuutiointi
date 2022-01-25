@@ -4,9 +4,12 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
 
 snd_pcm_t* kahva;
 const int taaj = 48000;
+int tallennusaika_ms = 1500; //millisekuntia
+int jaksonaika_ms = 30;
 int tarkka_taaj;
 const int periods = 2;
 snd_pcm_uframes_t buffer_size;
@@ -36,51 +39,79 @@ int alusta_aani() {
   return 0;
 }
 
-struct nauh_args {
-  unsigned char** data;
-  int data_id;
-  int pit;
-  int valmis;
-};
+void patka_dataan(float* data, float* patka, int pit_data, int pit_patka) {
+  for(int i=0; i<pit_data-pit_patka; i++)
+    data[i] = data[i+pit_patka];
+  memcpy(data+pit_data-pit_patka, patka, pit_patka);
+}
+
+float mean2(float* suote, int pit) {
+  float r = 0;
+  for(int i=0; i<pit; i++)
+    r += suote[i]*suote[i];
+  return r/pit;
+}
+
+int pit;
+int kumpi_valmis = -1;
+int kumpaa_luetaan = -1;
 int nauh_jatka = 1;
 
-void* nauhoita(void* voidargs) {
-  struct nauh_args* volatile args = voidargs;
-  while( (volatile int)nauh_jatka ) {
-    while(snd_pcm_readi( kahva, args->data[args->data_id], args->pit ) < 0) {
+void sigint_f(int sig) {
+  nauh_jatka = 0;
+}
+
+void* nauhoita(void* datav) {
+  float** data = datav;
+  int id = 0;
+  while(nauh_jatka) {
+    while(id == kumpaa_luetaan)
+      usleep(1000);
+    while(snd_pcm_readi( kahva, data[id], pit ) < 0) {
       snd_pcm_prepare(kahva);
       fprintf(stderr, "Puskurin ylitäyttö\n");
     }
-    args->valmis = 1;
+    kumpi_valmis = id;
+    id = (id + 1) % 2;
   }
   return NULL;
 }
 
-void kasittele(struct nauh_args* volatile args) {
- ALKU:
-  args->valmis = 0;
-  while(!args->valmis)
-    usleep(1000); // 1 ms
-  int id0 = args->data_id;
-  args->data_id = (args->data_id + 1) % 2;
-  goto ALKU;
+void kasittele(void* datav) {
+  float** data = datav;
+  int pit_data = taaj*tallennusaika_ms/1000;
+  int pit_patka = taaj*jaksonaika_ms/1000;
+  while(nauh_jatka) {
+    while(kumpi_valmis < 0)
+      usleep(1000);
+    int id = kumpi_valmis;
+    kumpaa_luetaan = id;
+    kumpi_valmis = -1;
+    float odote = mean2(data[2], pit_data);
+    float arvo = mean2(data[id], pit_patka);
+    if(arvo > odote*10)
+      printf("Ylittyi: odote=%.4e, arvo=%.4e\n", odote, arvo);
+    patka_dataan(data[2], data[id], pit_data, pit_patka);
+  }
 }
 
 int main() {
+  signal(SIGINT, sigint_f);
   alusta_aani();
-  int pituus = taaj*0.03; //0,03 s
-  if(pituus > buffer_size)
+  pit = taaj*jaksonaika_ms/1000;
+  if(pit > buffer_size)
     ; //tämä pitäisi käsitellä
   pthread_t saie;
-  unsigned char *data[2];
+  float *data[3];
   for(int i=0; i<2; i++)
-    data[i] = malloc(pituus*sizeof(float)+1000);
-  struct nauh_args args = {.data=data, .pit=pituus};
-  pthread_create(&saie, NULL, nauhoita, &args);
-  kasittele(&args);
+    data[i] = malloc(pit*sizeof(float)+1000);
+  data[2] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000);  
+  pthread_create(&saie, NULL, nauhoita, data);
+  kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva);
   free(data[0]);
   free(data[1]);
+  puts("\nLopetettiin asianmukaisesti");
   return 0;
 }
