@@ -9,12 +9,12 @@
 
 snd_pcm_t* kahva;
 const int taaj = 48000;
-const int tallennusaika_ms = 400;
+const int tallennusaika_ms = 1000;
 const int jaksonaika_ms = 30;
-const int testiaika_ms = 30;
-const int gauss_sigma_kpl = 7;
-const int maksimin_liike = 22;
-int tarkka_taaj;
+const int gauss_sigma_kpl = 70;
+const int maksimin_alue = 30; //yhteen suuntaan
+int alku_kpl, suod_kpl, deri_kpl, ohen_kpl;
+unsigned tarkka_taaj;
 snd_pcm_uframes_t buffer_size;
 int virhe_id;
 #define ALSAFUNK(fun,...) if( (virhe_id = fun(__VA_ARGS__)) < 0 )	\
@@ -43,20 +43,8 @@ int alusta_aani() {
 }
 
 void siirra_dataa(float* data, int pit_data, int siirto) {
-  for(int i=0; i<pit_data-siirto; i++)
+  for(int i=0; i+siirto<pit_data; i++)
     data[i] = data[i+siirto];
-}
-
-void patka_dataan(float* data, float* patka, int pit_data, int pit_patka) {
-  siirra_dataa(data, pit_data, pit_patka);
-  memcpy(data+pit_data-pit_patka, patka, pit_patka);
-}
-
-float mean2(float* suote, int pit) {
-  float r = 0;
-  for(int i=0; i<pit; i++)
-    r += suote[i]*suote[i];
-  return r/pit;
 }
 
 #define KERROIN 0.39894228 // 1/sqrt(2*pi)
@@ -81,14 +69,14 @@ void derivaatta(float* data, float* kohde, int pit) {
     kohde[i] = data[i+1]-data[i];
 }
 
-void eimaksimien_poisto(float* data, float* kohde, int pit) {
-  for(int i=maksimin_liike; i<pit-maksimin_liike; i++)
-    for(int j=1; j<=maksimin_liike; j++) {
+void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
+  for(int i=maksimin_alue,k=0; i+maksimin_alue<pit; i++,k++)
+    for(int j=1; j<=maksimin_alue; j++) {
       if( ! (data[i-j] < data[i] && data[i] > data[i+j]) ) {
-	kohde[i-maksimin_liike] = 0;
+	kohde[k] = 0;
 	break;
       }
-      kohde[i-maksimin_liike] = data[i];
+      kohde[k] = data[i];
     }
 }
 
@@ -117,29 +105,31 @@ void* nauhoita(void* datav) {
 }
 
 void kasittele(void* datav) {
-  const int raaka = 2, suodate = 3;
+  const int raaka = 2, suodate = 3, derivoitu = 4, ohennus = 5;
   float** data = datav;
   int pit_data = taaj*tallennusaika_ms/1000;
-  int pit_jakso = taaj*jaksonaika_ms/1000;
-  int pit_testi = taaj*testiaika_ms/1000;
-  int pit_raaka = pit_jakso+gauss_sigma_kpl*6;
+  int pit_jakso = taaj*jaksonaika_ms/1000; // == ohen_kpl
+  if(pit_data-alku_kpl < 0) {
+    fprintf(stderr, "Liian lyhyt tallennusaika suhteessa muihin parametreihin\n");
+    nauh_jatka = 0;
+  }
   while(nauh_jatka) {
     while(kumpi_valmis < 0)
       usleep(1000);
     int id = kumpi_valmis;
     kumpaa_luetaan = id;
-    patka_dataan(data[raaka], data[id], pit_raaka, pit_jakso);
+    siirra_dataa(data[raaka], pit_data, pit_jakso);
+    memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
     kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
     kumpi_valmis = -1; //merkki tälle funktiolle
-    siirra_dataa(data[suodate], pit_data, pit_jakso);
-    suodata(data[raaka], data[suodate]+pit_data-pit_jakso, pit_raaka, gauss_sigma_kpl);
-    float* ptr = data[suodate]+pit_data-pit_jakso-1;
-    derivaatta(ptr, ptr, pit_jakso);
-    eimaksimien_poisto(ptr-1, ptr-1+maksimin_liike, pit_jakso-1);
-    float odote = mean2(data[suodate], pit_data-pit_testi-1);
-    float arvo = mean2(data[suodate]+pit_data-pit_testi, pit_testi-1);
-    if(arvo > odote*16)
-      printf("\033[31mYlittyi\033[0m: odote=%.4e, arvo=%.3fodote\n", odote, arvo/odote);
+    suodata(data[raaka]+pit_data-alku_kpl, data[suodate], alku_kpl, gauss_sigma_kpl);
+    derivaatta(data[suodate], data[derivoitu], suod_kpl);
+    ohentaminen(data[derivoitu], data[ohennus], deri_kpl, maksimin_alue);
+    for(int i=0; i<ohen_kpl; i++) {
+      float arvo = data[ohennus][i];
+      if(arvo > 1.0e-5)
+	printf("\033[31mYlittyi\033[0m: arvo = %.3e\n", arvo);
+    }
   }
 }
 
@@ -147,16 +137,22 @@ int main() {
   signal(SIGINT, sigint_f);
   alusta_aani();
   pthread_t saie;
-  float *data[4];
+  alku_kpl = taaj*jaksonaika_ms/1000 + gauss_sigma_kpl*6 + 1 + maksimin_alue*2;
+  suod_kpl = alku_kpl - gauss_sigma_kpl*6;
+  deri_kpl = suod_kpl - 1;
+  ohen_kpl = suod_kpl - maksimin_alue*2;
+  float *data[6];
   for(int i=0; i<2; i++)
     data[i] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000);
-  data[2] = malloc(taaj*sizeof(float)*jaksonaika_ms/1000 + gauss_sigma_kpl*6*sizeof(float)); //raakadata
-  data[3] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000); //suodate
+  data[2] = malloc(taaj*sizeof(float)*tallennusaika_ms/1000); //raakadata
+  data[3] = malloc(suod_kpl*sizeof(float)); //suodate
+  data[4] = malloc(deri_kpl*sizeof(float)); //derivoitu
+  data[5] = malloc(ohen_kpl*sizeof(float)); //ohennus
   pthread_create(&saie, NULL, nauhoita, data);
   kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva);
-  for(int i=0; i<4; i++)
+  for(int i=0; i<6; i++)
     free(data[i]);
   return 0;
 }
