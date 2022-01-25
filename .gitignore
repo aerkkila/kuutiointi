@@ -4,9 +4,11 @@ autokuutio
 laskentakuutio
 automaattisiirrot.c
 asetelma1.c
+a.out
 *.tar
 *.txt
 *.csv
-*~
 *.so
 vgcore*
+tmp*
+kuutio.d/tmp*
