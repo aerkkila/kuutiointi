@@ -9,6 +9,7 @@
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
+int putki_ulos[2] = {-1,-1};
 const int taaj = 48000;
 const int tallennusaika_ms = 3000;
 const int jaksonaika_ms = 30;
@@ -87,8 +88,12 @@ void havaitse_reunat(float** data, int alkukohta) {
   derivaatta(data[suodate], data[derivoitu], suod_kpl);
   ohentaminen(data[derivoitu], data[ohennus], deri_kpl, maksimin_alue);
   for(int i=0; i<ohen_kpl; i++)
-    if(data[ohennus][i] > 1.0e-5)
-      printf("%.3e\n", data[ohennus][i]);
+    if(data[ohennus][i] > 1.0e-5) {
+      if(putki_ulos[1] < 0)
+	printf("%.3e\n", data[ohennus][i]);
+      else
+	write(putki_ulos[1], data[ohennus]+i, sizeof(float));
+    }
 }
 
 int kumpi_valmis = -1;
@@ -103,8 +108,11 @@ void* nauhoita(void* datav) {
   float** data = datav;
   int id = 0;
   while(nauh_jatka) {
-    while(id == kumpaa_luetaan)
-      usleep(1000);
+    if(id == kumpaa_luetaan) {
+      fprintf(stderr, "\033[31mVaroitus: kaikkea dataa ei ehditty käsitellä\033[0m\n");
+      while(id == kumpaa_luetaan)
+	usleep(1000);
+    }
     while(snd_pcm_readi( kahva_capt, data[id], taaj*jaksonaika_ms/1000 ) < 0) {
       snd_pcm_prepare(kahva_capt);
       fprintf(stderr, "Puskurin ylitäyttö\n");
@@ -128,13 +136,23 @@ void kasittele(void* datav) {
     kumpaa_luetaan = id;
     siirra_dataa(data[raaka], pit_data, pit_jakso);
     memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
+    havaitse_reunat(data, pit_data-alku_kpl);
     kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
     kumpi_valmis = -1; //merkki tälle funktiolle
-    havaitse_reunat(data, pit_data-alku_kpl);
   }
 }
 
-int main() {
+int main(int argc, char** argv) {
+  for(int i=1; i<argc; i++) {
+    if(!strcmp(argv[i], "--putki_ulos")) {
+      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki_ulos)!=1 || sscanf(argv[i+2], "%i", putki_ulos+1)!=1) {
+	fprintf(stderr, "Ei putkea argumentin --putki_ulos jälkeen\n");
+	continue;
+      }
+      close(putki_ulos[0]);
+      i+=2;
+    }
+  }
   signal(SIGINT, sigint_f);
   alusta_aani(SND_PCM_STREAM_CAPTURE);
   pthread_t saie;
