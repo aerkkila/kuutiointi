@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <math.h>
+#include <signal.h>
+#include <errno.h>
+#include <poll.h>
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "asetelma.h"
@@ -28,7 +31,15 @@ typedef enum {
   muual
 } alue_e;
 
+enum {
+  seis,
+  tarkastelee,
+  juoksee,
+  kirjoitustila
+} tila = seis;
+
 int kaunnista();
+int lopeta();
 int edellinen_kohta(const char* suote, int* kohta);
 int seuraava_kohta(const char* suote, int* kohta);
 void pyyhi(char* suote, int kohta);
@@ -45,6 +56,9 @@ void ulosnimeksi(const char*);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
+void avaa_aanireuna();
+void sulje_aanireuna();
+double hetkinyt();
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -69,14 +83,21 @@ void avaa_kuutio();
 extern float skaala;
 int kohdistin=-1; //kasvaa vasemmalle ja negatiivinen on piilotettu
 
+static int aaniputki0[2], aaniputki1[2];
+static struct pollfd poll_aani = {-1, POLLIN, POLLIN};
+static double aanihetki, aanihetki0;
+static int aania;
+static double aani_lopetushetki;
+
+static struct timeval alku, nyt;
+static int avgind[6];
+static char apuc[1500];
+
 int kaunnista() {
   SDL_Event tapaht;
-  struct timeval alku, nyt;
   short min, sek, csek;
   double dalku=0, dnyt;
-  int avgind[6];
   int apuind;
-  char apuc[1500];
   enum hiirilaji {
     perus,
     teksti,
@@ -87,12 +108,6 @@ int kaunnista() {
     aloita,
     tarkastelu
   } nostotoimi;
-  enum {
-    seis,
-    tarkastelee,
-    juoksee,
-    kirjoitustila
-  } tila = seis;
   enum {
     aikaKirj,
     ulosnimiKirj,
@@ -111,7 +126,7 @@ int kaunnista() {
   ipc = NULL;
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
   alue_e alue = muual;
-  sakko_e sakko;
+  sakko_e sakko = ei;
   SDL_Cursor* kursori;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_SetCursor(kursori);
@@ -132,14 +147,7 @@ int kaunnista() {
 	switch(tapaht.key.keysym.sym)
 	  {
 	  case SDLK_SPACE:
-	  LOPETA:
-	    if(tila == juoksee) {
-	      tila = seis;
-	      lisaa_listoille(KELLO, nyt.tv_sec);
-	      slistalle_kopioiden(sektus, sekoitus(apuc));
-	      TEE_TIEDOT;
-	      laitot = jaaduta;
-	    }
+	    lopeta();
 	    break;
 	  case SDLK_TAB:
 	  JATKA:
@@ -500,6 +508,8 @@ int kaunnista() {
 	    ipc = liity_muistiin();
 	    strcpy(TEKSTI, "Aloita välilyönnillä");
 	      laitot |= tkstallai;
+	  } else if(!strcmp(tmpstr, "ääni")) {
+	    avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
 	  }
 	  break;
 	default:
@@ -709,30 +719,59 @@ int kaunnista() {
 	break;
       } //switch(tapaht.type)
   } //while(SDL_PollEvent(&tapaht))
-  if(!ipc || !(ipc->viesti))
-    goto JUOKSU_YMS;
 
   /*SDL-tapahtumat päättyivät
-    seuraavaksi tarkistetaan mahdollisen kuution tapahtumat*/ 
-  switch(ipc->viesti) {
-  case ipcAnna_sekoitus:
-    laita_sekoitus(ipc, *VIIMEINEN(sektus));
-    break;
-  case ipcTarkastelu:
-    ipc->viesti = 0;
-    goto TARKASTELU;
-  case ipcAloita:
-    ipc->viesti = 0;
-    goto ALOITA;
-  case ipcLopeta:
-    ipc->viesti = 0;
-    goto LOPETA;
-  case ipcJatka:
-    ipc->viesti = 0;
-    goto JATKA;
+    seuraavaksi tarkistetaan mahdollisen kuution tapahtumat*/
+  do {
+    if(!ipc || !(ipc->viesti))
+      break;
+    switch(ipc->viesti) {
+    case ipcAnna_sekoitus:
+      laita_sekoitus(ipc, *VIIMEINEN(sektus));
+      break;
+    case ipcTarkastelu:
+      ipc->viesti = 0;
+      goto TARKASTELU;
+    case ipcAloita:
+      ipc->viesti = 0;
+      goto ALOITA;
+    case ipcLopeta:
+      ipc->viesti = 0;
+      lopeta();
+    case ipcJatka:
+      ipc->viesti = 0;
+      goto JATKA;
+    }
+  } while(0);
+  
+  /*Äänikuuntelijan tapahtumat*/
+  while(( apuind = poll(&poll_aani, 1, 0) )) {
+    if(apuind < 0) {
+      fprintf(stderr, "Virhe poll-funktiossa: %s\n", strerror(errno));
+      break;
+    }
+    float luenta;
+    if( (apuind = read(aaniputki0[0], &luenta, sizeof(float))) <= 0 ) {
+      if(apuind < 0)
+	fprintf(stderr, "Virhe äänikuuntelijassa %s\n", strerror(errno));
+      sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
+      break;
+    } 
+    if( (aanihetki = hetkinyt()) - aanihetki0 > aanikesto ) {
+      aanihetki0 = aanihetki;
+      continue;
+    }
+    if(++aania < aaniraja)
+      continue;
+    aania = 0;
+    if(!lopeta())
+      aani_lopetushetki = aanihetki;
+    else
+      if(aanihetki - aani_lopetushetki > aani_turvavali)
+	;//aloita() tai jotain vastaavaa
   }
-
- JUOKSU_YMS:
+    
+  
   if(tila == juoksee) {
     gettimeofday(&nyt, NULL);
     sek = (int)( (nyt.tv_sec + nyt.tv_usec/1.0e6) - (alku.tv_sec + alku.tv_usec/1.0e6) );
@@ -769,6 +808,23 @@ int kaunnista() {
   laitot = kellolai * (tila != seis);
   SDL_Delay(viive);
   goto TOISTOLAUSE;
+}
+
+double hetkinyt() {
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  return (double)t.tv_sec + t.tv_usec*1e-6;
+}
+
+int lopeta() {
+  if(tila != juoksee)
+    return 1;
+  tila = seis;
+  lisaa_listoille(KELLO, nyt.tv_sec);
+  slistalle_kopioiden(sektus, sekoitus(apuc));
+  TEE_TIEDOT;
+  laitot = jaaduta;
+  return 0;
 }
 
 /*näissä siirrytään eteen- tai taakespäin koko utf-8-merkin verran*/
@@ -987,19 +1043,32 @@ void ulosnimeksi(const char* nimi) {
   laitot |= muutlai;
 }
 
+void sigchld(int turha) {
+  while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
 void taustaprosessina(const char* restrict komento) {
-  int pid1 = fork();
-  if(pid1 > 0)
-    waitpid(pid1, NULL, 0);
-  else if(!pid1) {
-    int pid2 = fork();
-    if(pid2 > 0)
-      _exit(0);
-    else if(!pid2) {
-      system(komento);
-      exit(0);
-    }
+  char apuc[100];
+  const char* s = komento;
+  int argc=0, n;
+  while( sscanf(s, "%99s%n", apuc, &n)==1 ) { //lasketaan argumentit
+    s += n;
+    argc++;
   }
+  char* argv[argc+1];
+  s = komento;
+  for(int i=0; sscanf(s, "%99s%n", apuc, &n)==1; i++) { //argumentit char**-olioon
+    argv[i] = strdup(apuc);
+    s += n;
+  }
+  argv[argc] = NULL;
+  if( !fork() ) {
+    execvp(argv[0], argv); //tämän ei pitäisi palata, huom. että myös 0. argumentti täytyy antaa tässä
+    fprintf(stderr, "Virhe taustaprosessissa: %s\n", strerror(errno));
+    exit(1);
+  }
+  for(int i=0; i<argc; i++)
+    free(argv[i]);
 }
 
 int viimeinen_sij(char* s, char c) {
@@ -1021,8 +1090,28 @@ void avaa_kuutio() {
   ulosnimeksi(apuc);
 }
 
+void avaa_aanireuna(int *putki0, int *putki1, struct pollfd* poll_aani) {
+  char apuc[200];
+  pipe(putki0); pipe(putki1);
+  poll_aani->fd = putki0[0];
+  sprintf(apuc, "äänireuna --putki1 %i %i --putki0 %i %i", putki0[0], putki0[1], putki1[0], putki1[1]);
+  taustaprosessina(apuc);
+  close(putki0[1]); close(putki1[0]);
+}
+
+void sulje_aanireuna(int* aaniputki0, int* aaniputki1, struct pollfd* poll_aani) {
+  if(poll_aani->fd < 0)
+    return;
+  poll_aani->fd = -1;
+  if(close(aaniputki0[0]) < 0)
+    fprintf(stderr, "Virhe ääniputki0:n sulkemisessa: %s\n", strerror(errno));
+  if(close(aaniputki1[1]) < 0)
+    fprintf(stderr, "Virhe ääniputki1:n sulkemisessa: %s\n", strerror(errno));
+}
+
 int main(int argc, char** argv) {
   int r = 0;
+  signal(SIGCHLD, sigchld);
   setlocale(LC_ALL, getenv("LANG"));
     if (SDL_Init(SDL_INIT_VIDEO)) {
     fprintf(stderr, "Virhe: Ei voi alustaa SDL-grafiikkaa: %s\n", SDL_GetError());
@@ -1082,6 +1171,7 @@ int main(int argc, char** argv) {
   
   r = kaunnista();
 
+  sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
   tuhoa_asetelma();
  EI_FONTTI:
   SDL_DestroyRenderer(rend);

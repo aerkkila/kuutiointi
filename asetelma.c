@@ -12,12 +12,16 @@ unsigned NxN = 3;
 unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskiarvosta
 float jarjsuhde = 0.70;
 
+int aaniraja = 12; //montako äänireunaa vaaditaan signaalin hyväksyntään
+double aanikesto = 0.25; //sekunteina minkä ajan kuluessa äänireunat pitää saada
+double aani_turvavali = 3.0; //aika, jonka sisällä äänellä lopetuksesta ääni ei voi käynnistää uutta ajanottoa
+
 const char* restrict ohjelman_nimi = "Skello";
 const char* restrict ulosnimi0 = "tulokset.txt";
 const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
 const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|autokuutio";
+const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni|autokuutio";
 
 SDL_Color kohdistinvari = {255,255,255,255};
 SDL_Color taustavari = {0,0,0,255};

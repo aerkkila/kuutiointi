@@ -5,11 +5,17 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <signal.h>
+#include <poll.h>
+#include <errno.h>
 #include <math.h>
+
+void putki0_tapahtumat();
+static struct pollfd poll_0 = {-1, POLLIN, POLLIN};
+int putki0[2] = {-1, -1};
+int putki1[2] = {-1, -1};
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
-int putki_ulos[2] = {-1,-1};
 const int taaj = 48000;
 const int tallennusaika_ms = 3000;
 const int jaksonaika_ms = 30;
@@ -89,10 +95,10 @@ void havaitse_reunat(float** data, int alkukohta) {
   ohentaminen(data[derivoitu], data[ohennus], deri_kpl, maksimin_alue);
   for(int i=0; i<ohen_kpl; i++)
     if(data[ohennus][i] > 1.0e-5) {
-      if(putki_ulos[1] < 0)
+      if(putki1[1] < 0)
 	printf("%.3e\n", data[ohennus][i]);
       else
-	write(putki_ulos[1], data[ohennus]+i, sizeof(float));
+	write(putki1[1], data[ohennus]+i, sizeof(float));
     }
 }
 
@@ -100,8 +106,12 @@ int kumpi_valmis = -1;
 int kumpaa_luetaan = -1;
 int nauh_jatka = 1;
 
-void sigint_f(int sig) {
+void sigint(int sig) {
   nauh_jatka = 0;
+}
+void sigpipe(int sig) {
+  nauh_jatka = 0;
+  printf("äänireuna: SIGPIPE\n");
 }
 
 void* nauhoita(void* datav) {
@@ -137,23 +147,49 @@ void kasittele(void* datav) {
     siirra_dataa(data[raaka], pit_data, pit_jakso);
     memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
     havaitse_reunat(data, pit_data-alku_kpl);
+    putki0_tapahtumat();
     kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
     kumpi_valmis = -1; //merkki tälle funktiolle
   }
 }
 
-int main(int argc, char** argv) {
-  for(int i=1; i<argc; i++) {
-    if(!strcmp(argv[i], "--putki_ulos")) {
-      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki_ulos)!=1 || sscanf(argv[i+2], "%i", putki_ulos+1)!=1) {
-	fprintf(stderr, "Ei putkea argumentin --putki_ulos jälkeen\n");
-	continue;
-      }
-      close(putki_ulos[0]);
-      i+=2;
+void putki0_tapahtumat() {
+  int apu;
+  while( (apu=poll(&poll_0, 1, 0)) ) {
+    if(apu < 0) {
+      fprintf(stderr, "Virhe äänireunan putki0_tapahtumat-funktiossa:\n%s\n", strerror(errno));
+      break;
+    }
+    uint8_t viesti;
+    if(read(putki0[0], &viesti, 1)!=1) {
+      nauh_jatka = 0;
+      break;
     }
   }
-  signal(SIGINT, sigint_f);
+}
+
+int main(int argc, char** argv) {
+  for(int i=1; i<argc; i++) {
+    if(!strcmp(argv[i], "--putki1")) {
+      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki1)!=1 || sscanf(argv[i+2], "%i", putki1+1)!=1) {
+	fprintf(stderr, "Ei putkea argumentin --putki1 jälkeen\n");
+	continue;
+      }
+      close(putki1[0]);
+      i+=2;
+    }
+    if(!strcmp(argv[i], "--putki0")) {
+      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki0)!=1 || sscanf(argv[i+2], "%i", putki0+1)!=1) {
+	fprintf(stderr, "Ei putkea argumentin --putki0 jälkeen\n");
+	continue;
+      }
+      close(putki0[1]);
+      i+=2;
+      poll_0.fd = putki0[0];
+    }
+  }
+  signal(SIGINT, sigint);
+  signal(SIGPIPE, sigpipe);
   alusta_aani(SND_PCM_STREAM_CAPTURE);
   pthread_t saie;
   pit_data = taaj*tallennusaika_ms/1000;
@@ -173,7 +209,13 @@ int main(int argc, char** argv) {
   kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva_capt);
+  if(poll_0.fd >= 0) {
+    close(putki0[0]);
+    close(putki1[1]);
+    poll_0.fd = -1;
+  }
   for(int i=0; i<6; i++)
     free(data[i]);
+  puts("\nÄäniohjelma lopetti");
   return 0;
 }

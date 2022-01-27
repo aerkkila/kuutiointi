@@ -14,6 +14,10 @@ extern unsigned NxN;
 extern unsigned karsinta;
 extern float jarjsuhde;
 
+extern int aaniraja;
+extern double aanikesto;
+extern double aani_turvavali;
+
 extern const char* restrict ohjelman_nimi;
 extern const char* restrict ulosnimi0;
 extern const char* restrict url_valittu;
