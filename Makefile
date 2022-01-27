@@ -16,8 +16,8 @@ kellonajat.so: kellonajat.c listat.c listat.h
 asetelma1.c: asetelma.c configure.sh
 	env KANSIO=/usr/share/skello ./configure.sh $@
 
-äänireuna: ääni.c
-	gcc -Wall -g -o äänireuna ääni.c -lasound -lm -pthread
+äänireuna: äänireuna.c
+	gcc -Wall -g -o äänireuna äänireuna.c -lasound -lm -pthread
 
 install: skello kuutio.d/kuutio kellonajat.so äänireuna
 	cp -f skello /usr/bin
