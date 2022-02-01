@@ -8,46 +8,55 @@
 #include <poll.h>
 #include <errno.h>
 #include <math.h>
+#include <sys/wait.h>
+#include "äänireuna.h"
 
-void putki0_tapahtumat();
-static struct pollfd poll_0 = {-1, POLLIN, POLLIN};
-int putki0[2] = {-1, -1};
-int putki1[2] = {-1, -1};
+static void putki0_tapahtumat();
+static void opettaminen();
+
+static struct pollfd poll_0[] = {{-1, POLLIN, POLLIN},
+				 {STDIN_FILENO, POLLIN, POLLIN}};
+static int putki0[2] = {-1, -1};
+static int putki1[2] = {-1, -1};
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
 const int taaj = 48000;
-const int tallennusaika_ms = 3000;
+const int tallennusaika_ms = 2500;
 const int jaksonaika_ms = 30;
 const int gauss_sigma_kpl = 70;
 const int maksimin_alue = 30; //yhteen suuntaan
-int alku_kpl, suod_kpl, deri_kpl, ohen_kpl, pit_data, pit_jakso;
+long unsigned alku_kpl, suod_kpl, deri_kpl, ohen_kpl, pit_data, pit_jakso;
 unsigned tarkka_taaj;
 snd_pcm_uframes_t buffer_size;
 int virhe_id;
+float* data[6];
+float* kokodata;
 enum {raaka=2, suodate, derivoitu, ohennus};
 #define ALSAFUNK(fun,...) if( (virhe_id = fun(__VA_ARGS__)) < 0 )	\
     {									\
       fprintf(stderr,"Virhe funktiossa %s:\n%s\n",#fun,snd_strerror(virhe_id)); \
       return virhe_id;							\
     }
+uint32_t opetusviive_ms = -1;
+static uint32_t kuluma_ms = 0;
 
-int alusta_aani(snd_pcm_stream_t suoratoisto) {
+int alusta_aani(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto) {
   snd_pcm_hw_params_t* hwparams;
-  ALSAFUNK(snd_pcm_open, &kahva_capt, "default", suoratoisto, 0);                                   //avaa
+  ALSAFUNK(snd_pcm_open, kahva, "default", suoratoisto, 0);                                   //avaa
   snd_pcm_hw_params_alloca(&hwparams);
-  ALSAFUNK(snd_pcm_hw_params_any, kahva_capt, hwparams);                                            //params_any
-  ALSAFUNK(snd_pcm_hw_params_set_access, kahva_capt, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED);      //access
-  ALSAFUNK(snd_pcm_hw_params_set_rate_resample, kahva_capt, hwparams, 0);
-  ALSAFUNK(snd_pcm_hw_params_set_format, kahva_capt, hwparams, SND_PCM_FORMAT_FLOAT_LE);            //format
+  ALSAFUNK(snd_pcm_hw_params_any, *kahva, hwparams);                                            //params_any
+  ALSAFUNK(snd_pcm_hw_params_set_access, *kahva, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED);      //access
+  ALSAFUNK(snd_pcm_hw_params_set_rate_resample, *kahva, hwparams, 0);
+  ALSAFUNK(snd_pcm_hw_params_set_format, *kahva, hwparams, SND_PCM_FORMAT_FLOAT_LE);            //format
   tarkka_taaj = taaj;
-  ALSAFUNK(snd_pcm_hw_params_set_rate_near, kahva_capt, hwparams, &tarkka_taaj, 0);                 //rate
+  ALSAFUNK(snd_pcm_hw_params_set_rate_near, *kahva, hwparams, &tarkka_taaj, 0);                 //rate
   if(taaj != tarkka_taaj)
     printf("Käytetään näytteenottotaajuutta %i taajuuden %i sijaan\n", tarkka_taaj, taaj);
-  ALSAFUNK(snd_pcm_hw_params_set_channels, kahva_capt, hwparams, 1);                                //channels 
-  ALSAFUNK(snd_pcm_hw_params,kahva_capt,hwparams);
+  ALSAFUNK(snd_pcm_hw_params_set_channels, *kahva, hwparams, 1);                                //channels
+  ALSAFUNK(snd_pcm_hw_params,*kahva,hwparams);
   snd_pcm_hw_params_get_buffer_size(hwparams,&buffer_size);
-  snd_pcm_prepare(kahva_capt);
+  snd_pcm_prepare(*kahva);
   return 0;
 }
 
@@ -69,7 +78,7 @@ void suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
     float summa = 0;
     for(int T=-gausspit; T<=gausspit; T++)
       summa += data[i+T]*gausskert[T];
-    kohde[i-gausspit] = summa;
+    kohde[i] = summa;
   }
 }
 
@@ -79,14 +88,25 @@ void derivaatta(float* data, float* kohde, int pit) {
 }
 
 void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
-  for(int i=maksimin_alue,k=0; i+maksimin_alue<pit; i++,k++)
+  for(int i=maksimin_alue; i+maksimin_alue<pit; i++)
     for(int j=1; j<=maksimin_alue; j++) {
       if( ! (data[i-j] < data[i] && data[i] > data[i+j]) ) {
-	kohde[k] = 0;
+	kohde[i] = 0;
 	break;
       }
-      kohde[k] = data[i];
+      kohde[i] = data[i];
     }
+}
+
+void SuDeOh_kaikki(float** data) {
+  memset(data[suodate], 0, gauss_sigma_kpl*sizeof(float));
+  memset(data[suodate]+pit_data-gauss_sigma_kpl, 0, gauss_sigma_kpl*sizeof(float));
+  suodata(data[raaka], data[suodate], pit_data, gauss_sigma_kpl);
+  data[derivoitu][pit_data-1] = 0;
+  derivaatta(data[suodate], data[derivoitu], suod_kpl);
+  memset(data[ohennus], 0, maksimin_alue*sizeof(float));
+  memset(data[ohennus]+pit_data-maksimin_alue, 0, maksimin_alue*sizeof(float));
+  ohentaminen(data[derivoitu], data[ohennus], pit_data, maksimin_alue);
 }
 
 void havaitse_reunat(float** data, int alkukohta) {
@@ -109,9 +129,8 @@ int nauh_jatka = 1;
 void sigint(int sig) {
   nauh_jatka = 0;
 }
-void sigpipe(int sig) {
-  nauh_jatka = 0;
-  printf("äänireuna: SIGPIPE\n");
+void sigchld(int sig) {
+  while(waitpid(-1, NULL, WNOHANG)>0);
 }
 
 void* nauhoita(void* datav) {
@@ -123,7 +142,7 @@ void* nauhoita(void* datav) {
       while(id == kumpaa_luetaan)
 	usleep(1000);
     }
-    while(snd_pcm_readi( kahva_capt, data[id], taaj*jaksonaika_ms/1000 ) < 0) {
+    while(snd_pcm_readi( kahva_capt, data[id], pit_jakso ) < 0) {
       snd_pcm_prepare(kahva_capt);
       fprintf(stderr, "Puskurin ylitäyttö\n");
     }
@@ -131,6 +150,15 @@ void* nauhoita(void* datav) {
     id = (id + 1) % 2;
   }
   return NULL;
+}
+
+void skaalaa(float* data, int pit) {
+  float max = -INFINITY;
+  for(int i=0; i<pit; i++)
+    if(data[i] > max)
+      max = data[i];
+  for(int i=0; i<pit; i++)
+    data[i] /= max;
 }
 
 void kasittele(void* datav) {
@@ -147,24 +175,77 @@ void kasittele(void* datav) {
     siirra_dataa(data[raaka], pit_data, pit_jakso);
     memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
     havaitse_reunat(data, pit_data-alku_kpl);
+    if((kuluma_ms+=jaksonaika_ms) >= opetusviive_ms) {
+      opettaminen();
+      kuluma_ms = 0;
+    }
     putki0_tapahtumat();
     kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
     kumpi_valmis = -1; //merkki tälle funktiolle
   }
 }
 
+#if 0
+void opettaminen() {
+  int putket[4];
+  pipe(putket);
+  pipe(putket+2);
+  skaalaa(data[raaka], pit_data);
+  while(snd_pcm_writei( kahva_play, data[raaka], pit_data ) < 0) {
+    snd_pcm_prepare(kahva_play);
+    fprintf(stderr, "Puskurin alitäyttö\n");
+  }
+  pid_t pid = fork();
+  if(!pid) {
+    char* apu[6];
+    for(int i=1; i<=4; i++) {
+      apu[i] = malloc(6);
+      sprintf(apu[i], "%i", putket[i-1]);
+    }
+    apu[5] = NULL;
+    apu[0] = strdup("./äänikuvaaja.py");
+    execvp("./äänikuvaaja.py", apu);
+    fprintf(stderr, "Virhe äänen opettamisessa: %s\n", strerror(errno));
+    for(int i=0; i<5; i++)
+      free(apu[i]);
+    exit(1);
+  }
+  close(putket[0]);
+  close(putket[3]);
+  int32_t _luku = 2;
+  write( putket[1], &_luku, 4 );
+  _luku = pit_data;
+  write( putket[1], &_luku, 4 );
+  write( putket[1], data[raaka], pit_data*sizeof(float) );
+  write( putket[1], data[ohennus], pit_data*sizeof(float) );
+  waitpid(pid, NULL, 0);
+  close(putket[1]); //kirjoitus
+  close(putket[2]); //luenta
+}
+#else
+void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit);
+void opettaminen() {
+  SuDeOh_kaikki(data);
+  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data);
+}
+#endif
+
 void putki0_tapahtumat() {
   int apu;
-  while( (apu=poll(&poll_0, 1, 0)) ) {
+  while( (apu=poll(poll_0, 2, 0)) ) {
     if(apu < 0) {
       fprintf(stderr, "Virhe äänireunan putki0_tapahtumat-funktiossa:\n%s\n", strerror(errno));
       break;
     }
     uint8_t viesti;
-    if(read(putki0[0], &viesti, 1)!=1) {
+    if( (apu=read(poll_0[apu].fd, &viesti, 1)) != 1 ) {
+      if(apu < 0)
+	fprintf(stderr, "Virhe putken luennassa: %s\n", strerror(errno));
       nauh_jatka = 0;
       break;
     }
+    if(viesti==aanireuna_opettaminen)
+      opettaminen();
   }
 }
 
@@ -173,24 +254,36 @@ int main(int argc, char** argv) {
     if(!strcmp(argv[i], "--putki1")) {
       if(argc <= i+2 || sscanf(argv[i+1], "%i", putki1)!=1 || sscanf(argv[i+2], "%i", putki1+1)!=1) {
 	fprintf(stderr, "Ei putkea argumentin --putki1 jälkeen\n");
-	continue;
+	return 1;
       }
       close(putki1[0]);
       i+=2;
+      continue;
     }
     if(!strcmp(argv[i], "--putki0")) {
       if(argc <= i+2 || sscanf(argv[i+1], "%i", putki0)!=1 || sscanf(argv[i+2], "%i", putki0+1)!=1) {
 	fprintf(stderr, "Ei putkea argumentin --putki0 jälkeen\n");
-	continue;
+	return 1;
       }
       close(putki0[1]);
       i+=2;
-      poll_0.fd = putki0[0];
+      poll_0[0].fd = putki0[0];
+      continue;
     }
+    if(!strcmp(argv[i], "--opetusviive_ms")) {
+      if(argc <= i+1 || sscanf(argv[i+1], "%u", &opetusviive_ms)!=1) {
+	fprintf(stderr, "Ei opetusviivettä argumentin --opetusviive_ms jälkeen\n");
+	return 1;
+      }
+      i++;
+      continue;
+    }
+    fprintf(stderr, "Virheellinen argumentti: %s\n", argv[i]);
+    return 1;
   }
   signal(SIGINT, sigint);
-  signal(SIGPIPE, sigpipe);
-  alusta_aani(SND_PCM_STREAM_CAPTURE);
+  signal(SIGPIPE, sigint);
+  signal(SIGCHLD, sigchld);
   pthread_t saie;
   pit_data = taaj*tallennusaika_ms/1000;
   pit_jakso = taaj*jaksonaika_ms/1000;
@@ -198,24 +291,23 @@ int main(int argc, char** argv) {
   suod_kpl = alku_kpl - gauss_sigma_kpl*6;
   deri_kpl = suod_kpl - 1;
   ohen_kpl = suod_kpl - maksimin_alue*2; // == pit_jakso
-  float *data[6];
-  for(int i=0; i<2; i++)
-    data[i] = calloc(pit_jakso*sizeof(float), 1);
-  data[raaka] = calloc(pit_data*sizeof(float), 1);
-  data[suodate] = calloc(suod_kpl*sizeof(float), 1);
-  data[derivoitu] = calloc(deri_kpl*sizeof(float), 1);
-  data[ohennus] = calloc(ohen_kpl*sizeof(float), 1);
+  alusta_aani(&kahva_capt, SND_PCM_STREAM_CAPTURE);
+  alusta_aani(&kahva_play, SND_PCM_STREAM_PLAYBACK);
+  kokodata = calloc(pit_data*(ohennus-raaka+1) + pit_jakso*2, sizeof(float));
+  for(int i=0; i<raaka; i++)
+    data[i] = kokodata + i*pit_jakso;
+  for(int i=raaka; i<=ohennus; i++)
+    data[i] = kokodata + raaka*pit_jakso + (i-raaka)*pit_data;
   pthread_create(&saie, NULL, nauhoita, data);
   kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva_capt);
-  if(poll_0.fd >= 0) {
+  if(poll_0[0].fd >= 0) {
     close(putki0[0]);
     close(putki1[1]);
-    poll_0.fd = -1;
+    poll_0[0].fd = -1;
   }
-  for(int i=0; i<6; i++)
-    free(data[i]);
+  free(kokodata);
   puts("\nÄäniohjelma lopetti");
   return 0;
 }

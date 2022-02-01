@@ -16,6 +16,7 @@
 #include "tulokset.h"
 #include "asetelma.h"
 #include "muistin_jako.h"
+#include "äänireuna.h"
 
 typedef enum {
   kelloal,
@@ -83,7 +84,7 @@ double hetkinyt();
 extern float skaala;
 int kohdistin=-1; //kasvaa vasemmalle ja negatiivinen on piilotettu
 
-static int aaniputki0[2], aaniputki1[2];
+static int aaniputki0[2] = {-1,-1}, aaniputki1[2] = {-1,-1};
 static struct pollfd poll_aani = {-1, POLLIN, POLLIN};
 static double aanihetki, aanihetki0;
 static int aania;
@@ -369,7 +370,16 @@ int kaunnista() {
 	    break;
 	  case SDLK_PAUSE:
 	    if(kontrol)
-	      asm("int $3"); //jäljityspisteansa: debuggerille breakpoint
+	      asm("int $3"); //jäljityspisteansa
+	    break;
+	  case SDLK_F2:
+	    if(aaniputki1[1] < 0) {
+	      strcpy(TEKSTI, "Ääniputki ei ole auki");
+	      laitot |= tkstallai;
+	      break;
+	    }
+	    uint8_t kirj = aanireuna_opettaminen;
+	    write(aaniputki1[1], &kirj, 1);
 	    break;
 	  }
 	break;
@@ -738,6 +748,7 @@ int kaunnista() {
     case ipcLopeta:
       ipc->viesti = 0;
       lopeta();
+      break;
     case ipcJatka:
       ipc->viesti = 0;
       goto JATKA;
@@ -1107,6 +1118,8 @@ void sulje_aanireuna(int* aaniputki0, int* aaniputki1, struct pollfd* poll_aani)
     fprintf(stderr, "Virhe ääniputki0:n sulkemisessa: %s\n", strerror(errno));
   if(close(aaniputki1[1]) < 0)
     fprintf(stderr, "Virhe ääniputki1:n sulkemisessa: %s\n", strerror(errno));
+  aaniputki0[0] = -1;
+  aaniputki1[1] = -1;
 }
 
 int main(int argc, char** argv) {
@@ -1127,8 +1140,8 @@ int main(int argc, char** argv) {
   ikkuna = SDL_CreateWindow\
     (ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
-  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
   SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
+  tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
 
   if(asetelma())
     goto EI_FONTTI;
