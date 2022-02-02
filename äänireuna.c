@@ -99,8 +99,6 @@ void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
 }
 
 void SuDeOh_kaikki(float** data) {
-  memset(data[suodate], 0, gauss_sigma_kpl*sizeof(float));
-  memset(data[suodate]+pit_data-gauss_sigma_kpl, 0, gauss_sigma_kpl*sizeof(float));
   suodata(data[raaka], data[suodate], pit_data, gauss_sigma_kpl);
   data[derivoitu][pit_data-1] = 0;
   derivaatta(data[suodate], data[derivoitu], suod_kpl);
@@ -150,15 +148,6 @@ void* nauhoita(void* datav) {
     id = (id + 1) % 2;
   }
   return NULL;
-}
-
-void skaalaa(float* data, int pit) {
-  float max = -INFINITY;
-  for(int i=0; i<pit; i++)
-    if(data[i] > max)
-      max = data[i];
-  for(int i=0; i<pit; i++)
-    data[i] /= max;
 }
 
 void kasittele(void* datav) {
@@ -298,6 +287,11 @@ int main(int argc, char** argv) {
     data[i] = kokodata + i*pit_jakso;
   for(int i=raaka; i<=ohennus; i++)
     data[i] = kokodata + raaka*pit_jakso + (i-raaka)*pit_data;
+
+  /*Asetetaan epäluvut dataan. Tarvittavan alueen päälle kirjoitetaan myöhemmin muuta.*/
+  for(int i=pit_jakso*2; i<pit_data*(ohennus-raaka+1) + pit_jakso*2; i++)
+    kokodata[i] = NAN;
+
   pthread_create(&saie, NULL, nauhoita, data);
   kasittele(data);
   pthread_join(saie, NULL);

@@ -19,7 +19,7 @@ void skaalaa(float* data, int pit);
 
 static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //w on ikkunan leveys, h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
-static int raidan_kork = 100, raidan_vali, raidan_h;
+static int raidan_kork = 200, raidan_vali, raidan_h;
 static SDL_Window* ikkuna;
 static SDL_Renderer* rend;
 static SDL_Texture* tausta;
@@ -58,9 +58,17 @@ void piirra_raidat() {
     ASETA_VARI(piirtovari);
     y += raidan_h / 2;
     float* p = data+raita*raidan_pit;
-    for(int x=0; x<ikk_w; x++)
+    SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+    SDL_RenderDrawLine(rend, 500,y-raidan_h/2, 500,y+raidan_h/2);
+    ASETA_VARI(piirtovari);
+    int apu = 0;
+    while(p[apu] != p[apu]) //ohitetaan epäluvut
+      apu++;
+    int x0 = apu/ivali + !!(apu%ivali); //ceil(apu/ivali)
+    p += x0*ivali;
+    for(int x=x0; x<ikk_w-x0; x++) //oletetaan sama määrä epälukuja myös loppupäähän
       for(int ii=0; ii<ivali; ii++,p++)
-	SDL_RenderDrawPoint( rend, x, (int)( y-*p*raidan_h/2 ) );
+	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
     y -= raidan_h / 2;
   }
   SDL_SetRenderTarget(rend, NULL);
