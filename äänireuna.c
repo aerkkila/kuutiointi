@@ -211,10 +211,10 @@ void opettaminen() {
   close(putket[2]); //luenta
 }
 #else
-void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit);
+void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* kahva_play);
 void opettaminen() {
   SuDeOh_kaikki(data);
-  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data);
+  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kahva_play);
 }
 #endif
 
