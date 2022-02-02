@@ -100,8 +100,7 @@ void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
 
 void SuDeOh_kaikki(float** data) {
   suodata(data[raaka], data[suodate], pit_data, gauss_sigma_kpl);
-  data[derivoitu][pit_data-1] = 0;
-  derivaatta(data[suodate], data[derivoitu], suod_kpl);
+  derivaatta(data[suodate], data[derivoitu], pit_data);
   memset(data[ohennus], 0, maksimin_alue*sizeof(float));
   memset(data[ohennus]+pit_data-maksimin_alue, 0, maksimin_alue*sizeof(float));
   ohentaminen(data[derivoitu], data[ohennus], pit_data, maksimin_alue);
