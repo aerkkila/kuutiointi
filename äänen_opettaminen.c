@@ -43,8 +43,8 @@ void skaalaa(float* data, int pit) {
 
 void piirra_raidat() {
   int ivali = raidan_pit/ikk_w;
-  raidan_kork = ikk_h / raitoja;
-  raidan_vali = raidan_kork / valin_suhde;
+  raidan_vali = ikk_h / (raitoja*valin_suhde - 1); //saadaan ratkaisemalla yhtälöpari kynällä ja paperilla
+  raidan_kork = ikk_h * valin_suhde / (raitoja*valin_suhde - 1);
   raidan_h = raidan_kork - raidan_vali;
   SDL_SetRenderTarget(rend, tausta);
   ASETA_VARI(taustavari);
@@ -58,15 +58,7 @@ void piirra_raidat() {
     ASETA_VARI(piirtovari);
     y += raidan_h / 2;
     float* p = data+raita*raidan_pit;
-    SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-    SDL_RenderDrawLine(rend, 500,y-raidan_h/2, 500,y+raidan_h/2);
-    ASETA_VARI(piirtovari);
-    int apu = 0;
-    while(p[apu] != p[apu]) //ohitetaan epäluvut
-      apu++;
-    int x0 = apu/ivali + !!(apu%ivali); //ceil(apu/ivali)
-    p += x0*ivali;
-    for(int x=x0; x<ikk_w-x0; x++) //oletetaan sama määrä epälukuja myös loppupäähän
+    for(int x=0; x<ikk_w; x++) //oletetaan sama määrä epälukuja olevan myös loppupäässä
       for(int ii=0; ii<ivali; ii++,p++)
 	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
     y -= raidan_h / 2;
@@ -88,6 +80,8 @@ void aja() {
       if( tapaht.window.event != SDL_WINDOWEVENT_RESIZED)
 	break;
       SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h);
+      SDL_DestroyTexture(tausta);
+      tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
       piirra_raidat();
     }
   }
