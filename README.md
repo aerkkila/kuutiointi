@@ -45,3 +45,5 @@ Tulokset voi tallentaa ctrl+s-komennolla. Tämä tallentaa ajat ja niitten saami
 Aiemmin tallennettujen tulosten tarkastelu tällä sovellukeslla onnistuu antamalla tiedoston nimi komentoriviargumenttina: ./skello TIEDOSTON_NIMI. Tiedostosta voi myös lukea vain osan antamalla rajausargumentin komentorivillä. Esimerkiksi viimeiset tuhat tulosta rajataan komennolla "./skello tulokset.txt -1000:", tai ensimmäiset tuhat rajataan argumentilla ":1000". Tarkempi selitys on tiedostossa main.c.
 
 Joittenkin alueitten fonttikokoa voi muuttaa ctrl+rullaus toiminnolla.
+
+Ääniohjelma ei ehkä aukea ajettessa tämä pääkäyttäjänä, jos äänipalvelimena on PulseAudio, jonka on käynnistänyt muu kuin pääkäyttäjä. Tämän voi ratkaista vaihtamalla äänireuna.c:ssä "default"-parametrin tilalle jonkin laitteen, esim "plughw:1,0", missä luvut 1 ja 0 riippuvat laitteistosta. Vaihtoehtoisesti voi käynnistää pulseaudion pääkäyttäjänä komennolla pulseaudio -D.
