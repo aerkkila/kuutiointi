@@ -7,7 +7,7 @@ libs=-lSDL2 -lSDL2_ttf -lm
 skello: ${tiedostot} ${otsakkeet}
 	gcc -Wall -Wno-restrict -Og -g -o skello ${tiedostot} ${libs}
 
-kuutio.d/kuutio: kuutio.d
+kuutio.d/kuutio: kuutio.d/*.[ch]
 	cd kuutio.d && make
 
 kellonajat.so: kellonajat.c listat.c listat.h
