@@ -86,10 +86,10 @@ void piirra_kohdistin(int x, int r) {
 
 void toista_kohdistin() {
   snd_pcm_drop(kahva);
+  toistaa = 1;
   toistohetki0 = hetkinyt();
   while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, kohdistin.x), raidan_pit-kohdistin.x*ivali ) < 0) {
-    snd_pcm_prepare(kahva);
-    fprintf(stderr, "Puskurin alitäyttö\n");
+    snd_pcm_prepare(kahva); //fprintf(stderr, "Puskurin alitäyttö\n");
   }
 }
 
