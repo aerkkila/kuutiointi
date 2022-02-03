@@ -22,7 +22,6 @@ static int putki1[2] = {-1, -1};
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
 const int taaj = 48000;
-const int tallennusaika_ms = 2500;
 const int jaksonaika_ms = 30;
 const int gauss_sigma_kpl = 70;
 const int maksimin_alue = 30; //yhteen suuntaan
@@ -38,7 +37,6 @@ enum {raaka=2, suodate, derivoitu, ohennus};
       fprintf(stderr,"Virhe funktiossa %s:\n%s\n",#fun,snd_strerror(virhe_id)); \
       return virhe_id;							\
     }
-uint32_t opetusviive_ms = -1;
 static uint32_t kuluma_ms = 0;
 
 int alusta_aani(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto) {
@@ -237,38 +235,31 @@ void putki0_tapahtumat() {
   }
 }
 
-int main(int argc, char** argv) {
-  for(int i=1; i<argc; i++) {
-    if(!strcmp(argv[i], "--putki1")) {
-      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki1)!=1 || sscanf(argv[i+2], "%i", putki1+1)!=1) {
-	fprintf(stderr, "Ei putkea argumentin --putki1 jälkeen\n");
-	return 1;
-      }
-      close(putki1[0]);
-      i+=2;
-      continue;
+void lue_kntoriviargt(int argc, char** argv) {
+  int pit = sizeof(kntoarg) / sizeof(kntoarg[0]);
+  for(int i=0; i<argc; i++) {
+    for(int j=0; j<pit; j++) {
+      if( strcmp( argv[i], kntoarg[j].nimi ) )
+	continue;
+      for(int k=0; kntoarg[j].muuttujat[k]; k++)
+	if( sscanf(argv[++i], kntoarg[j].muoto, kntoarg[j].muuttujat[k]) != 1 ) {
+	  fprintf(stderr, "\033[31mVirhe\033[0m argumentin \"%s\" jälkeen\n", kntoarg[j].nimi);
+	  exit(1);
+	}
+      goto SEURAAVA_ARGUMENTTI;
     }
-    if(!strcmp(argv[i], "--putki0")) {
-      if(argc <= i+2 || sscanf(argv[i+1], "%i", putki0)!=1 || sscanf(argv[i+2], "%i", putki0+1)!=1) {
-	fprintf(stderr, "Ei putkea argumentin --putki0 jälkeen\n");
-	return 1;
-      }
-      close(putki0[1]);
-      i+=2;
-      poll_0[0].fd = putki0[0];
+    /*Kutsuttaessa exec-funktiolla, argumentit alkavat 0:sta.
+      Muuten 0 on ohjelman nimi. Siksi 0. argumentti käsitellään erikseen.*/
+    if(i==0 && argv[0][0] != '-')
       continue;
-    }
-    if(!strcmp(argv[i], "--opetusviive_ms")) {
-      if(argc <= i+1 || sscanf(argv[i+1], "%u", &opetusviive_ms)!=1) {
-	fprintf(stderr, "Ei opetusviivettä argumentin --opetusviive_ms jälkeen\n");
-	return 1;
-      }
-      i++;
-      continue;
-    }
-    fprintf(stderr, "Virheellinen argumentti: %s\n", argv[i]);
-    return 1;
+    fprintf(stderr, "\033[31mTuntematon argumentti:\033[0m %s\n", argv[i]);
+    exit(1);
+  SEURAAVA_ARGUMENTTI:
   }
+}
+
+int main(int argc, char** argv) {
+  lue_kntoriviargt(argc, argv);
   signal(SIGINT, sigint);
   signal(SIGPIPE, sigint);
   signal(SIGCHLD, sigchld);
