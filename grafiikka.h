@@ -30,6 +30,12 @@ typedef struct {
   char valittu;
 } vnta_s;
 
+typedef struct {
+  SDL_Rect kulmio;
+  int paksuus;
+  SDL_Color vari;
+} korostustietue;
+
 #endif
 
 extern unsigned short laitot;
@@ -42,6 +48,7 @@ extern const unsigned short tiedtlai;
 extern const unsigned short lisatdlai;
 extern const unsigned short muutlai;
 extern const unsigned short tkstallai;
+extern const unsigned short korostuslai;
 extern const unsigned short kaikki_laitot;
 extern const unsigned short jaaduta;
 
@@ -52,6 +59,7 @@ void piirra();
 void laita_teksti_ttf(tekstiolio_s*, SDL_Renderer*);
 int laita_tekstilista(slista*, int, tekstiolio_s*, SDL_Renderer*);
 void laita_jarjlista();
+void laita_ehka_korostus();
 void laita_valinta(vnta_s* o, SDL_Renderer *rend);
 void laita_oikealle(tekstiolio_s* ov, short vali, slista* l, int alku, tekstiolio_s* o, SDL_Renderer* r);
 void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, SDL_Renderer* r);

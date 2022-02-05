@@ -43,6 +43,7 @@ extern tekstiolio_s sektusol;
 extern tekstiolio_s muutol;
 extern tekstiolio_s tkstalol;
 extern vnta_s tarknap;
+extern korostustietue korostusol;
 
 extern SDL_Color kellovarit[];
 

@@ -21,7 +21,7 @@ const char* restrict ulosnimi0 = "tulokset.txt";
 const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
 const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni|autokuutio";
+const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni: pois|autokuutio";
 
 SDL_Color kohdistinvari = {255,255,255,255};
 SDL_Color taustavari = {0,0,0,255};
@@ -97,6 +97,11 @@ vnta_s tarknap = {.valittu = 1,						\
 			     .vari = {255, 255, 255, 255},		\
 			     .teksti = "Tarkasteluaika"}};
 
+korostustietue korostusol = {
+  .vari = {30, 120, 255, 255},
+  .paksuus = -3, //kerrotaan -1:llä, jos otetaan käyttöön
+};
+
 SDL_Rect tarknapsij = {60, 10, 800, 90};
 
 slista* muut_a;
@@ -128,7 +133,7 @@ int asetelma() {
   jarjes = malloc(1);
   fjarje = malloc(1);
 
-  int pit0 = strlen(muut_a->taul[0]);
+  int pit0 = strlen(muut_a->taul[0]); //ulosnimi
   char tmpc[500];
   sprintf(tmpc, "%s/%s/%s", getenv("HOME"), TULOSKANSIO, ulosnimi0);
   muut_a->taul[0] = realloc(muut_a->taul[0], pit0+strlen(tmpc)+1);

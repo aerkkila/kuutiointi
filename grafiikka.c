@@ -16,7 +16,7 @@ Jos laitot & JOTAINlai, kyseinen JOTAIN pyyhitään taustasta ja piirretään uu
 Käyttöliittymässä asetettakoon tämän jälkeen aina laitot = kellolai * (tila != seis)*/
 
 void laita_jarjestus();
-unsigned short laitot = 0x03ff;
+unsigned short laitot = 0x07ff;
 const unsigned short kellolai  = 0x0001;
 const unsigned short sektuslai = 0x0002;
 const unsigned short tuloslai  = 0x0004;
@@ -70,11 +70,13 @@ void piirra() {
     if(KELLO[0])
       laita_teksti_ttf(&kellool, rend);
     laita_ehka_kohdistin();
+    laita_ehka_korostus();
     SDL_RenderPresent(rend);
     return;
   }
   if(!laitot) {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
+    laita_ehka_korostus();
     SDL_RenderPresent(rend);
     return;
   }
@@ -140,21 +142,23 @@ void piirra() {
     lisaol.sij.h = ikkuna_h - lisaol.sij.y;
     laita_oikealle(&jarjol1, 20, lisatd, 0, &lisaol, rend);
   }
-  /*Kelloa ei laiteta taustaan ellei jäädytetä*/
+  /*Kelloa ei laiteta taustaan ellei jäädytetä. Tässä se laitetaan suoraan näytölle.*/
   if(laitot != jaaduta) {
     SDL_SetRenderTarget(rend, NULL);
     SDL_RenderCopy(rend, tausta, NULL, NULL);
     if(KELLO[0]) //ei tarkisteta, onko kelloa käsketty laittaa, 0:sta on palattu jo aiemmin
       laita_teksti_ttf(&kellool, rend);
     laita_ehka_kohdistin();
+    laita_ehka_korostus();
     SDL_RenderPresent(rend);
     return;
   }
   if(KELLO[0]) //jäädytä
     laita_teksti_ttf(&kellool, rend);
-  laita_ehka_kohdistin(); //tuskin tulee näkyviin tästä
+  laita_ehka_kohdistin(); //tuskin laitetaan
   SDL_SetRenderTarget(rend, NULL);
   SDL_RenderCopy(rend, tausta, NULL, NULL);
+  laita_ehka_korostus();
   SDL_RenderPresent(rend);
 }
 
@@ -295,6 +299,18 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
     SDL_RenderCopy(rend, o->kuvat.ei_valittu, NULL, &o->kuvat.sij);
   laita_teksti_ttf(&(o->teksti), rend);
   return;
+}
+
+void laita_ehka_korostus() { //jos korostusol.paksuus <= 0, ei laiteta
+  aseta_vari(rend, &korostusol.vari);
+  SDL_Rect apu = korostusol.kulmio;
+  for(int i=0; i<korostusol.paksuus; i++) {
+    SDL_RenderDrawRect(rend, &apu);
+    apu.x--;
+    apu.y--;
+    apu.w+=2;
+    apu.h+=2;
+  }
 }
 
 void laita_oikealle(tekstiolio_s* ov, short vali, slista* l, int alku, tekstiolio_s* o, SDL_Renderer* r) {

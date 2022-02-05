@@ -39,6 +39,18 @@ enum {
   kirjoitustila
 } tila = seis;
 
+enum hiirilaji {
+  perus,
+  teksti,
+  kasi
+} hlaji = perus;
+SDL_SystemCursor hiiret[] = {
+  SDL_SYSTEM_CURSOR_ARROW,
+  SDL_SYSTEM_CURSOR_IBEAM,
+  SDL_SYSTEM_CURSOR_HAND,
+};
+SDL_Cursor* kursori;
+
 int kaunnista();
 int lopeta();
 int edellinen_kohta(const char* suote, int* kohta);
@@ -54,6 +66,8 @@ void laita_sekoitus(shmRak_s* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 void ulosnimeksi(const char*);
+void korostukseksi(tekstiolio_s* ol, int ind);
+void hiireksi(enum hiirilaji);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
@@ -99,11 +113,6 @@ int kaunnista() {
   short min, sek, csek;
   double dalku=0, dnyt;
   int apuind;
-  enum hiirilaji {
-    perus,
-    teksti,
-    kasi
-  } hlaji = perus;
   enum {
     ei_mitaan,
     aloita,
@@ -128,7 +137,6 @@ int kaunnista() {
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
   alue_e alue = muual;
   sakko_e sakko = ei;
-  SDL_Cursor* kursori;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_SetCursor(kursori);
 
@@ -480,10 +488,8 @@ int kaunnista() {
 	  break;
 	case muutal:;
 	  int rivi = LISTARIVI(muutol, button);
-	  if(rivi == muut_a->pit)
-	    rivi--;
 	  char* tmpstr = muut_a->taul[rivi];
-	  if(!strcmp(tmpstr, "ulosnimi:")) {
+	  if(strstr(tmpstr, "ulosnimi:")) {
 	    KIRJOITUSLAJIKSI(ulosnimiKirj);
 	  } else if(!strcmp(tmpstr, "eri_sekunnit")) {
 	    laita_eri_sekunnit(apuc);
@@ -518,7 +524,7 @@ int kaunnista() {
 	    ipc = liity_muistiin();
 	    strcpy(TEKSTI, "Aloita välilyönnillä");
 	      laitot |= tkstallai;
-	  } else if(!strcmp(tmpstr, "ääni")) {
+	  } else if(strstr(tmpstr, "ääni:")) {
 	    avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
 	  }
 	  break;
@@ -539,8 +545,6 @@ int kaunnista() {
 	    järjestysalueilta luettu indeksi muunnetaan tulosalueen indeksiksi*/
 	case tuloksetal:
 	  apuind = LISTARIVI(tulosol, button);
-	  if(apuind == stulos->pit)
-	    apuind--;
 	  goto MBUP_TULOKSIA;
 	case jarjestus1al:
 	  apuind = LISTARIVI(jarjol1, button);
@@ -643,69 +647,53 @@ int kaunnista() {
       case SDL_MOUSEMOTION:;
 	alue_e vanha = alue;
 	alue = hae_alue(tapaht.motion.x, tapaht.motion.y);
-	switch(alue) {
-	case kelloal:
-	case lisatdal:
-	case sektusal:
-	  if(hlaji != teksti) {
-	    SDL_FreeCursor(kursori);
-	    kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
-	    SDL_SetCursor(kursori);
-	    hlaji = teksti;
-	  }
-	  break;
-	case jarjestus1al:
-	  apuind = LISTARIVI(jarjol1, motion);
-	case jarjestus2al:;
-	  if(alue != jarjestus1al)
-	    apuind = LISTARIVI(jarjol2, motion);
-	  if(apuind < ftulos->pit) {
-	    apuind = jarjes[apuind];
-	    goto LAITA_AIKA_NAKUVIIN;
-	  }
-	  laitot |= tkstallai;
-	  break;
-	case tuloksetal:;
-	  /*laitetaan aika näkyviin*/
-	  apuind = LISTARIVI(tulosol, motion);
-	  if(apuind < thetki->pit) {
-	  LAITA_AIKA_NAKUVIIN:;
-	    time_t aika_t = thetki->taul[apuind];
-	    struct tm *aika = localtime(&aika_t);
-	    strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
-	    laitot |= tkstallai;
-	  }
-	  /*ei break-komentoa*/
-	case muutal:
-	case tietoalue:
-	case tarkasteluaikanappial:
-	  if(hlaji != kasi) {
-	    SDL_FreeCursor(kursori);
-	    kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
-	    SDL_SetCursor(kursori);
-	    hlaji = kasi;
-	  }
-	  break;
-	case tiedotal:
-	case muual:
-	  if(hlaji != perus) {
-	    SDL_FreeCursor(kursori);
-	    kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-	    SDL_SetCursor(kursori);
-	    hlaji = perus;
-	  }
-	  break;
-	}
-	if( (vanha == tuloksetal && alue != tuloksetal) ||		\
-	    (vanha == jarjestus1al && alue != jarjestus1al) ||		\
-	    (vanha == jarjestus2al && alue != jarjestus2al) ) { //poistuttiin tuloksista
+	if(vanha != alue) {
+	  if(korostusol.paksuus > 0)
+	    korostusol.paksuus *= -1;
 	  laitot |= tkstallai;
 	  if(tila != kirjoitustila)
 	    strcpy(TEKSTI, "");
 	  else
 	    strcpy(TEKSTI, tekstialue[kirjoituslaji]);
 	}
-	break;
+	switch(alue) {
+	case kelloal:
+	case lisatdal:
+	case sektusal:
+	  hiireksi(teksti);
+	  break;
+	case jarjestus1al:
+	  apuind = LISTARIVI(jarjol1, motion);
+	  korostukseksi(&jarjol1, apuind);
+	  apuind = jarjes[apuind]; //saman ajan indeksi tuloslistassa
+	  goto LAITA_AIKA_NAKUVIIN;
+	case jarjestus2al:;
+	  apuind = LISTARIVI(jarjol2, motion);
+	  korostukseksi(&jarjol2, apuind);
+	  apuind = jarjes[apuind];
+	  goto LAITA_AIKA_NAKUVIIN;
+	case tuloksetal:;
+	  apuind = LISTARIVI(tulosol, motion);
+	  korostukseksi(&tulosol, apuind);
+	LAITA_AIKA_NAKUVIIN:;
+	  time_t aika_t = thetki->taul[apuind];
+	  struct tm *aika = localtime(&aika_t);
+	  strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
+	  laitot |= tkstallai;
+	  hiireksi(kasi);
+	  break;
+	case muutal:
+	  korostukseksi(&muutol, LISTARIVI(muutol, motion));
+	case tietoalue:
+	case tarkasteluaikanappial:
+	  hiireksi(kasi);
+	  break;
+	case tiedotal:
+	case muual:
+	  hiireksi(perus);
+	  break;
+	} //endswitch alue
+	break; //case mousemotion
       case SDL_TEXTINPUT:
 	int pit = strlen(KELLO);
 	char* loppuosa_ptr = KELLO+pit-kohdistin;
@@ -874,7 +862,7 @@ int piste_alueella(int x, int y, SDL_Rect* alue) {
     return 0;
   if (y < alue->y)
     return 0;
-  if (y > alue->y + alue->h)
+  if (y >= alue->y + alue->h)
     return 0;
   return 1;
 }
@@ -1052,6 +1040,24 @@ void rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
 void ulosnimeksi(const char* nimi) {
   strcpy(ulosnimi, nimi); 
   laitot |= muutlai;
+}
+
+void korostukseksi(tekstiolio_s* ol, int ind) {
+  korostusol.kulmio.x = ol->toteutuma.x;
+  korostusol.kulmio.y = ol->toteutuma.y + (ind-ol->alku)*TTF_FontLineSkip(ol->font);
+  korostusol.kulmio.w = ol->toteutuma.w;
+  korostusol.kulmio.h = TTF_FontLineSkip(ol->font);
+  if(korostusol.paksuus < 0)
+    korostusol.paksuus *= -1;
+}
+
+void hiireksi(enum hiirilaji laji) {
+  if(hlaji == laji)
+    return;
+  SDL_FreeCursor(kursori);
+  kursori = SDL_CreateSystemCursor(hiiret[laji]);
+  SDL_SetCursor(kursori);
+  hlaji = laji;
 }
 
 void sigchld(int turha) {
