@@ -8,37 +8,36 @@ import pymannkendall as mk
 import pandas as pd
 import sys, os
 
-f = open(sys.argv[1], "rb")
-ajat = []
-ind = []
+os.close(int(sys.argv[2]))
+fd = int(sys.argv[1])
+pit, = struct.unpack("i", os.read(fd,4))
+ajat = np.empty(pit,float)
+ind = np.empty(pit,int)
 dnfind = []
-i = 0
-while 1:
-    x = f.read(4)
-    if len(x) < 4:
-        break
-    x = struct.unpack("f", x)[0]
-    if(not np.isinf(x) and not np.isnan(x)):
-        ajat.append(x)
-        ind.append(i)
+
+kohta=0
+for i in range(pit):
+    x, = struct.unpack("f", os.read(fd,4))
+    if(not np.isinf(x)):
+        ajat[kohta] = x
+        ind[kohta] = i
+        kohta += 1
     else:
         dnfind.append(i)
-    i+=1
-f.close()
 
-ajat = np.array(ajat)
+os.close(fd)
+ajat = ajat[:kohta]
+ind = ind[:kohta]
 dnfind = np.array(dnfind)
-ind = np.array(ind)
-sr = pd.Series(ajat, ind)
+sr = pd.Series(ajat,index=ind)
 
 ts = mk.original_test(sr)
-pns = stat.linregress(ind,ajat)
-
+pns = stat.linregress(ind, ajat)
 plt.plot(ind, ajat, 'o', color='b')
-plt.plot(ind, ind*pns.slope+pns.intercept, label="pns")
-plt.plot(ind, ind*ts.slope+ts.intercept, label="ts")
-plt.xlim(right=np.max(ind))
-plt.ylim(top=np.max(ajat))
+plt.plot(sr.index, sr.index*pns.slope+pns.intercept, label="pns")
+plt.plot(sr.index, sr.index*ts.slope+ts.intercept, label="ts")
+plt.xlim(-1,pit)
+plt.ylim(top=np.nanmax(ajat))
 
 #dnfien piirtäminen
 ala,ula = plt.ylim()
@@ -48,9 +47,9 @@ plt.plot(dnfind, dnfaika, 'o', color='r')
 plt.legend()
 locale.setlocale(locale.LC_ALL, os.getenv('LANG'))
 plt.title(locale.format_string("theil-senn: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f\n"
-                                   "pns: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f",
-                                   (ts.slope*1000, ts.intercept, ts.p,
-                                        pns.slope*1000, pns.intercept, pns.pvalue)))
+                               "pns: %.2f $\\frac{s}{1000}$, %.2f, p = %.3f",
+                               (ts.slope*1000, ts.intercept, ts.p,
+                                pns.slope*1000, pns.intercept, pns.pvalue)))
 paikallistaja = ticker.ScalarFormatter(useLocale=True)
 plt.gca().yaxis.set_major_formatter(paikallistaja)
 plt.tight_layout()
