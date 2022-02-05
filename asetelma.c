@@ -21,10 +21,13 @@ const char* restrict ulosnimi0 = "tulokset.txt";
 const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
 const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
-const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni: pois|autokuutio";
 
-SDL_Color kohdistinvari = {255,255,255,255};
-SDL_Color taustavari = {0,0,0,255};
+/*Seuraavien järjestys on numeroitu asetelma.h:ssa. Järjestyksen muuttaminen pitää tehdä myös siellä*/
+const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni: |autokuutio";
+const char* aanivaihtoehdot[] = {"pois", "pysäytys"};
+
+enum aanivaihtoehto aanitila = aani_pois_e;
+char* aanitila_str;
 
 const char* tekstialue[] = {
   "Ajan syöttö",
@@ -34,6 +37,9 @@ const char* tekstialue[] = {
   "Kuution koko (NxNxN)",
   "Keskiarvon karsinta",
 };
+SDL_Color kohdistinvari = {255,255,255,255};
+SDL_Color taustavari = {0,0,0,255};
+
 
 #define MONOFONTTI "MAKE_LIITÄ_MONOFONTTI"
 #define YLEISFONTTI "MAKE_LIITÄ_SANSFONTTI"
@@ -142,12 +148,21 @@ int asetelma() {
   jarjes = malloc(1);
   fjarje = malloc(1);
 
-  int pit0 = strlen(muut_a->taul[0]); //ulosnimi
+  int pit0 = strlen(muut_a->taul[ulosnimi_e]);
   char tmpc[500];
   sprintf(tmpc, "%s/%s/%s", getenv("HOME"), TULOSKANSIO, ulosnimi0);
-  muut_a->taul[0] = realloc(muut_a->taul[0], pit0+strlen(tmpc)+1);
-  strcat(muut_a->taul[0], tmpc);
-  ulosnimi = muut_a->taul[0] + pit0;
+  muut_a->taul[ulosnimi_e] = realloc(muut_a->taul[ulosnimi_e], pit0+strlen(tmpc)+1);
+  strcat(muut_a->taul[ulosnimi_e], tmpc);
+  ulosnimi = muut_a->taul[ulosnimi_e] + pit0;
+
+  pit0 = strlen(muut_a->taul[aani_e]);
+  int pit1 = 0;
+  for(int i=0; i<sizeof(aanivaihtoehdot)/sizeof(aanivaihtoehdot[0]); i++)
+    if(strlen(aanivaihtoehdot[i]) > pit1)
+      pit1 = strlen(aanivaihtoehdot[i]);
+  muut_a->taul[aani_e] = realloc(muut_a->taul[aani_e], pit0+pit1+1);
+  aanitila_str = muut_a->taul[aani_e] + pit0;
+  strcpy(aanitila_str, aanivaihtoehdot[aanitila]);
   
   if(avaa_fontit(9, &kellool, &tulosol, &jarjol1, &tiedotol, &lisaol, &sektusol, &muutol, &tkstalol, &tarknap.teksti))
     return 1;

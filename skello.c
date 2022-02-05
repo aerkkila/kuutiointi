@@ -75,6 +75,7 @@ int piste_alueella(int x, int y, SDL_Rect* alue);
 enum alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
+void tee_kuvaaja();
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 void vaihda_fonttikoko_abs(tekstiolio_s* olio, int y);
 void laita_sekoitus(shm_tietue* ipc, char* sek);
@@ -86,6 +87,7 @@ void hiireksi(enum hiirilaji);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
+void aanireuna_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
 double hetkinyt();
@@ -166,7 +168,9 @@ int kaunnista() {
 	  case SDLK_o:
 	    if(tila == seis) {
 	      KIRJOITUSLAJIKSI(avaa_tiedostoKirj);
-	      strncpy(KELLO, ulosnimi, viimeinen_sij(ulosnimi,'/')+1);
+	      int pit = viimeinen_sij(ulosnimi,'/') + 1;
+	      strncpy(KELLO, ulosnimi, pit);
+	      KELLO[pit] = '\0';
 	    }
 	    break;
 	  case SDLK_s:
@@ -482,46 +486,27 @@ int kaunnista() {
 	  break;
 	case muutal:;
 	  int rivi = LISTARIVI(muutol, button);
-	  char* tmpstr = muut_a->taul[rivi];
-	  if(strstr(tmpstr, "ulosnimi:")) {
-	    KIRJOITUSLAJIKSI(ulosnimiKirj);
-	  } else if(!strcmp(tmpstr, "eri_sekunnit")) {
-	    laita_eri_sekunnit(apuc);
-	  } else if(!strcmp(tmpstr, "kuvaaja")) {
-	    FILE *f = fopen("/tmp/skello_kuvaaja.bin", "wb");
-	    FOR_LISTA(ftulos)
-	      fwrite(NYT_OLEVA(ftulos), 1, sizeof(ftulos->taul[0]), f);
-	    fclose(f);
-	    pid_t pid1, pid2;
-	    if( (pid1 = fork()) < 0 )
-	      fprintf(stderr, "Virhe: Ei tehty ensimmäistä alaprosessia\n");
-	    else if(pid1) { //yläprosessi
-	      waitpid(pid1, NULL, 0);
-	    } else { //1. alaprosessi
-	      if( (pid2 = fork()) < 0 ) {
-		fprintf(stderr, "Virhe: Ei tehty toista alaprosessia\n");
-		exit(1);
-	      } else if(pid2) { //1. alaprosessi
-		_exit(0);
-	      } else { //2. alaprosessi
-		system(KOTIKANSIO "/kuvaaja.py /tmp/skello_kuvaaja.bin");
-		system("rm /tmp/skello_kuvaaja.bin");
-		exit(0);
-	      }   
-	    }
-	  } else if(!strcmp(tmpstr, "kuutio")) {
-	    avaa_kuutio();
-	  } else if(!strcmp(tmpstr, "autokuutio")) {
+	  switch(rivi) {
+	  case ulosnimi_e:
+	    KIRJOITUSLAJIKSI(ulosnimiKirj); break;
+	  case eri_sekunnit_e:
+	    laita_eri_sekunnit(apuc);       break;
+	  case kuvaaja_e:
+	    tee_kuvaaja();                  break;
+	  case kuutio_e:
+	    avaa_kuutio();                  break;
+	  case autokuutio_e:
 	    /*avataan autokuutio taustaprosessina, tämä on pelkkää pelleilyä*/
 	    sprintf(apuc, "./kuutio.d/autokuutio %u", NxN);
 	    taustaprosessina(apuc);
 	    ipc = liity_muistiin();
 	    strcpy(TEKSTI, "Aloita välilyönnillä");
-	      laitot |= tkstallai;
-	  } else if(strstr(tmpstr, "ääni:")) {
-	    avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
+	    laitot |= tkstallai;
+	    break;
+	  case aani_e:
+	    aanireuna_seuraava();           break;
 	  }
-	  break;
+	  break; //case muutal
 	default:
 	  break;
 	}
@@ -992,6 +977,18 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
   return;
 }
 
+void tee_kuvaaja() {
+  int putki[2];
+  char apuc[100];
+  pipe(putki);
+  sprintf(apuc, KOTIKANSIO"/kuvaaja.py %i %i", putki[0], putki[1]);
+  taustaprosessina(apuc);
+  close(putki[0]);
+  write(putki[1], &(ftulos->pit), 4);
+  write(putki[1], ftulos->taul, ftulos->koko*ftulos->pit);
+  close(putki[1]);
+}
+
 inline void __attribute__((always_inline)) vaihda_fonttikoko_abs(tekstiolio_s* olio, int y) {
   vaihda_fonttikoko(olio, y-olio->fonttikoko);
 }
@@ -1007,7 +1004,7 @@ inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio,
 }
 
 inline void __attribute__((always_inline)) laita_sekoitus(shm_tietue* ipc, char* sek) {
-  strcpy(ipc->data, sek);
+  strncpy(ipc->data, sek, SHM_KOKO_DATA-1);
   ipc->viesti = 0;
 }
 
@@ -1100,6 +1097,16 @@ void avaa_kuutio() {
   ulosnimeksi(apuc);
 }
 
+void aanireuna_seuraava() {
+  if(aanitila == aani_pois_e)
+    avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
+  aanitila = (aanitila+1) % aani_vaihtoehtoja;
+  if(aanitila == aani_pois_e)
+    sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
+  strcpy(aanitila_str, aanivaihtoehdot[aanitila]);
+  laitot |= muutlai;
+}
+
 void avaa_aanireuna(int *putki0, int *putki1, struct pollfd* poll_aani) {
   char apuc[200];
   pipe(putki0); pipe(putki1);
@@ -1171,8 +1178,9 @@ int main(int argc, char** argv) {
     1000 ensimmäistä --> :1000
     alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne*/
   if(argc > 1) {
-    strncpy(KELLO,ulosnimi,viimeinen_sij(ulosnimi,'/')+1);
-    strcat(KELLO,argv[1]);
+    int pit = viimeinen_sij(ulosnimi,'/') + 1;
+    strncpy(KELLO,ulosnimi,pit);
+    strcpy(KELLO+pit,argv[1]);
     if(argc > 2) {
       if(lue_tiedosto(argv[1], argv[2]))
 	return 1;
