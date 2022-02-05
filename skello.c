@@ -18,7 +18,7 @@
 #include "muistin_jako.h"
 #include "äänireuna.h"
 
-typedef enum {
+enum alue_e {
   kelloal,
   tuloksetal,
   jarjestus1al,
@@ -30,7 +30,7 @@ typedef enum {
   lisatdal,
   muutal,
   muual
-} alue_e;
+} alue = muual;
 
 enum {
   seis,
@@ -51,13 +51,28 @@ SDL_SystemCursor hiiret[] = {
 };
 SDL_Cursor* kursori;
 
+enum {
+  aikaKirj,
+  ulosnimiKirj,
+  tulosalkuKirj,
+  avaa_tiedostoKirj,
+  kuutionKokoKirj,
+  karsintaKirj,
+} kirjoituslaji = aikaKirj;
+
+enum {
+  ei_mitaan,
+  aloita,
+  tarkastelu,
+} nostotoimi;
+
 int kaunnista();
 int lopeta();
 int edellinen_kohta(const char* suote, int* kohta);
 int seuraava_kohta(const char* suote, int* kohta);
 void pyyhi(char* suote, int kohta);
 int piste_alueella(int x, int y, SDL_Rect* alue);
-alue_e hae_alue(int x, int y);
+enum alue_e hae_alue(int x, int y);
 char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
@@ -77,7 +92,6 @@ double hetkinyt();
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
-#define HETKI tuloshetki
 #define LISTARIVI(nimi, tapahtlaji) ((nimi).alku +			\
 				     (tapaht.tapahtlaji.y - (nimi).toteutuma.y) / \
 				     TTF_FontLineSkip((nimi).font))
@@ -97,6 +111,7 @@ double hetkinyt();
 
 extern float skaala;
 int kohdistin=-1; //kasvaa vasemmalle ja negatiivinen on piilotettu
+sakko_etype sakko;
 
 static int aaniputki0[2] = {-1,-1}, aaniputki1[2] = {-1,-1};
 static struct pollfd poll_aani = {-1, POLLIN, POLLIN};
@@ -113,30 +128,9 @@ int kaunnista() {
   short min, sek, csek;
   double dalku=0, dnyt;
   int apuind;
-  enum {
-    ei_mitaan,
-    aloita,
-    tarkastelu
-  } nostotoimi;
-  enum {
-    aikaKirj,
-    ulosnimiKirj,
-    tulosalkuKirj,
-    avaa_tiedostoKirj,
-    kuutionKokoKirj,
-    karsintaKirj
-  } kirjoituslaji = aikaKirj;
-  char* tekstialue[] = {"Ajan syöttö",			\
-			"Ulosnimen vaihto",		\
-			"Tuloslistan alkukohta",	\
-			"Avattava tiedosto",		\
-			"Kuution koko (NxNxN)",		\
-			"Keskiarvon karsinta"};
   int kontrol = 0;
   ipc = NULL;
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
-  alue_e alue = muual;
-  sakko_e sakko = ei;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_SetCursor(kursori);
 
@@ -645,7 +639,7 @@ int kaunnista() {
 	  break;
 	}
       case SDL_MOUSEMOTION:;
-	alue_e vanha = alue;
+	enum alue_e vanha = alue;
 	alue = hae_alue(tapaht.motion.x, tapaht.motion.y);
 	if(vanha != alue) {
 	  if(korostusol.paksuus > 0)
@@ -769,7 +763,6 @@ int kaunnista() {
       if(aanihetki - aani_lopetushetki > aani_turvavali)
 	;//aloita() tai jotain vastaavaa
   }
-    
   
   if(tila == juoksee) {
     gettimeofday(&nyt, NULL);
@@ -867,7 +860,7 @@ int piste_alueella(int x, int y, SDL_Rect* alue) {
   return 1;
 }
 
-alue_e hae_alue(int x, int y) {
+enum alue_e hae_alue(int x, int y) {
   if(piste_alueella(x, y, &kellool.toteutuma))
     return kelloal;
   if(piste_alueella(x, y, &tulosol.toteutuma))

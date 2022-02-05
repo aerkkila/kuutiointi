@@ -26,6 +26,15 @@ const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni
 SDL_Color kohdistinvari = {255,255,255,255};
 SDL_Color taustavari = {0,0,0,255};
 
+const char* tekstialue[] = {
+  "Ajan syöttö",
+  "Ulosnimen vaihto",
+  "Tuloslistan alkukohta"
+  "Avattava tiedosto",
+  "Kuution koko (NxNxN)",
+  "Keskiarvon karsinta",
+};
+
 #define MONOFONTTI "MAKE_LIITÄ_MONOFONTTI"
 #define YLEISFONTTI "MAKE_LIITÄ_SANSFONTTI"
 

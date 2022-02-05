@@ -10,10 +10,11 @@
   } while(0);
 
 typedef enum {
-  ei = 0,
+  ei,
   plus,
   dnf
-} sakko_e;
+} sakko_etype;
+extern sakko_etype sakko;
 
 slista* tee_tiedot(int* avgind);
 int* eri_sekunnit(const flista* restrict ftul);

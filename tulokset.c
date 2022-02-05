@@ -10,7 +10,7 @@ int fminind(float*, int);
 float keskiarvo(float*, int);
 float std(float* taul, int,  float ka, int otos);
 void karstaulkot(float** ulos, float* sis, int pit, int n, int pp, int ps);
-sakko_e hae_sakko(const char* s);
+sakko_etype hae_sakko(const char* s);
 
 /*Tämä kutsuttakoon aina, kun tuloksia on muutettu.
   Tämä huolehtii myös järjestyslistan ajantasaisuudesta
@@ -270,7 +270,7 @@ void muuta_sakko(char* teksti, int ind) {
   char* tul = stulos->taul[ind];
   float* fp = ftulos->taul+ind;
   int min=0;
-  sakko_e sakko = hae_sakko(tul);
+  sakko_etype sakko = hae_sakko(tul);
 
   switch(sakko) {
   case ei:
@@ -432,7 +432,7 @@ void karstaulkot(float** ulos, float* taul, int pit, int n, int pp, int ps) {
   return;
 }
 
-sakko_e hae_sakko(const char* s) {
+sakko_etype hae_sakko(const char* s) {
   if(strstr(s, "Ø"))
     return dnf;
   if(strstr(s, "+"))
