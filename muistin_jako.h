@@ -3,7 +3,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-#define SHM_KOKO 2048
+#define SHM_KOKO_DATA 2044
 
 enum viesti_e {
   ipcAnna_sekoitus = 1,
@@ -15,38 +15,31 @@ enum viesti_e {
 
 typedef struct {
   enum viesti_e viesti;
-  char data[SHM_KOKO];
-} shmRak_s;
+  char data[SHM_KOKO_DATA];
+} shm_tietue;
 
-extern shmRak_s* ipc;
-extern int viimeViesti;
-
-static const int projId = 55;
-static const char* shmTied = "/tmp";
-
-shmRak_s* ipc;
+shm_tietue* ipc;
 int viimeViesti = 0;
 
-shmRak_s* liity_muistiin() {
+shm_tietue* liity_muistiin() {
   static char luotu = 0;
-  int avain = ftok(shmTied, projId);
+  int avain = ftok("/tmp", 55);
   if(avain < 0) {
-    perror("Virhe, ftok");
+    perror("\033[31mVirhe (liity_muistiin()->ftok)\033[0m");
     return NULL;
   }
-  int shmid = shmget(avain, SHM_KOKO, (!luotu)? (IPC_CREAT | 0666) : 0);
+  int shmid = shmget( avain, sizeof(shm_tietue), (IPC_CREAT | 0666)*(!!luotu) );
   luotu = 1;
   if(shmid < 0) {
-    perror("Virhe, shmget");
+    perror("\033[31mVirhe (liity_muistiin()->shmget)\033[0m");
     return NULL;
   }
-  shmRak_s *r = shmat(shmid, NULL, 0);
+  shm_tietue *r = shmat(shmid, NULL, 0);
   r->viesti = 0;
   if(r < 0) {
-    perror("Virhe, shmat");
+    perror("\033[31mVirhe (liity_muistiin()->shmat)\033[0m");
     return NULL;
   }
   return r;
 }
-
 #endif

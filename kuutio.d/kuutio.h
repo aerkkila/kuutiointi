@@ -30,6 +30,7 @@ typedef struct {int a[3];} int3;
 #define _l 3
 #define _d 4
 #define _b 5
+const char* tahkojarjestus = "RUFLDB";
 
 extern kuutio_t kuutio;
 extern const int3 akst[6];

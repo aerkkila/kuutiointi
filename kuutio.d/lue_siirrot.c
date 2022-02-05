@@ -5,7 +5,7 @@
 #include "../muistin_jako.h"
 
 extern int viimeViesti;
-void lue_siirrot(shmRak_s*);
+void lue_siirrot(shm_tietue*);
 
 inline int __attribute__((always_inline)) kaistaksi(char c) {
   int kaista = 1;
@@ -34,22 +34,10 @@ inline int __attribute__((always_inline)) kaistaksi_valtava(char* str, int* id) 
 inline int __attribute__((always_inline)) puoleksi(char c) {
   if('a' <= c && c <= 'z')
     c -= 'a' - 'A';
-  switch(c) {
-  case 'R':
-    return _r;
-  case 'L':
-    return _l;
-  case 'U':
-    return _u;
-  case 'D':
-    return _d;
-  case 'B':
-    return _b;
-  case 'F':
-    return _f;
-  default:
-    return -1;
-  }
+  for(int i=0; i<6; i++)
+    if(tahkojarjestus[i] == c)
+      return i;
+  return -1;
 }
 
 inline int __attribute__((always_inline)) maaraksi(char c) {
@@ -67,7 +55,7 @@ inline int __attribute__((always_inline)) maaraksi(char c) {
 
 /*Ajanottosovellus laittaa sekoituksen jaettuun muistiin siirto kerrallaan.
   Tämä funktio lukee siirrot jaetusta muistista ja kääntää kuutiota niitten mukaan*/
-void lue_siirrot(shmRak_s* ipc) {
+void lue_siirrot(shm_tietue* ipc) {
   int puoli=0,kaista=0,maara=0;
   float aikaraja = 1.0;
   float nukkumaaika = 0.01e6; //µs

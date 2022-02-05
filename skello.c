@@ -77,7 +77,7 @@ char* sekoitus(char* s);
 void laita_eri_sekunnit(char* tmp);
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 void vaihda_fonttikoko_abs(tekstiolio_s* olio, int y);
-void laita_sekoitus(shmRak_s* ipc, char* sek);
+void laita_sekoitus(shm_tietue* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
 void ulosnimeksi(const char*);
@@ -1006,7 +1006,7 @@ inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio,
   return;
 }
 
-inline void __attribute__((always_inline)) laita_sekoitus(shmRak_s* ipc, char* sek) {
+inline void __attribute__((always_inline)) laita_sekoitus(shm_tietue* ipc, char* sek) {
   strcpy(ipc->data, sek);
   ipc->viesti = 0;
 }
