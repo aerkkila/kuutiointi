@@ -32,7 +32,7 @@ char* aanitila_str;
 const char* tekstialue[] = {
   "Ajan syöttö",
   "Ulosnimen vaihto",
-  "Tuloslistan alkukohta"
+  "Tuloslistan alkukohta",
   "Avattava tiedosto",
   "Kuution koko (NxNxN)",
   "Keskiarvon karsinta",

@@ -17,6 +17,7 @@
 #include "asetelma.h"
 #include "muistin_jako.h"
 #include "äänireuna.h"
+#include "modkeys.h"
 
 enum alue_e {
   kelloal,
@@ -124,13 +125,13 @@ static double aani_lopetushetki;
 static struct timeval alku, nyt;
 static int avgind[6];
 static char apuc[1500];
+static unsigned modkey;
 
 int kaunnista() {
   SDL_Event tapaht;
   short min, sek, csek;
   double dalku=0, dnyt;
   int apuind;
-  int kontrol = 0;
   ipc = NULL;
   nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -151,6 +152,8 @@ int kaunnista() {
       case SDL_KEYDOWN:
 	switch(tapaht.key.keysym.sym)
 	  {
+#define _MODKEYS_SWITCH_KEYDOWN
+#include "modkeys.h"
 	  case SDLK_SPACE:
 	    lopeta();
 	    break;
@@ -160,10 +163,6 @@ int kaunnista() {
 	      tila = juoksee;
 	      nostotoimi = ei_mitaan;
 	    }
-	    break;
-	  case SDLK_LCTRL:
-	  case SDLK_RCTRL:
-	    kontrol = 1;
 	    break;
 	  case SDLK_o:
 	    if(tila == seis) {
@@ -176,7 +175,7 @@ int kaunnista() {
 	  case SDLK_s:
 	    if(tila != seis)
 	      break;
-	    if(kontrol) {
+	    if(modkey & CTRL) {
 	      if(!(apuind = tallenna(ulosnimi)))
 		sprintf(TEKSTI, "Tallennettiin \"%s\"", ulosnimi);
 	      else if (apuind < 0)
@@ -233,13 +232,6 @@ int kaunnista() {
 	    kohdistin = -1;
 	    switch((int)kirjoituslaji) {
 	    case aikaKirj:
-	      /*tällä voi kysyä SDL-version*/
-	      if(!strcmp("SDL -v", KELLO)) {
-		SDL_version v;
-		SDL_VERSION(&v);
-		sprintf(KELLO, "%hhu.%hhu.%hhu", v.major, v.minor, v.patch);
-		continue; //jos olisi break, niin tulisi float_kelloksi
-	      }
 	      /*laitetaan tuloksiin se, mitä kirjoitettiin*/
 	      char* apucp;
 	      while((apucp = strstr(KELLO, ".")))
@@ -352,7 +344,7 @@ int kaunnista() {
 	    break;
 	  case SDLK_PLUS:
 	  case SDLK_KP_PLUS:
-	    if(kontrol) {
+	    if(modkey & CTRL) {
 	      aseta_vari(rend, &taustavari);
 	      SDL_RenderClear(rend);
 	      skaala *= 1.1;
@@ -366,7 +358,7 @@ int kaunnista() {
 	    break;
 	  case SDLK_MINUS:
 	  case SDLK_KP_MINUS:
-	    if(kontrol) {
+	    if(modkey & CTRL) {
 	      aseta_vari(rend, &taustavari);
 	      SDL_RenderClear(rend);
 	      skaala /= 1.1;
@@ -375,7 +367,7 @@ int kaunnista() {
 	    }
 	    break;
 	  case SDLK_PAUSE:
-	    if(kontrol)
+	    if(modkey & CTRL)
 	      asm("int $3"); //jäljityspisteansa
 	    break;
 	  case SDLK_F2:
@@ -388,10 +380,24 @@ int kaunnista() {
 	    write(aaniputki1[1], &kirj, 1);
 	    break;
 	  }
+	switch(tapaht.key.keysym.scancode) {
+	case SDL_SCANCODE_H:
+	  if(modkey & ALT)
+	    edellinen_kohta(KELLO, &kohdistin);
+	  break;
+	case SDL_SCANCODE_L:
+	  if(modkey & ALT)
+	    seuraava_kohta(KELLO, &kohdistin);
+	  break;
+	default:
+	  break;
+	}
 	break;
       case SDL_KEYUP:
 	switch(tapaht.key.keysym.sym)
 	  {
+#define _MODKEYS_SWITCH_KEYUP
+#include "modkeys.h"
 	  case SDLK_SPACE:
 	    switch(nostotoimi) {
 	    case aloita:
@@ -421,15 +427,8 @@ int kaunnista() {
 	    case ei_mitaan:
 	      if(tila != kirjoitustila) //pysäytetty juuri äsken
 		nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
-		  break;
+	      break;
 	    }
-	  case SDLK_LCTRL:
-	  case SDLK_RCTRL:
-	    kontrol = 0;
-	    if(tila == kirjoitustila)
-	      strcpy(TEKSTI, tekstialue[kirjoituslaji]);
-	    laitot |= tkstallai;
-	    break;
 	  }
 	break;
       case SDL_MOUSEBUTTONDOWN:
@@ -536,7 +535,7 @@ int kaunnista() {
 	  apuind = jarjes[apuind];
 	MBUP_TULOKSIA:
 	  if(tapaht.button.button == SDL_BUTTON_LEFT) {
-	    if(kontrol) {
+	    if(modkey & CTRL) {
 	      /*poistetaan (ctrl + hiiri1)*/
 	      poista_listoilta(apuind);
 	      TEE_TIEDOT;
@@ -564,7 +563,7 @@ int kaunnista() {
 	}
 	break;
       case SDL_MOUSEWHEEL:
-	if(kontrol) {
+	if(modkey & CTRL) {
 	  switch(alue) {
 	  case kelloal:
 	    vaihda_fonttikoko(&kellool, tapaht.wheel.y*4);
@@ -674,6 +673,8 @@ int kaunnista() {
 	} //endswitch alue
 	break; //case mousemotion
       case SDL_TEXTINPUT:
+	if(modkey & (ALT|WIN|CTRL))
+	  break;
 	int pit = strlen(KELLO);
 	char* loppuosa_ptr = KELLO+pit-kohdistin;
 	strcpy(apuc, loppuosa_ptr);
