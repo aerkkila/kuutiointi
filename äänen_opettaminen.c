@@ -11,8 +11,8 @@
 */
 void piirra_raidat();
 void aja();
-void aanen_opettaminen(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva);
-void skaalaa(float* data, int pit);
+void aanen_opettaminen(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva);
+float skaalaa(float* data, int pit);
 uint64_t hetkinyt();
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
 #define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta)*ivali)
@@ -26,18 +26,21 @@ static SDL_Texture* tausta;
 static SDL_Color taustavari = {40,40,40,255};
 static SDL_Color aluevari = {.a=255};
 static SDL_Color piirtovari = {255,255,255,255};
-static SDL_Color kohdistin_paaraita = {255,80,0,255};
-static SDL_Color kohdistin_muuraita = {0,255,50,255};
+static SDL_Color kohdistin_paaraita = {0,255,50,255};
+static SDL_Color kohdistin_muuraita = {255,80,0,255};
+static SDL_Color kynnysvari = {50,180,255,255};
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0};
 static int toiston_x;
 static float* data;
+static float* kynnysarvot;
+static float* skaalat;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static unsigned tuplaklikkaus_ms = 240;
 static int toistaa = 0;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
 
-void skaalaa(float* data, int pit) {
+float skaalaa(float* data, int pit) {
   float max = -INFINITY;
   for(int i=0; i<pit; i++)
     if(data[i] > max)
@@ -46,6 +49,7 @@ void skaalaa(float* data, int pit) {
       max = -data[i];
   for(int i=0; i<pit; i++)
     data[i] /= max;
+  return max;
 }
 
 void piirra_raidat() {
@@ -57,7 +61,7 @@ void piirra_raidat() {
   ASETA_VARI(taustavari);
   SDL_RenderClear(rend);
   for(int i=0; i<raitoja; i++)
-    skaalaa(data+i*raidan_pit, raidan_pit);
+    skaalat[i] = skaalaa(data+i*raidan_pit, raidan_pit);
   for(int32_t raita=0, y=0; raita<raitoja; raita++, y+=raidan_kork) {
     SDL_Rect alue = {0, y, ikk_w, raidan_h};
     ASETA_VARI(aluevari);
@@ -65,9 +69,14 @@ void piirra_raidat() {
     ASETA_VARI(piirtovari);
     y += raidan_h / 2;
     float* p = data+raita*raidan_pit;
-    for(int x=0; x<ikk_w; x++) //oletetaan sama määrä epälukuja olevan myös loppupäässä
+    for(int x=0; x<ikk_w; x++)
       for(int ii=0; ii<ivali; ii++,p++)
 	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
+    if(kynnysarvot && kynnysarvot[raita]==kynnysarvot[raita]) {
+      ASETA_VARI(kynnysvari);
+      float ytmp = y-(int)(kynnysarvot[raita]/skaalat[raita] * raidan_h/2);
+      SDL_RenderDrawLine( rend, 0, ytmp, ikk_w, ytmp );
+    }
     y -= raidan_h / 2;
   }
   SDL_SetRenderTarget(rend, NULL);
@@ -199,10 +208,15 @@ void aja() {
 }
 
 static int oli_sdl = 0;
-void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kahva1) {
+void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1) {
   raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1;
   data = malloc(raitoja*raidan_pit*sizeof(float));
+  skaalat = malloc(raitoja*sizeof(float));
   memcpy(data, data1, raitoja*raidan_pit*sizeof(float));
+  if(kynnysarvot1) {
+    kynnysarvot = malloc(raitoja*sizeof(float));
+    memcpy(kynnysarvot, kynnysarvot1, raitoja*sizeof(float));
+  }
   if(SDL_WasInit(SDL_INIT_VIDEO))
     oli_sdl = 1;
   else
@@ -226,6 +240,8 @@ void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* k
   aja();
 
   free(data); data=NULL;
+  free(skaalat); skaalat=NULL;
+  if(kynnysarvot1) { free(kynnysarvot); kynnysarvot=NULL; }
   SDL_DestroyTexture(tausta);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(ikkuna);

@@ -18,8 +18,9 @@ snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
 const int taaj = 48000;
 const int jaksonaika_ms = 30;
-const int gauss_sigma_kpl = 70;
-const int maksimin_alue = 30; //yhteen suuntaan
+int gauss_sigma_kpl = 70;
+int maksimin_alue = 30; //yhteen suuntaan
+float kynnysarvot[] = {NAN, NAN, NAN, 1e-4};
 long unsigned alku_kpl, suod_kpl, deri_kpl, ohen_kpl, pit_data, pit_jakso;
 unsigned tarkka_taaj;
 snd_pcm_uframes_t buffer_size;
@@ -42,9 +43,13 @@ int p00=-1, p11=-1, apuint;
 void sulje_putki(void** putki) {
   close( *( (int*)putki ) );
 }
+
+/*komentoriviargumentit*/
 const struct {char* nimi; char* muoto; void* muuttujat[3]; void (*funktio)(void**); void** funargt;} kntoarg[] = {
   { "--tallennusaika_ms", "%i", {&tallennusaika_ms} },
   { "--opetusviive_ms", "%i", {&opetusviive_ms} },
+  { "--gauss_sigma_kpl", "%i", {&gauss_sigma_kpl} },
+  { "--kynnysarvo", "%e", {kynnysarvot+3} },
   { "--putki0", "%i", {&p00, &apuint}, sulje_putki, (void**)&apuint },
   { "--putki1", "%i", {&apuint, &p11}, sulje_putki, (void**)&apuint },
 };
@@ -106,7 +111,7 @@ void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
     }
 }
 
-void SuDeOh_kaikki(float** data) {
+void havaitse_ylitykset_kaikki(float** data) {
   suodata(data[raaka], data[suodate], pit_data, gauss_sigma_kpl);
   derivaatta(data[suodate], data[derivoitu], pit_data);
   memset(data[ohennus], 0, maksimin_alue*sizeof(float));
@@ -114,17 +119,18 @@ void SuDeOh_kaikki(float** data) {
   ohentaminen(data[derivoitu], data[ohennus], pit_data, maksimin_alue);
 }
 
-void havaitse_reunat(float** data, int alkukohta) {
+void havaitse_ylitykset_jakso(float** data, int alkukohta) {
   suodata(data[raaka]+alkukohta, data[suodate], alku_kpl, gauss_sigma_kpl);
   derivaatta(data[suodate], data[derivoitu], suod_kpl);
   ohentaminen(data[derivoitu], data[ohennus], deri_kpl, maksimin_alue);
-  for(int i=0; i<ohen_kpl; i++)
-    if(data[ohennus][i] > 1.0e-5) {
+  for(int i=0; i<ohen_kpl; i++) {
+    if( data[ohennus][i]>=kynnysarvot[3] ) {
       if(p11 < 0)
 	printf("%.3e\n", data[ohennus][i]);
       else
 	write(p11, data[ohennus]+i, sizeof(float));
     }
+  }
 }
 
 int kumpi_valmis = -1;
@@ -170,7 +176,7 @@ void kasittele(void* datav) {
     kumpaa_luetaan = id;
     siirra_dataa(data[raaka], pit_data, pit_jakso);
     memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
-    havaitse_reunat(data, pit_data-alku_kpl);
+    havaitse_ylitykset_jakso(data, pit_data-alku_kpl);
     if((kuluma_ms+=jaksonaika_ms) >= opetusviive_ms) {
       opettaminen();
       kuluma_ms = 0;
@@ -181,50 +187,11 @@ void kasittele(void* datav) {
   }
 }
 
-#if 0
+void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva_play); //kirjastosta
 void opettaminen() {
-  int putket[4];
-  pipe(putket);
-  pipe(putket+2);
-  skaalaa(data[raaka], pit_data);
-  while(snd_pcm_writei( kahva_play, data[raaka], pit_data ) < 0) {
-    snd_pcm_prepare(kahva_play);
-    fprintf(stderr, "Puskurin alitäyttö\n");
-  }
-  pid_t pid = fork();
-  if(!pid) {
-    char* apu[6];
-    for(int i=1; i<=4; i++) {
-      apu[i] = malloc(6);
-      sprintf(apu[i], "%i", putket[i-1]);
-    }
-    apu[5] = NULL;
-    apu[0] = strdup("./äänikuvaaja.py");
-    execvp("./äänikuvaaja.py", apu);
-    fprintf(stderr, "Virhe äänen opettamisessa: %s\n", strerror(errno));
-    for(int i=0; i<5; i++)
-      free(apu[i]);
-    exit(1);
-  }
-  close(putket[0]);
-  close(putket[3]);
-  int32_t _luku = 2;
-  write( putket[1], &_luku, 4 );
-  _luku = pit_data;
-  write( putket[1], &_luku, 4 );
-  write( putket[1], data[raaka], pit_data*sizeof(float) );
-  write( putket[1], data[ohennus], pit_data*sizeof(float) );
-  waitpid(pid, NULL, 0);
-  close(putket[1]); //kirjoitus
-  close(putket[2]); //luenta
+  havaitse_ylitykset_kaikki(data);
+  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kynnysarvot, kahva_play);
 }
-#else
-void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* kahva_play);
-void opettaminen() {
-  SuDeOh_kaikki(data);
-  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kahva_play);
-}
-#endif
 
 void putki0_tapahtumat() {
   int apu;
