@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<sys/time.h>
+#include "modkeys.h"
 /*
   Tälle annetaan äänidataa ja mahdollisesti sieltä tunnisttut jonkin äänen kohdat.
   Ne piirretään näytölle ja toistetaan ja käyttäjä saa merkitä tunnisteet: oikein tai väärin.
@@ -29,8 +30,10 @@ static SDL_Color piirtovari = {255,255,255,255};
 static SDL_Color kohdistin_paaraita = {0,255,50,255};
 static SDL_Color kohdistin_muuraita = {255,80,0,255};
 static SDL_Color kynnysvari = {50,180,255,255};
+static SDL_Color vntavari = {255,255,255,60};
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0};
 static int toiston_x;
+static int valinta_x=-1;
 static float* data;
 static float* kynnysarvot;
 static float* skaalat;
@@ -93,6 +96,20 @@ void piirra_kohdistin(int x, int r) {
   SDL_RenderDrawLine(rend, x, r*raidan_kork, x, r*raidan_kork + raidan_h);
 }
 
+void piirra_valinta(int x0, int x1) {
+  if(x0<0)
+    return;
+  static SDL_Rect vnta;
+  int x[2];
+  x[x1>x0] = x1;
+  x[x1<=x0] = x0;
+  vnta.x = x[0];
+  vnta.w = x[1]-x[0];
+  vnta.h = ikk_h;
+  ASETA_VARI(vntavari);
+  SDL_RenderFillRect(rend, &vnta);
+}
+
 void toista_kohdistin() {
   snd_pcm_drop(kahva);
   toistaa = 1;
@@ -119,7 +136,7 @@ void kohdistin_sivulle(int maara) {
 void aja() {
   SDL_Event tapaht;
   int siirtoluku = 1;
-  unsigned vaihto = 0;
+  unsigned modkey = 0;
  ALKU:
   while(SDL_PollEvent(&tapaht)) {
     switch(tapaht.type) {
@@ -143,7 +160,7 @@ void aja() {
 	kohdistin_sivulle(siirtoluku);
 	break;
       case SDL_SCANCODE_J:
-	if(vaihto)
+	if(modkey & CTRL)
 	  kohdistin.x = 0;
 	else
 	  kohdistin.r = (kohdistin.r+1) % raitoja;
@@ -152,26 +169,30 @@ void aja() {
 	kohdistin.r = (kohdistin.r-1+raitoja) % raitoja;
 	break;
       case SDL_SCANCODE_SEMICOLON:
-	kohdistin.x = ikk_w;
+	if(modkey & CTRL)
+	  kohdistin.x = ikk_w;
 	break;
       default:
 	break;
       } //endswitch scancode
       switch(tapaht.key.keysym.sym) {
+#define _MODKEYS_SWITCH_KEYDOWN
+#include "modkeys.h"
       case SDLK_SPACE:
+	if(modkey & CTRL) {
+	  valinta_x = toistaa? toiston_x : kohdistin.x;
+	  break;
+	}
 	if( (toistaa = (toistaa+1) % 2) )
 	  toista_kohdistin();
 	else {
 	  snd_pcm_drop(kahva);
-	  if(vaihto)
+	  if(modkey & VAIHTO)
 	    kohdistin.x = toiston_x;
 	}
 	break;
-      case SDLK_LSHIFT:
-	vaihto |= 1<<1;
-	break;
-      case SDLK_RSHIFT:
-	vaihto |= 1<<2;
+      case SDLK_ESCAPE:
+	valinta_x = -1;
 	break;
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
@@ -179,11 +200,13 @@ void aja() {
       } //endswitch symcode
       break; //keydown
     case SDL_KEYUP:
-      if(tapaht.key.keysym.sym == SDLK_LSHIFT)
-	vaihto &= ~(1<<1);
-      else if (tapaht.key.keysym.sym == SDLK_RSHIFT)
-	vaihto &= ~(1<<2);
-      else if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
+      switch(tapaht.key.keysym.sym) {
+#define _MODKEYS_SWITCH_KEYUP
+#include "modkeys.h"
+      default:
+	break;
+      }
+      if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	siirtoluku = 1;
       break;
     case SDL_WINDOWEVENT:
@@ -202,6 +225,7 @@ void aja() {
       toistaa = 0;
     piirra_kohdistin(toiston_x, kohdistin.r);
   }
+  piirra_valinta(valinta_x, kohdistin.x);
   SDL_RenderPresent(rend);
   SDL_Delay(15);
   goto ALKU;
@@ -235,6 +259,7 @@ void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, float* kynny
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
   SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
+  SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
   piirra_raidat();
   aja();
