@@ -8,7 +8,7 @@
 /*
   Tälle annetaan äänidataa ja mahdollisesti sieltä tunnisttut jonkin äänen kohdat.
   Ne piirretään näytölle ja toistetaan ja käyttäjä saa merkitä tunnisteet: oikein tai väärin.
-  Tätä siis käytetään valvottuun oppimiseen
+a  Tätä siis käytetään valvottuun oppimiseen
 */
 void piirra_raidat();
 void aja();
@@ -77,7 +77,8 @@ void piirra_raidat() {
 	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
     if(kynnysarvot && kynnysarvot[raita]==kynnysarvot[raita]) {
       ASETA_VARI(kynnysvari);
-      float ytmp = y-(int)(kynnysarvot[raita]/skaalat[raita] * raidan_h/2);
+      kynnysarvot[raita]/=skaalat[raita];
+      float ytmp = y-(int)(kynnysarvot[raita] * raidan_h/2);
       SDL_RenderDrawLine( rend, 0, ytmp, ikk_w, ytmp );
     }
     y -= raidan_h / 2;
