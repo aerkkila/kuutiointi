@@ -32,8 +32,8 @@ static SDL_Color kohdistin_muuraita = {255,80,0,255};
 static SDL_Color kynnysvari = {50,180,255,255};
 static SDL_Color vntavari = {255,255,255,60};
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0};
-static int toiston_x;
-static int valinta_x=-1;
+static int toiston_x, toiston_alku;
+static struct int2 {int a[2];} valinta_x = {{-1, -1}};
 static float* data;
 static float* kynnysarvot;
 static float* skaalat;
@@ -87,7 +87,7 @@ void piirra_raidat() {
 }
 
 int toiston_sijainti() {
-  return kohdistin.x + (hetkinyt()-toistohetki0) * 48 / ivali;
+  return toiston_alku + (hetkinyt()-toistohetki0) * 48 / ivali;
 }
 
 void piirra_kohdistin(int x, int r) {
@@ -97,27 +97,36 @@ void piirra_kohdistin(int x, int r) {
   SDL_RenderDrawLine(rend, x, r*raidan_kork, x, r*raidan_kork + raidan_h);
 }
 
-void piirra_valinta(int x0, int x1) {
-  if(x0<0)
+void piirra_valinta(struct int2* vnta) {
+  if(vnta->a[0] < 0)
     return;
-  static SDL_Rect vnta;
-  int x[2];
-  x[x1>x0] = x1;
-  x[x1<=x0] = x0;
-  vnta.x = x[0];
-  vnta.w = x[1]-x[0];
-  vnta.h = ikk_h;
+  int pienempi = vnta->a[1] < vnta->a[0];
+  static SDL_Rect vntarect;
+  vntarect.x = vnta->a[pienempi];
+  vntarect.w = vnta->a[!pienempi] - vnta->a[pienempi];
+  vntarect.h = ikk_h;
   ASETA_VARI(vntavari);
-  SDL_RenderFillRect(rend, &vnta);
+  SDL_RenderFillRect(rend, &vntarect);
 }
 
 void toista_kohdistin() {
   snd_pcm_drop(kahva);
   toistaa = 1;
   toistohetki0 = hetkinyt();
+  toiston_alku = kohdistin.x;
   while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, kohdistin.x), raidan_pit-kohdistin.x*ivali ) < 0) {
     snd_pcm_prepare(kahva); //fprintf(stderr, "Puskurin alitäyttö\n");
   }
+}
+
+void toista_valinta(struct int2* vnta) {
+  snd_pcm_drop(kahva);
+  toistaa = 1;
+  toistohetki0 = hetkinyt();
+  int pienempi = vnta->a[1] < vnta->a[0];
+  toiston_alku = vnta->a[pienempi];
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, vnta->a[pienempi]), (vnta->a[!pienempi]-vnta->a[pienempi])*ivali ) < 0)
+    snd_pcm_prepare(kahva);
 }
 
 uint64_t hetkinyt() {
@@ -181,11 +190,15 @@ void aja() {
 #include "modkeys.h"
       case SDLK_SPACE:
 	if(modkey & CTRL) {
-	  valinta_x = toistaa? toiston_x : kohdistin.x;
+	  valinta_x.a[0] = valinta_x.a[1] = toistaa? toiston_x : kohdistin.x;
 	  break;
 	}
-	if( (toistaa = (toistaa+1) % 2) )
-	  toista_kohdistin();
+	if( (toistaa = (toistaa+1) % 2) ) {
+	  if(valinta_x.a[0] < 0)
+	    toista_kohdistin();
+	  else
+	    toista_valinta(&valinta_x);
+	}
 	else {
 	  snd_pcm_drop(kahva);
 	  if(modkey & VAIHTO)
@@ -193,7 +206,7 @@ void aja() {
 	}
 	break;
       case SDLK_ESCAPE:
-	valinta_x = -1;
+	valinta_x.a[0] = -1;
 	break;
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
@@ -222,11 +235,12 @@ void aja() {
   SDL_RenderCopy(rend, tausta, NULL, NULL);
   piirra_kohdistin(kohdistin.x, kohdistin.r);
   if(toistaa) {
-    if( (toiston_x = toiston_sijainti()) > ikk_w )
+    if( (toiston_x = toiston_sijainti()) > (valinta_x.a[0]<0? ikk_w: valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
       toistaa = 0;
     piirra_kohdistin(toiston_x, kohdistin.r);
-  }
-  piirra_valinta(valinta_x, kohdistin.x);
+  } else
+    valinta_x.a[1] = kohdistin.x;
+  piirra_valinta(&valinta_x);
   SDL_RenderPresent(rend);
   SDL_Delay(15);
   goto ALKU;
