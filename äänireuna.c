@@ -17,17 +17,18 @@ static void opettaminen();
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
 const int taaj = 48000;
-const int jaksonaika_ms = 30;
-int gauss_sigma_kpl = 70;
+int jaksonaika_ms = 30;
+int tallennusaika_ms = 5000;
+int gauss_sigma_kpl = 180;
 int maksimin_alue = 30; //yhteen suuntaan
-float kynnysarvot[] = {NAN, NAN, NAN, 1e-4};
-long unsigned alku_kpl, suod_kpl, deri_kpl, ohen_kpl, pit_data, pit_jakso;
+float kynnysarvot[] = {NAN, NAN, NAN, 1e-6};
+long unsigned pit_data, pit_jakso;
 unsigned tarkka_taaj;
 snd_pcm_uframes_t buffer_size;
 int virhe_id;
-float* data[6];
+float* data[4];
 float* kokodata;
-enum {raaka=2, suodate, derivoitu, ohennus};
+enum {raaka, suodate, derivoitu, ohennus, n_raitoja};
 #define ALSAFUNK(fun,...) if( (virhe_id = fun(__VA_ARGS__)) < 0 )	\
     {									\
       fprintf(stderr,"\033[31mVirhe funktiossa %s (äänireuna.c):\033[0m %s\n",#fun,snd_strerror(virhe_id)); \
@@ -36,9 +37,13 @@ enum {raaka=2, suodate, derivoitu, ohennus};
 static uint32_t kuluma_ms = 0;
 static struct pollfd poll_0[] = { {-1, POLLIN}, {STDIN_FILENO, POLLIN} };
 
-int tallennusaika_ms = 5000;
 uint32_t opetusviive_ms = -1;
 int p00=-1, p11=-1, apuint;
+int nauh_jakson_id = 0;
+int luet_jakson_id = -1;
+int nauh_jaksoja;
+int nauh_jatka = 1;
+int nauh_tauko = 0;
 
 void sulje_putki(void** putki) {
   close( *( (int*)putki ) );
@@ -47,6 +52,7 @@ void sulje_putki(void** putki) {
 /*komentoriviargumentit*/
 const struct {char* nimi; char* muoto; void* muuttujat[3]; void (*funktio)(void**); void** funargt;} kntoarg[] = {
   { "--tallennusaika_ms", "%i", {&tallennusaika_ms} },
+  { "--jaksonaika_ms", "%i", {&jaksonaika_ms} },
   { "--opetusviive_ms", "%i", {&opetusviive_ms} },
   { "--gauss_sigma_kpl", "%i", {&gauss_sigma_kpl} },
   { "--kynnysarvo", "%e", {kynnysarvot+3} },
@@ -73,24 +79,38 @@ int alusta_aani(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto) {
   return 0;
 }
 
-void siirra_dataa(float* data, int pit_data, int siirto) {
-  for(int i=0; i+siirto<pit_data; i++)
+void _siirra_dataa_ympari_vasen(float* data, int siirto, int pit, float* muisti) {
+  memcpy( muisti, data, siirto*sizeof(float) );
+  for(int i=0; i<pit-siirto; i++) //saisikohan tässäkin käyttää memcpy:a?
     data[i] = data[i+siirto];
+  memcpy( data+pit-siirto, muisti, siirto*sizeof(float) );
 }
+
+void siirra_dataa_ympari_vasen(float* data, int siirto, int pit) {
+  if(siirto < 80000) {
+    float muisti[siirto];
+    _siirra_dataa_ympari_vasen(data, siirto, pit, muisti);
+    return;
+  }
+  float* muisti = malloc(siirto*sizeof(float));
+  _siirra_dataa_ympari_vasen(data, siirto, pit, muisti);
+  free(muisti);
+}
+
 
 #define KERROIN 0.39894228 // 1/sqrt(2*pi)
 #define GAUSSPAINO(t,sigma) ( KERROIN/sigma * exp(-0.5*(t)*(t)/(sigma*sigma)) )
 
-void suodata(float* data, float* kohde, int pit_data, int pit_sigma) {
-  int gausspit = pit_sigma*3;
+void suodata(float* data, float* kohde, int pit_data) {
+  int gausspit = gauss_sigma_kpl*3;
   float gausskertoimet[gausspit*2+1];
   float* gausskert = gausskertoimet + gausspit; //osoitin keskikohtaan
   for(int t=0; t<=gausspit; t++)
-    gausskert[t] = gausskert[-t] = GAUSSPAINO(t,pit_sigma);
+    gausskert[t] = gausskert[-t] = GAUSSPAINO(t,gauss_sigma_kpl);
   for(int i=gausspit; i+gausspit<pit_data; i++) {
     float summa = 0;
     for(int T=-gausspit; T<=gausspit; T++)
-      summa += data[i+T]*gausskert[T];
+      summa += data[i+T]*data[i+T]*gausskert[T];
     kohde[i] = summa;
   }
 }
@@ -100,7 +120,7 @@ void derivaatta(float* data, float* kohde, int pit) {
     kohde[i] = data[i+1]-data[i];
 }
 
-void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
+void ohentaminen(float* data, float* kohde, int pit) {
   for(int i=maksimin_alue; i+maksimin_alue<pit; i++)
     for(int j=1; j<=maksimin_alue; j++) {
       if( ! (data[i-j] < data[i] && data[i] > data[i+j]) ) {
@@ -111,31 +131,15 @@ void ohentaminen(float* data, float* kohde, int pit, int maksimin_alue) {
     }
 }
 
-void havaitse_ylitykset_kaikki(float** data) {
-  suodata(data[raaka], data[suodate], pit_data, gauss_sigma_kpl);
-  derivaatta(data[suodate], data[derivoitu], pit_data);
-  memset(data[ohennus], 0, maksimin_alue*sizeof(float));
-  memset(data[ohennus]+pit_data-maksimin_alue, 0, maksimin_alue*sizeof(float));
-  ohentaminen(data[derivoitu], data[ohennus], pit_data, maksimin_alue);
+void havaitse_ylitykset(float** data, int alkukohta, int pit) {
+  suodata( data[raaka]+alkukohta, data[suodate]+alkukohta, pit );
+  derivaatta( data[suodate]   + alkukohta+3*gauss_sigma_kpl,
+	      data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
+	      pit -= 6*gauss_sigma_kpl );
+  ohentaminen( data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
+	       data[ohennus]   + alkukohta+3*gauss_sigma_kpl,
+	       pit -= 1 );
 }
-
-void havaitse_ylitykset_jakso(float** data, int alkukohta) {
-  suodata(data[raaka]+alkukohta, data[suodate], alku_kpl, gauss_sigma_kpl);
-  derivaatta(data[suodate], data[derivoitu], suod_kpl);
-  ohentaminen(data[derivoitu], data[ohennus], deri_kpl, maksimin_alue);
-  for(int i=0; i<ohen_kpl; i++) {
-    if( data[ohennus][i]>=kynnysarvot[3] ) {
-      if(p11 < 0)
-	printf("%.3e\n", data[ohennus][i]);
-      else
-	write(p11, data[ohennus]+i, sizeof(float));
-    }
-  }
-}
-
-int kumpi_valmis = -1;
-int kumpaa_luetaan = -1;
-int nauh_jatka = 1;
 
 void sigint(int sig) {
   nauh_jatka = 0;
@@ -145,52 +149,61 @@ void sigchld(int sig) {
 }
 
 void* nauhoita(void* datav) {
-  float** data = datav;
-  int id = 0;
+  float* data = datav;
+  nauh_jakson_id = 0;
   while(nauh_jatka) {
-    if(id == kumpaa_luetaan) {
+    if( luet_jakson_id == nauh_jakson_id ) {
       fprintf(stderr, "\033[31mVaroitus: kaikkea dataa ei ehditty käsitellä\033[0m\n");
-      while(id == kumpaa_luetaan)
+      while( luet_jakson_id == nauh_jakson_id )
 	usleep(1000);
     }
-    while(snd_pcm_readi( kahva_capt, data[id], pit_jakso ) < 0) {
+    while(nauh_tauko)
+      usleep(2000);
+    while(snd_pcm_readi( kahva_capt, data+pit_jakso*nauh_jakson_id, pit_jakso ) < 0) {
       snd_pcm_prepare(kahva_capt);
       fprintf(stderr, "Puskurin ylitäyttö\n");
     }
-    kumpi_valmis = id;
-    id = (id + 1) % 2;
+    nauh_jakson_id = (nauh_jakson_id+1) % nauh_jaksoja;
   }
   return NULL;
 }
 
 void kasittele(void* datav) {
   float** data = datav;
-  if(pit_data-alku_kpl < 0) {
-    fprintf(stderr, "Liian lyhyt tallennusaika suhteessa muihin parametreihin\n");
-    nauh_jatka = 0;
-  }
+  luet_jakson_id = -1;
   while(nauh_jatka) {
-    while(kumpi_valmis < 0)
+    int uusi_id = (luet_jakson_id+1) % nauh_jaksoja;
+    while(uusi_id == nauh_jakson_id)
       usleep(1000);
-    int id = kumpi_valmis;
-    kumpaa_luetaan = id;
-    siirra_dataa(data[raaka], pit_data, pit_jakso);
-    memcpy(data[raaka]+pit_data-pit_jakso, data[id], pit_jakso*sizeof(float));
-    havaitse_ylitykset_jakso(data, pit_data-alku_kpl);
+    luet_jakson_id = uusi_id;
+    havaitse_ylitykset(data, pit_jakso*luet_jakson_id, pit_jakso); //jaksojen välit pitää vielä käsitellä
+    for(int i=0; i<pit_jakso; i++) {
+      int ii = i+pit_jakso*luet_jakson_id;
+      if( data[ohennus][ii]>=kynnysarvot[3] ) {
+	if(p11 < 0)
+	  printf("%.3e\n", data[ohennus][ii]);
+	else
+	  write(p11, data[ohennus]+ii, sizeof(float));
+      }
+    }
     if((kuluma_ms+=jaksonaika_ms) >= opetusviive_ms) {
       opettaminen();
       kuluma_ms = 0;
     }
     putki0_tapahtumat();
-    kumpaa_luetaan = -1; //merkki nauhoitusfunktiolle
-    kumpi_valmis = -1; //merkki tälle funktiolle
   }
 }
 
 void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva_play); //kirjastosta
 void opettaminen() {
-  havaitse_ylitykset_kaikki(data);
-  aanen_valinta(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kynnysarvot, kahva_play);
+  nauh_tauko = 1;
+  snd_pcm_drop(kahva_capt); //keskeyttää nauhoituksen äänikortille
+  siirra_dataa_ympari_vasen( data[raaka], nauh_jakson_id*pit_jakso, pit_data );
+  havaitse_ylitykset(data, 0, pit_data);
+  aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play);
+  siirra_dataa_ympari_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
+  snd_pcm_prepare(kahva_capt); //jatkaa nauhoitusta äänikortille
+  nauh_tauko = 0;
 }
 
 void putki0_tapahtumat() {
@@ -255,23 +268,23 @@ int main(int argc, char** argv) {
   pthread_t saie;
   pit_data = taaj*tallennusaika_ms/1000;
   pit_jakso = taaj*jaksonaika_ms/1000;
-  alku_kpl = pit_jakso + gauss_sigma_kpl*6 + 1 + maksimin_alue*2;
-  suod_kpl = alku_kpl - gauss_sigma_kpl*6;
-  deri_kpl = suod_kpl - 1;
-  ohen_kpl = suod_kpl - maksimin_alue*2; // == pit_jakso
+  nauh_jaksoja = pit_data / pit_jakso;
+  if(nauh_jaksoja < 2) {
+    printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
+    nauh_jaksoja = 2;
+  }
+  pit_data = nauh_jaksoja * pit_jakso; //tehdään tästä jakson pituuden monikerta
   alusta_aani(&kahva_capt, SND_PCM_STREAM_CAPTURE);
   alusta_aani(&kahva_play, SND_PCM_STREAM_PLAYBACK);
-  kokodata = calloc(pit_data*(ohennus-raaka+1) + pit_jakso*2, sizeof(float));
-  for(int i=0; i<raaka; i++)
-    data[i] = kokodata + i*pit_jakso;
-  for(int i=raaka; i<=ohennus; i++)
-    data[i] = kokodata + raaka*pit_jakso + (i-raaka)*pit_data;
+  kokodata = calloc( pit_data * n_raitoja, sizeof(float) );
+  for(int i=0; i<n_raitoja; i++)
+    data[i] = kokodata + i*pit_data;
 
   /*Asetetaan epäluvut dataan. Tarvittavan alueen päälle kirjoitetaan myöhemmin muuta.*/
-  for(int i=pit_jakso*2; i<pit_data*(ohennus-raaka+1) + pit_jakso*2; i++)
+  for(int i=0; i<pit_data*n_raitoja; i++)
     kokodata[i] = NAN;
 
-  pthread_create(&saie, NULL, nauhoita, data);
+  pthread_create(&saie, NULL, nauhoita, kokodata);
   kasittele(data);
   pthread_join(saie, NULL);
   snd_pcm_close(kahva_capt);
