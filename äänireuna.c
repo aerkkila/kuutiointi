@@ -187,10 +187,10 @@ void kasittele(void* datav) {
   }
 }
 
-void aanen_opettaminen(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva_play); //kirjastosta
+void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva_play); //kirjastosta
 void opettaminen() {
   havaitse_ylitykset_kaikki(data);
-  aanen_opettaminen(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kynnysarvot, kahva_play);
+  aanen_valinta(kokodata+raaka*pit_jakso, ohennus-raaka+1, pit_data, kynnysarvot, kahva_play);
 }
 
 void putki0_tapahtumat() {
@@ -214,7 +214,7 @@ void putki0_tapahtumat() {
 	fprintf(stderr, "Viestiä ei luettu, vaikka oli muka saatavilla (äänireuna->putki0_tapahtumat)\n");
       return;
     } else if(poll_0[i].revents & POLLHUP) {
-      printf("Luenttava putki %i sulkeutui. Ääniohjelma yrittää lopettaa.\n", poll_0[i].fd);
+      printf("Luettava putki %i sulkeutui. Ääniohjelma yrittää lopettaa.\n", poll_0[i].fd);
       nauh_jatka = 0;
       return;
     } else if(poll_0[i].revents & POLLERR)

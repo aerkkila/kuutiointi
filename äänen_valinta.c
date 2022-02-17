@@ -12,7 +12,7 @@ a  Tätä siis käytetään valvottuun oppimiseen
 */
 void piirra_raidat();
 void aja();
-void aanen_opettaminen(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva);
+void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva);
 float skaalaa(float* data, int pit);
 uint64_t hetkinyt();
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
@@ -247,7 +247,7 @@ void aja() {
 }
 
 static int oli_sdl = 0;
-void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1) {
+void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1) {
   raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1;
   data = malloc(raitoja*raidan_pit*sizeof(float));
   skaalat = malloc(raitoja*sizeof(float));
@@ -265,12 +265,12 @@ void aanen_opettaminen(float* data1, int raitoja1, int raidan_pit1, float* kynny
     }
   SDL_DisplayMode dm;
   if(SDL_GetCurrentDisplayMode(0, &dm))
-    fprintf(stderr, "Virhe näytön koon tiedoissa (äänen_opettaminen):\n%s\n", SDL_GetError());
+    fprintf(stderr, "Virhe näytön koon tiedoissa (äänen_valinta):\n%s\n", SDL_GetError());
   ikk_w = dm.w;
   ikk_h = raidan_kork * raitoja;
   ikk_x0 = 0;
   ikk_y0 = 0;
-  ikkuna = SDL_CreateWindow("Äänen opettaminen", ikk_x0, ikk_y0, ikk_w, ikk_h, SDL_WINDOW_RESIZABLE);
+  ikkuna = SDL_CreateWindow("Äänen valinta", ikk_x0, ikk_y0, ikk_w, ikk_h, SDL_WINDOW_RESIZABLE);
   rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
   SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
