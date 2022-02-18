@@ -88,7 +88,7 @@ void hiireksi(enum hiirilaji);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
-void aanireuna_seuraava();
+void aanitila_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
 double hetkinyt();
@@ -118,9 +118,6 @@ sakko_etype sakko;
 
 static int aaniputki0[2] = {-1,-1}, aaniputki1[2] = {-1,-1};
 static struct pollfd poll_aani = {-1, POLLIN, POLLIN};
-static double aanihetki, aanihetki0;
-static int aania;
-static double aani_lopetushetki;
 
 static struct timeval alku, nyt;
 static int avgind[6];
@@ -155,7 +152,12 @@ int kaunnista() {
 #define _MODKEYS_SWITCH_KEYDOWN
 #include "modkeys.h"
 	  case SDLK_SPACE:
-	    lopeta();
+	    if(lopeta())
+	      break; //ei lopetettu
+	    if(aanitila) {
+	      uint8_t kirj = aanireuna_opettaminen;
+	      write(aaniputki1[1], &kirj, 1);
+	    }
 	    break;
 	  case SDLK_TAB:
 	  JATKA:
@@ -371,7 +373,7 @@ int kaunnista() {
 	      asm("int $3"); //jäljityspisteansa
 	    break;
 	  case SDLK_F2:
-	    if(aaniputki1[1] < 0) {
+	    if(aanitila == aani_pois_e) {
 	      strcpy(TEKSTI, "Ääniputki ei ole auki");
 	      laitot |= tkstallai;
 	      break;
@@ -503,7 +505,7 @@ int kaunnista() {
 	    laitot |= tkstallai;
 	    break;
 	  case aani_e:
-	    aanireuna_seuraava();           break;
+	    aanitila_seuraava();           break;
 	  }
 	  break; //case muutal
 	default:
@@ -729,25 +731,28 @@ int kaunnista() {
       fprintf(stderr, "Virhe poll-funktiossa: %s\n", strerror(errno));
       break;
     }
-    float luenta;
-    if( (apuind = read(aaniputki0[0], &luenta, sizeof(float))) <= 0 ) {
-      if(apuind < 0)
-	fprintf(stderr, "Virhe äänikuuntelijassa %s\n", strerror(errno));
-      sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
-      break;
-    } 
-    if( (aanihetki = hetkinyt()) - aanihetki0 > aanikesto ) {
-      aanihetki0 = aanihetki;
-      continue;
+    if(poll_aani.revents & POLLIN) {
+      float luenta;
+      if( (apuind = read(aaniputki0[0], &luenta, sizeof(float))) <= 0 ) {
+	if(apuind < 0)
+	  fprintf(stderr, "Virhe äänikuuntelijasta lukemisessa %s\n", strerror(errno));
+	sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
+	break;
+      }
+      if(aanitila == aani_pusautus_e)
+	lopeta();
+    } else if( poll_aani.revents & POLLHUP ) {
+      while(aanitila != aani_pois_e)
+	aanitila_seuraava();
+      strcpy(TEKSTI, "Ääniputki sulkeutui");
+      laitot |= tkstallai;
+    } else if( poll_aani.revents & POLLERR ) {
+      fprintf(stderr, "Virhetila äänikuuntelijassa (POLLERR)\n");
+      while(aanitila != aani_pois_e)
+	aanitila_seuraava();
+      strcpy(TEKSTI, "Virhe ääniputkessa");
+      laitot |= tkstallai;
     }
-    if(++aania < aaniraja)
-      continue;
-    aania = 0;
-    if(!lopeta())
-      aani_lopetushetki = aanihetki;
-    else
-      if(aanihetki - aani_lopetushetki > aani_turvavali)
-	;//aloita() tai jotain vastaavaa
   }
   
   if(tila == juoksee) {
@@ -1098,7 +1103,7 @@ void avaa_kuutio() {
   ulosnimeksi(apuc);
 }
 
-void aanireuna_seuraava() {
+void aanitila_seuraava() {
   if(aanitila == aani_pois_e)
     avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
   aanitila = (aanitila+1) % aani_vaihtoehtoja;

@@ -26,7 +26,7 @@ extern const char* restrict tietoalkustr;
 extern const char* restrict muut_a_str;
 enum {ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, aani_e, autokuutio_e}; //muut_a:n järjestys
 extern const char* aanivaihtoehdot[];
-enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, aani_vaihtoehtoja};
+enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, aani_pusautus_e, aani_vaihtoehtoja};
 extern enum aanivaihtoehto aanitila;
 extern char* aanitila_str;
 extern const char* tekstialue[];

@@ -212,7 +212,7 @@ void putki0_tapahtumat() {
     return;
   if(apu < 0) {
     fprintf(stderr, "Virhe (äänireuna->putki0_tapahtumat->poll): %s\n", strerror(errno));
-    return;;
+    return;
   }
   uint8_t viesti;
   for(int i=0; i<2; i++) {

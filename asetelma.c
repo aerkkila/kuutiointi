@@ -24,7 +24,7 @@ const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 
 /*Seuraavien järjestys on numeroitu asetelma.h:ssa. Järjestyksen muuttaminen pitää tehdä myös siellä*/
 const char* restrict muut_a_str = "ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni: |autokuutio";
-const char* aanivaihtoehdot[] = {"pois", "pysäytys"};
+const char* aanivaihtoehdot[] = {"pois", "kuuntelu", "pysäytys"};
 
 enum aanivaihtoehto aanitila = aani_pois_e;
 char* aanitila_str;
