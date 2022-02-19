@@ -88,6 +88,7 @@ void hiireksi(enum hiirilaji);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
+void aani_lue_kohdan_unixaika();
 void aanitila_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
@@ -732,15 +733,22 @@ int kaunnista() {
       break;
     }
     if(poll_aani.revents & POLLIN) {
-      float luenta;
-      if( (apuind = read(aaniputki0[0], &luenta, sizeof(float))) <= 0 ) {
+      uint32_t luenta;
+      if( (apuind = read(aaniputki0[0], &luenta, 4)) <= 0 ) {
 	if(apuind < 0)
 	  fprintf(stderr, "Virhe äänikuuntelijasta lukemisessa %s\n", strerror(errno));
 	sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
 	break;
       }
-      if(aanitila == aani_pusautus_e)
-	lopeta();
+      switch(luenta) {
+      case seuraavaksi_kohdan_unixaika:
+	aani_lue_kohdan_unixaika();
+	break;
+      case havaittiin_reuna:
+	if(aanitila == aani_pusautus_e)
+	  lopeta();
+	break;
+      }
     } else if( poll_aani.revents & POLLHUP ) {
       while(aanitila != aani_pois_e)
 	aanitila_seuraava();
@@ -1101,6 +1109,33 @@ void avaa_kuutio() {
   strncpy(apuc, ulosnimi, viimeinen_sij(ulosnimi, '/')+1);
   sprintf(apuc+viimeinen_sij(ulosnimi,'/')+1, "kuutio%i.txt", NxN);
   ulosnimeksi(apuc);
+}
+
+void aani_lue_kohdan_unixaika() {
+  int apuind = poll(&poll_aani, 1, 500);
+  if(apuind < 0 ) {
+    perror("\033[31mVirhe (aani_lue_kohdan_unixaika)\033[0m");
+    return;
+  } else if (apuind == 0) {
+    fprintf(stderr, "\033[31mVirhe (aani_lue_kohdan_unixaika)\033[0m: aikaa ei ollut saatavilla\n");
+    return;
+  }
+  uint64_t luenta;
+  if(poll_aani.revents & POLLIN) {
+    if( (apuind = read(aaniputki0[0], &luenta, 8)) == 8 ) {
+      float tulos = (double)luenta/1000 - ( (double)alku.tv_sec+alku.tv_usec/1.0e6 );
+      float_kelloksi( KELLO, tulos );
+      *VIIMEINEN(ftulos) = tulos;
+      free(*VIIMEINEN(stulos));
+      *VIIMEINEN(stulos) = strdup(KELLO);
+      TEE_TIEDOT;
+      laitot = jaaduta;
+    } else if( apuind < 0 )
+      perror("\033[31mVirhe 2 (aani_lue_kohdan_unixaika)\033[0m");
+  }
+  if( poll_aani.revents & (POLLHUP|POLLERR|POLLNVAL) )
+    while(aanitila != aani_pois_e)
+      aanitila_seuraava();
 }
 
 void aanitila_seuraava() {

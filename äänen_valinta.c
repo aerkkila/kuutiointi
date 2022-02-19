@@ -1,10 +1,11 @@
-#include<alsa/asoundlib.h>
-#include<SDL2/SDL.h>
-#include<unistd.h>
-#include<stdio.h>
-#include<string.h>
-#include<sys/time.h>
+#include <alsa/asoundlib.h>
+#include <SDL2/SDL.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
 #include "modkeys.h"
+#include "äänireuna.h"
 
 void piirra_raidat();
 void aja();
@@ -15,6 +16,7 @@ uint64_t hetkinyt();
 #define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta)*ivali)
 #define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
 
+extern uint64_t aanen_loppuhetki;
 static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
 static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
@@ -137,6 +139,7 @@ uint64_t hetkinyt() {
   return t.tv_sec*1000 + t.tv_usec/1000;
 }
 
+#if 0
 void laita_kohdan_aika_ms(int xkohta) {
   int32_t aika_ms = xkohta*ivali / 48;
   if(ulos_fno < 0) {
@@ -151,6 +154,24 @@ void laita_kohdan_aika_ms(int xkohta) {
     return;
   }
   fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_aika_ms)\033[0m\n");
+}
+#endif
+
+void laita_kohdan_unixaika(int xkohta) {
+  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + xkohta*ivali/48;
+  if(ulos_fno < 0) {
+    printf("%lu\n", aika);
+    return;
+  }
+  int apu = seuraavaksi_kohdan_unixaika;
+  write(ulos_fno, &apu, 4);
+  if((apu=write(ulos_fno, &aika, 8)) == 8)
+    return;
+  if(apu < 0) {
+    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_unixaika)\033[0m");
+    return;
+  }
+  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_unixaika)\033[0m\n");
 }
 
 void kohdistin_sivulle(int maara) {
@@ -261,7 +282,7 @@ void aja() {
 	break;
       case SDLK_RETURN:
       case SDLK_KP_ENTER:
-	laita_kohdan_aika_ms(kohdistin.x);
+	laita_kohdan_unixaika(kohdistin.x);
 	break;
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')

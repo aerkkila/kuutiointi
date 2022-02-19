@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <math.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include "äänireuna.h"
 
 static void putki0_tapahtumat();
@@ -46,6 +47,8 @@ int luet_jakson_id = -1;
 int nauh_jaksoja;
 int nauh_jatka = 1;
 int nauh_tauko = 0;
+int nauh_tauolla = 0;
+uint64_t aanen_loppuhetki = 0;
 
 void sulje_putki(void** putki) {
   close( *( (int*)putki ) );
@@ -77,8 +80,13 @@ int alusta_aani(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto) {
   ALSAFUNK(snd_pcm_hw_params_set_channels, *kahva, hwparams, 1);                                //channels
   ALSAFUNK(snd_pcm_hw_params,*kahva,hwparams);
   snd_pcm_hw_params_get_buffer_size(hwparams,&buffer_size);
-  snd_pcm_prepare(*kahva);
   return 0;
+}
+
+uint64_t hetkinyt() {
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  return t.tv_sec*1000 + t.tv_usec/1000;
 }
 
 void _siirra_dataa_ympari_vasen(float* data, int siirto, int pit, float* muisti) {
@@ -98,7 +106,6 @@ void siirra_dataa_ympari_vasen(float* data, int siirto, int pit) {
   _siirra_dataa_ympari_vasen(data, siirto, pit, muisti);
   free(muisti);
 }
-
 
 #define KERROIN 0.39894228 // 1/sqrt(2*pi)
 #define GAUSSPAINO(t,sigma) ( KERROIN/sigma * exp(-0.5*(t)*(t)/(sigma*sigma)) )
@@ -153,20 +160,29 @@ void sigchld(int sig) {
 void* nauhoita(void* datav) {
   float* data = datav;
   nauh_jakson_id = 0;
+  snd_pcm_prepare(kahva_capt);
   while(nauh_jatka) {
     if( luet_jakson_id == nauh_jakson_id ) {
       fprintf(stderr, "\033[31mVaroitus: kaikkea dataa ei ehditty käsitellä\033[0m\n");
       while( luet_jakson_id == nauh_jakson_id )
 	usleep(1000);
     }
-    while(nauh_tauko)
-      usleep(2000);
+    if(nauh_tauko) {
+      nauh_tauolla = 1;
+      snd_pcm_drop(kahva_capt); //keskeyttää nauhoituksen äänikortille
+      while(nauh_tauko)
+	usleep(2000);
+      snd_pcm_prepare(kahva_capt); //jatkaa nauhoitusta äänikortille
+      nauh_tauolla = 0;
+    }
     while(snd_pcm_readi( kahva_capt, data+pit_jakso*nauh_jakson_id, pit_jakso ) < 0) {
       snd_pcm_prepare(kahva_capt);
       fprintf(stderr, "Puskurin ylitäyttö\n");
     }
+    aanen_loppuhetki = hetkinyt();
     nauh_jakson_id = (nauh_jakson_id+1) % nauh_jaksoja;
   }
+  snd_pcm_drop(kahva_capt);
   return NULL;
 }
 
@@ -198,12 +214,16 @@ void kasittele(void* datav) {
 
 void opettaminen() {
   nauh_tauko = 1;
-  snd_pcm_drop(kahva_capt); //keskeyttää nauhoituksen äänikortille
+  while(!nauh_tauolla)
+    usleep(2000);
   siirra_dataa_ympari_vasen( data[raaka], nauh_jakson_id*pit_jakso, pit_data );
   havaitse_ylitykset(data, 0, pit_data);
   aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play, p11);
-  siirra_dataa_ympari_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
-  snd_pcm_prepare(kahva_capt); //jatkaa nauhoitusta äänikortille
+  //siirra_dataa_ympari_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
+  for(int i=0; i<pit_data; i++)
+    data[raaka][i] = NAN;
+  nauh_jakson_id = 0;
+  luet_jakson_id = -1;
   nauh_tauko = 0;
 }
 
