@@ -5,22 +5,20 @@
 #include<string.h>
 #include<sys/time.h>
 #include "modkeys.h"
-/*
-  Tälle annetaan äänidataa ja mahdollisesti sieltä tunnisttut jonkin äänen kohdat.
-  Ne piirretään näytölle ja toistetaan ja käyttäjä saa merkitä tunnisteet: oikein tai väärin.
-a  Tätä siis käytetään valvottuun oppimiseen
-*/
+
 void piirra_raidat();
 void aja();
-void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva);
+void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva, int ulos_fno);
 float skaalaa(float* data, int pit);
 uint64_t hetkinyt();
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
 #define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta)*ivali)
+#define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
 
-static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //w on ikkunan leveys, h riippuu raitojen määrästä
+static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
-static int raidan_kork = 200, raidan_vali, raidan_h, ivali;
+static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
+static float zoom = 1;
 static SDL_Window* ikkuna;
 static SDL_Renderer* rend;
 static SDL_Texture* tausta;
@@ -39,6 +37,7 @@ static float* kynnysarvot;
 static float* skaalat;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
+static int ulos_fno;
 static unsigned tuplaklikkaus_ms = 240;
 static int toistaa = 0;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
@@ -56,7 +55,7 @@ float skaalaa(float* data, int pit) {
 }
 
 void piirra_raidat() {
-  ivali = raidan_pit/ikk_w;
+  ivali = LASKE_IVALI;
   raidan_vali = ikk_h / (raitoja*valin_suhde - 1); //saadaan ratkaisemalla yhtälöpari kynällä ja paperilla
   raidan_kork = ikk_h * valin_suhde / (raitoja*valin_suhde - 1);
   raidan_h = raidan_kork - raidan_vali;
@@ -71,9 +70,9 @@ void piirra_raidat() {
     SDL_RenderFillRect(rend, &alue);
     ASETA_VARI(piirtovari);
     y += raidan_h / 2;
-    float* p = data+raita*raidan_pit;
-    for(int x=0; x<ikk_w; x++)
-      for(int ii=0; ii<ivali; ii++,p++)
+    float* p = data+raita*raidan_pit + ivali*kuvan_alku_x;       //p viittaa sijaintiin ääniraidalla
+    for(int x=0; x<ikk_w; x++)                                    //x on sijainti kuvassa
+      for(int ii=0; ii<ivali; ii++,p++)                           //ii on näytöllä samaan x-kohtaan tulevan näytteen indeksi
 	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
     if(kynnysarvot && kynnysarvot[raita]==kynnysarvot[raita]) {
       ASETA_VARI(kynnysvari);
@@ -87,7 +86,10 @@ void piirra_raidat() {
 }
 
 int toiston_sijainti() {
-  return toiston_alku + (hetkinyt()-toistohetki0) * 48 / ivali;
+  int r =  toiston_alku*ivali + (hetkinyt()-toistohetki0) * 48;
+  if( r >= raidan_pit )
+    r *= -1;
+  return r/ivali;
 }
 
 void piirra_kohdistin(int x, int r) {
@@ -102,7 +104,7 @@ void piirra_valinta(struct int2* vnta) {
     return;
   int pienempi = vnta->a[1] < vnta->a[0];
   static SDL_Rect vntarect;
-  vntarect.x = vnta->a[pienempi];
+  vntarect.x = vnta->a[pienempi] - kuvan_alku_x;
   vntarect.w = vnta->a[!pienempi] - vnta->a[pienempi];
   vntarect.h = ikk_h;
   ASETA_VARI(vntavari);
@@ -114,7 +116,7 @@ void toista_kohdistin() {
   toistaa = 1;
   toistohetki0 = hetkinyt();
   toiston_alku = kohdistin.x;
-  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, kohdistin.x), raidan_pit-kohdistin.x*ivali ) < 0) {
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku*ivali ) < 0) {
     snd_pcm_prepare(kahva); //fprintf(stderr, "Puskurin alitäyttö\n");
   }
 }
@@ -135,12 +137,39 @@ uint64_t hetkinyt() {
   return t.tv_sec*1000 + t.tv_usec/1000;
 }
 
+void laita_kohdan_aika_ms(int xkohta) {
+  int32_t aika_ms = xkohta*ivali / 48;
+  if(ulos_fno < 0) {
+    printf("%i ms\n", aika_ms);
+    return;
+  }
+  int montako;
+  if((montako=write(ulos_fno, &aika_ms, 4)) == 4)
+    return;
+  if(montako < 0) {
+    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_aika_ms)\033[0m");
+    return;
+  }
+  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_aika_ms)\033[0m\n");
+}
+
 void kohdistin_sivulle(int maara) {
   kohdistin.x += maara;
   if(kohdistin.x < 0)
     kohdistin.x = 0;
-  else if(kohdistin.x > ikk_w)
-    kohdistin.x = ikk_w;
+  else if(kohdistin.x > raidan_pit/ivali)
+    kohdistin.x = raidan_pit/ivali;
+}
+
+void kuvan_alku_sivulle(int maara) {
+  kuvan_alku_x += maara;
+  if(kuvan_alku_x < 0) {
+    kuvan_alku_x = 0;
+    return;
+  }
+  int ylimeno_oikealla = kuvan_alku_x + ikk_w - raidan_pit/ivali;
+  if(ylimeno_oikealla > 0)
+    kuvan_alku_x -= ylimeno_oikealla;
 }
 
 void aja() {
@@ -158,20 +187,28 @@ void aja() {
 	break;
       }
       hiirihetki0 = hetki;
-      kohdistin.x = tapaht.button.x;
+      kohdistin.x = tapaht.button.x + kuvan_alku_x;
       kohdistin.r = tapaht.button.y / raidan_kork;
       break;
     case SDL_KEYDOWN:
       switch(tapaht.key.keysym.scancode) {
       case SDL_SCANCODE_H:
-	kohdistin_sivulle(-siirtoluku);
+	if(modkey & VAIHTO) {
+	  kuvan_alku_sivulle(-siirtoluku);
+	  piirra_raidat();
+	} else
+	  kohdistin_sivulle(-siirtoluku);
 	break;
       case SDL_SCANCODE_L:
-	kohdistin_sivulle(siirtoluku);
+	if(modkey & VAIHTO) {
+	  kuvan_alku_sivulle(siirtoluku);
+	  piirra_raidat();
+	} else
+	  kohdistin_sivulle(siirtoluku);
 	break;
       case SDL_SCANCODE_J:
 	if(modkey & CTRL)
-	  kohdistin.x = 0;
+	  kohdistin.x = kuvan_alku_x;
 	else
 	  kohdistin.r = (kohdistin.r+1) % raitoja;
 	break;
@@ -180,7 +217,7 @@ void aja() {
 	break;
       case SDL_SCANCODE_SEMICOLON:
 	if(modkey & CTRL)
-	  kohdistin.x = ikk_w;
+	  kohdistin.x = kuvan_alku_x + ikk_w;
 	break;
       default:
 	break;
@@ -208,9 +245,27 @@ void aja() {
       case SDLK_ESCAPE:
 	valinta_x.a[0] = -1;
 	break;
+      case SDLK_PLUS:
+      case SDLK_KP_PLUS:
+	zoom *= 1.1;
+	piirra_raidat();
+	break;
+      case SDLK_MINUS:
+      case SDLK_KP_MINUS:
+	zoom /= 1.1;
+	if(zoom < 1)
+	  zoom = 1;
+	ivali = LASKE_IVALI;
+	kuvan_alku_sivulle(0); //Pienennys voi vaatia alun siirtoa vasemmalle. Tämä tekee sen tarvittaessa.
+	piirra_raidat();
+	break;
+      case SDLK_RETURN:
+      case SDLK_KP_ENTER:
+	laita_kohdan_aika_ms(kohdistin.x);
+	break;
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	  siirtoluku = tapaht.key.keysym.sym - '0'; //H- tai L-näppäin siirtää kohdistinta painetun numeron verran
+	  siirtoluku = 1<<(tapaht.key.keysym.sym - '0');
       } //endswitch symcode
       break; //keydown
     case SDL_KEYUP:
@@ -233,9 +288,10 @@ void aja() {
     }
   }
   SDL_RenderCopy(rend, tausta, NULL, NULL);
-  piirra_kohdistin(kohdistin.x, kohdistin.r);
+  piirra_kohdistin(kohdistin.x-kuvan_alku_x, kohdistin.r);
   if(toistaa) {
-    if( (toiston_x = toiston_sijainti()) > (valinta_x.a[0]<0? ikk_w: valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
+    if( (toiston_x = toiston_sijainti()) < 0 ||
+	(valinta_x.a[0] >= 0 && toiston_x >= valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
       toistaa = 0;
     piirra_kohdistin(toiston_x, kohdistin.r);
   } else
@@ -247,8 +303,8 @@ void aja() {
 }
 
 static int oli_sdl = 0;
-void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1) {
-  raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1;
+void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1, int ulos_fno1) {
+  raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1; ulos_fno = ulos_fno1;
   data = malloc(raitoja*raidan_pit*sizeof(float));
   skaalat = malloc(raitoja*sizeof(float));
   memcpy(data, data1, raitoja*raidan_pit*sizeof(float));
@@ -258,11 +314,10 @@ void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarv
   }
   if(SDL_WasInit(SDL_INIT_VIDEO))
     oli_sdl = 1;
-  else
-    if(SDL_Init(SDL_INIT_VIDEO)) {
+  else if(SDL_Init(SDL_INIT_VIDEO)) {
       fprintf(stderr, "Ei alustettu SDL-grafiikkaa: %s\n", SDL_GetError());
       return;
-    }
+  }
   SDL_DisplayMode dm;
   if(SDL_GetCurrentDisplayMode(0, &dm))
     fprintf(stderr, "Virhe näytön koon tiedoissa (äänen_valinta):\n%s\n", SDL_GetError());

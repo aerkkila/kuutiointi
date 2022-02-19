@@ -13,6 +13,8 @@
 
 static void putki0_tapahtumat();
 static void opettaminen();
+void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot,
+		   snd_pcm_t* kahva_play, int ulos_fno); //ulkoinen
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
@@ -194,13 +196,12 @@ void kasittele(void* datav) {
   }
 }
 
-void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva_play); //kirjastosta
 void opettaminen() {
   nauh_tauko = 1;
   snd_pcm_drop(kahva_capt); //keskeyttää nauhoituksen äänikortille
   siirra_dataa_ympari_vasen( data[raaka], nauh_jakson_id*pit_jakso, pit_data );
   havaitse_ylitykset(data, 0, pit_data);
-  aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play);
+  aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play, p11);
   siirra_dataa_ympari_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
   snd_pcm_prepare(kahva_capt); //jatkaa nauhoitusta äänikortille
   nauh_tauko = 0;
