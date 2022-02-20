@@ -156,7 +156,7 @@ int kaunnista() {
 	    if(lopeta())
 	      break; //ei lopetettu
 	    if(aanitila) {
-	      uint8_t kirj = aanireuna_opettaminen;
+	      uint8_t kirj = aanireuna_valinta;
 	      write(aaniputki1[1], &kirj, 1);
 	    }
 	    break;
@@ -379,7 +379,7 @@ int kaunnista() {
 	      laitot |= tkstallai;
 	      break;
 	    }
-	    uint8_t kirj = aanireuna_opettaminen;
+	    uint8_t kirj = aanireuna_valinta;
 	    write(aaniputki1[1], &kirj, 1);
 	    break;
 	  }

@@ -13,7 +13,7 @@
 #include "äänireuna.h"
 
 static void putki0_tapahtumat();
-static void opettaminen();
+static void _valinta();
 void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysarvot,
 		   snd_pcm_t* kahva_play, int ulos_fno); //ulkoinen
 
@@ -205,14 +205,14 @@ void kasittele(void* datav) {
       }
     }
     if((kuluma_ms+=jaksonaika_ms) >= opetusviive_ms) {
-      opettaminen();
+      _valinta();
       kuluma_ms = 0;
     }
     putki0_tapahtumat();
   }
 }
 
-void opettaminen() {
+void _valinta() {
   nauh_tauko = 1;
   while(!nauh_tauolla)
     usleep(2000);
@@ -255,8 +255,8 @@ void putki0_tapahtumat() {
       fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0[i].fd);
     return;
   }
-  if(viesti==aanireuna_opettaminen)
-    opettaminen();
+  if(viesti==aanireuna_valinta)
+    _valinta();
 }
 
 void lue_kntoriviargt(int argc, char** argv) {

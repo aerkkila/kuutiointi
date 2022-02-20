@@ -6,6 +6,6 @@ enum {
   seuraavaksi_kohdan_unixaika = -0xff,
   havaittiin_reuna,
 
-  aanireuna_opettaminen=1,
+  aanireuna_valinta=1,
 };
 #endif
