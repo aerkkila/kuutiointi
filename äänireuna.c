@@ -150,6 +150,42 @@ void havaitse_ylitykset(float** data, int alkukohta, int pit) {
 	       pit -= 1 );
 }
 
+enum tallenn_arg {tallentaminen_tallenna, tallentaminen_palauta_tallenne, tallentaminen_palauta_hetki, tallentaminen_vapauta};
+void* tallentaminen(int tallenn_arg_enum) {
+  static float* tallenne;
+  static uint64_t loppuhetki;
+  switch(tallenn_arg_enum) {
+    
+  case tallentaminen_tallenna:
+    nauh_tauko = 1;
+    if(!tallenne)
+      tallenne = malloc(pit_data*sizeof(float));
+    while(!nauh_tauolla)
+      usleep(1500);
+    loppuhetki = aanen_loppuhetki;
+    int kohta = nauh_jakson_id*pit_jakso;
+    memcpy( tallenne, data[raaka]+kohta, (pit_data-kohta)*sizeof(float) );
+    memcpy( tallenne+pit_data-kohta, data[raaka], kohta*sizeof(float) );
+    nauh_jakson_id = 0;
+    luet_jakson_id = -1;
+    nauh_tauko = 0;
+    return tallenne;
+
+  case tallentaminen_palauta_tallenne:
+    return tallenne;
+
+  case tallentaminen_palauta_hetki:
+    return &loppuhetki;
+
+  case tallentaminen_vapauta:
+    free(tallenne);
+    tallenne = NULL;
+    return NULL;
+
+  }
+  return NULL;
+}
+
 void sigint(int sig) {
   nauh_jatka = 0;
 }
@@ -255,8 +291,39 @@ void putki0_tapahtumat() {
       fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0[i].fd);
     return;
   }
-  if(viesti==aanireuna_valinta)
+  switch(viesti) {
+    
+  case aanireuna_valinta:
     _valinta();
+    return;
+
+  case aanireuna_tallenna:
+    tallentaminen(tallentaminen_tallenna);
+    return;
+
+  case aanireuna_valitse_molemmat:
+    nauh_tauko = 1;
+    float* _data = malloc( pit_data*sizeof(float) );
+    while(!nauh_tauolla)
+      usleep(1500);
+    uint64_t _hetki = aanen_loppuhetki;
+    aanen_loppuhetki = *(uint64_t*)tallentaminen(tallentaminen_palauta_hetki);
+    memcpy( _data, data[raaka], pit_data*sizeof(float) );
+    memcpy( data[raaka], tallentaminen(tallentaminen_palauta_tallenne), pit_data*sizeof(float) );
+    havaitse_ylitykset(data, 0, pit_data);
+    aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play, p11); //valitaan alkukohta
+    aanen_loppuhetki = _hetki;
+    memcpy( data[raaka], _data, pit_data*sizeof(float) );
+    free(_data);
+    int32_t viesti = valinnan_erotin;
+    write(p11, &viesti, 4);
+    aanen_valinta(kokodata, n_raitoja, pit_data, kynnysarvot, kahva_play, p11); //valitaan loppukohta
+    nauh_jakson_id = 0;
+    luet_jakson_id = -1,
+    nauh_tauko = 0;
+    return;
+    
+  }
 }
 
 void lue_kntoriviargt(int argc, char** argv) {
