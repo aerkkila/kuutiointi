@@ -24,6 +24,7 @@ struct int2 {int a[2];};
 
 void napp_alas(Arg turha);
 void napp_ylos(Arg turha);
+void ikkunatapahtuma(Arg turha);
 void kohdistin_sivulle(Arg i_suunta);
 void kohdistin_alas(Arg i_suunta);
 void kuvan_alku_sivulle(Arg i_suunta);
@@ -34,9 +35,13 @@ void laita_unixaika(Arg vp_xkohta);
 void int_nollaksi(Arg vp_muuttuja);
 
 void piirra_raidat();
-float skaalaa(float* data, int pit);
+void piirra_kohdistin(int x, int r);
+void piirra_valinta(struct int2*);
+int toiston_sijainti();
+void toista_kohdistin();
+void toista_vali(struct int2);
 uint64_t hetkinyt();
-void toista_valinta(struct int2);
+float skaalaa(float* data, int pit);
 
 void aja();
 void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva, int ulos_fno);
@@ -97,9 +102,10 @@ Sidonta napp_alas_sid[] = {
 };
 
 Sidonta tapaht_sid[] = {
-  { SDL_QUIT,    0, int_nollaksi, {.v=&jatka} },
-  { SDL_KEYDOWN, 0, napp_alas,    {0}         },
-  { SDL_KEYUP,   0, napp_ylos,    {0}         },
+  { SDL_QUIT,        0, int_nollaksi,    {.v=&jatka} },
+  { SDL_KEYDOWN,     0, napp_alas,       {0}         },
+  { SDL_KEYUP,       0, napp_ylos,       {0}         },
+  { SDL_WINDOWEVENT, 0, ikkunatapahtuma, {0}         },
 };
 
 void aja() {
@@ -149,6 +155,15 @@ void napp_ylos(Arg turha) {
   }
 }
 
+void ikkunatapahtuma(Arg turha) {
+  if( tapaht.window.event != SDL_WINDOWEVENT_RESIZED )
+    return;
+  SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h);
+  SDL_DestroyTexture(tausta);
+  tausta = SDL_CreateTexture( rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h );
+  piirto_raidat = 1;
+}
+
 void kohdistin_sivulle(Arg arg) {
   kohdistin.x += arg.i*siirtoluku;
   if(kohdistin.x < 0)
@@ -185,9 +200,9 @@ void zoomaa(Arg arg) {
 void vaihda_toistaminen(Arg arg) {
   if(( toistaa = (toistaa+1)%2 )) {
     if( valinta_x.a[0] < 0 )
-      toista_valinta( (struct int2){{ kohdistin.x, raidan_pit/ivali }} );
+      toista_vali( (struct int2){{ kohdistin.x, raidan_pit/ivali }} );
     else
-      toista_valinta(valinta_x);
+      toista_vali(valinta_x);
     return;
   }
   snd_pcm_drop(kahva);
@@ -218,18 +233,6 @@ void laita_unixaika(Arg arg) {
 
 void int_nollaksi(Arg arg) {
   *(int*)arg.v = 0;
-}
-
-float skaalaa(float* data, int pit) {
-  float max = -INFINITY;
-  for(int i=0; i<pit; i++)
-    if(data[i] > max)
-      max = data[i];
-    else if(-data[i] > max)
-      max = -data[i];
-  for(int i=0; i<pit; i++)
-    data[i] /= max;
-  return max;
 }
 
 void piirra_raidat() {
@@ -263,13 +266,6 @@ void piirra_raidat() {
   SDL_SetRenderTarget(rend, NULL);
 }
 
-int toiston_sijainti() {
-  int r =  toiston_alku*ivali + (hetkinyt()-toistohetki0) * 48;
-  if( r >= raidan_pit )
-    r *= -1;
-  return r/ivali;
-}
-
 void piirra_kohdistin(int x, int r) {
   ASETA_VARI(kohdistin_muuraita);
   SDL_RenderDrawLine(rend, x, 0, x, ikk_h);
@@ -289,6 +285,13 @@ void piirra_valinta(struct int2* vnta) {
   SDL_RenderFillRect(rend, &vntarect);
 }
 
+int toiston_sijainti() {
+  int r =  toiston_alku*ivali + (hetkinyt()-toistohetki0) * 48;
+  if( r >= raidan_pit )
+    r *= -1;
+  return r/ivali;
+}
+
 void toista_kohdistin() {
   snd_pcm_drop(kahva);
   toistaa = 1;
@@ -299,13 +302,13 @@ void toista_kohdistin() {
   }
 }
 
-void toista_valinta(struct int2 vnta) {
+void toista_vali(struct int2 vali) {
   snd_pcm_drop(kahva);
   toistaa = 1;
   toistohetki0 = hetkinyt();
-  int pienempi = vnta->a[1] < vnta->a[0];
-  toiston_alku = vnta->a[pienempi];
-  while(snd_pcm_writei( kahva, data+DATAxKOHTA( kohdistin.r, vnta->a[pienempi] ), (vnta->a[!pienempi]-vnta->a[pienempi])*ivali ) < 0)
+  int pienempi = vali.a[1] < vali.a[0];
+  toiston_alku = vali.a[pienempi];
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA( kohdistin.r, vali.a[pienempi] ), (vali.a[!pienempi]-vali.a[pienempi])*ivali ) < 0)
     snd_pcm_prepare(kahva);
 }
 
@@ -313,6 +316,18 @@ uint64_t hetkinyt() {
   struct timeval t;
   gettimeofday(&t, NULL);
   return t.tv_sec*1000 + t.tv_usec/1000;
+}
+
+float skaalaa(float* data, int pit) {
+  float max = -INFINITY;
+  for(int i=0; i<pit; i++)
+    if(data[i] > max)
+      max = data[i];
+    else if(-data[i] > max)
+      max = -data[i];
+  for(int i=0; i<pit; i++)
+    data[i] /= max;
+  return max;
 }
 
 #if 0
@@ -354,28 +369,9 @@ void aja() {
       break;
     case SDL_KEYDOWN:
       switch(tapaht.key.keysym.scancode) {
-      case SDL_SCANCODE_H:
-	if(modkey & VAIHTO) {
-	  kuvan_alku_sivulle(-siirtoluku);
-	  piirra_raidat();
-	} else
-	  kohdistin_sivulle(-siirtoluku);
-	break;
-      case SDL_SCANCODE_L:
-	if(modkey & VAIHTO) {
-	  kuvan_alku_sivulle(siirtoluku);
-	  piirra_raidat();
-	} else
-	  kohdistin_sivulle(siirtoluku);
-	break;
       case SDL_SCANCODE_J:
 	if(modkey & CTRL)
 	  kohdistin.x = kuvan_alku_x;
-	else
-	  kohdistin.r = (kohdistin.r+1) % raitoja;
-	break;
-      case SDL_SCANCODE_K:
-	kohdistin.r = (kohdistin.r-1+raitoja) % raitoja;
 	break;
       case SDL_SCANCODE_SEMICOLON:
 	if(modkey & CTRL)
@@ -387,44 +383,6 @@ void aja() {
       switch(tapaht.key.keysym.sym) {
 #define _MODKEYS_SWITCH_KEYDOWN
 #include "modkeys.h"
-      case SDLK_SPACE:
-	if(modkey & CTRL) {
-	  valinta_x.a[0] = valinta_x.a[1] = toistaa? toiston_x : kohdistin.x;
-	  break;
-	}
-	if( (toistaa = (toistaa+1) % 2) ) {
-	  if(valinta_x.a[0] < 0)
-	    toista_kohdistin();
-	  else
-	    toista_valinta(&valinta_x);
-	}
-	else {
-	  snd_pcm_drop(kahva);
-	  if(modkey & VAIHTO)
-	    kohdistin.x = toiston_x;
-	}
-	break;
-      case SDLK_ESCAPE:
-	valinta_x.a[0] = -1;
-	break;
-      case SDLK_PLUS:
-      case SDLK_KP_PLUS:
-	zoom *= 1.1;
-	piirra_raidat();
-	break;
-      case SDLK_MINUS:
-      case SDLK_KP_MINUS:
-	zoom /= 1.1;
-	if(zoom < 1)
-	  zoom = 1;
-	ivali = LASKE_IVALI;
-	kuvan_alku_sivulle(0); //Pienennys voi vaatia alun siirtoa vasemmalle. Tämä tekee sen tarvittaessa.
-	piirra_raidat();
-	break;
-      case SDLK_RETURN:
-      case SDLK_KP_ENTER:
-	laita_kohdan_unixaika(kohdistin.x);
-	break;
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	  siirtoluku = 1<<(tapaht.key.keysym.sym - '0');
@@ -440,13 +398,6 @@ void aja() {
       if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	siirtoluku = 1;
       break;
-    case SDL_WINDOWEVENT:
-      if( tapaht.window.event != SDL_WINDOWEVENT_RESIZED)
-	break;
-      SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h);
-      SDL_DestroyTexture(tausta);
-      tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
-      piirra_raidat();
     }
   }
   SDL_RenderCopy(rend, tausta, NULL, NULL);
