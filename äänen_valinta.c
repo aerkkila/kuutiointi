@@ -7,23 +7,50 @@
 #include "modkeys.h"
 #include "äänireuna.h"
 
+typedef union {
+  int i;
+  float f;
+  void* v;
+} Arg;
+
+typedef struct {
+  int tapahtuma;
+  unsigned mod;
+  void (*fun)(Arg);
+  Arg arg;
+} Sidonta;
+
+struct int2 {int a[2];};
+
+void napp_alas(Arg turha);
+void napp_ylos(Arg turha);
+void kohdistin_sivulle(Arg i_suunta);
+void kohdistin_alas(Arg i_suunta);
+void kuvan_alku_sivulle(Arg i_suunta);
+void zoomaa(Arg f_suunta);
+void vaihda_toistaminen(Arg vp_uusi_kohdistin);
+void alusta_valinta(Arg vp_kohta);
+void laita_unixaika(Arg vp_xkohta);
+void int_nollaksi(Arg vp_muuttuja);
+
 void piirra_raidat();
-void aja();
-void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva, int ulos_fno);
 float skaalaa(float* data, int pit);
 uint64_t hetkinyt();
+void toista_valinta(struct int2);
+
+void aja();
+void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva, int ulos_fno);
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
 #define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta)*ivali)
 #define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
+#define PITUUS(taul) (sizeof(taul)/sizeof(*taul))
 
 extern uint64_t aanen_loppuhetki;
-static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
-static int32_t valin_suhde = 14, raitoja, raidan_pit;
-static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
-static float zoom = 1;
 static SDL_Window* ikkuna;
 static SDL_Renderer* rend;
 static SDL_Texture* tausta;
+static SDL_Event tapaht;
+/*asetelma*/
 static SDL_Color taustavari = {40,40,40,255};
 static SDL_Color aluevari = {.a=255};
 static SDL_Color piirtovari = {255,255,255,255};
@@ -31,18 +58,167 @@ static SDL_Color kohdistin_paaraita = {0,255,50,255};
 static SDL_Color kohdistin_muuraita = {255,80,0,255};
 static SDL_Color kynnysvari = {50,180,255,255};
 static SDL_Color vntavari = {255,255,255,60};
+static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
+static int32_t valin_suhde = 14, raitoja, raidan_pit;
+static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
+static float zoom = 1;
+static unsigned tuplaklikkaus_ms = 240, siirtoluku = 1;
+
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0};
 static int toiston_x, toiston_alku;
-static struct int2 {int a[2];} valinta_x = {{-1, -1}};
+static struct int2 valinta_x = {{-1, -1}};
 static float* data;
 static float* kynnysarvot;
 static float* skaalat;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static int ulos_fno;
-static unsigned tuplaklikkaus_ms = 240;
-static int toistaa = 0;
+static int toistaa = 0, piirto_raidat=1, jatka=1;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
+static unsigned modkey;
+
+Sidonta napp_alas_sid[] = {
+  { SDLK_g,        ALT,    kohdistin_sivulle,  {.i=-1}           },
+  { SDLK_o,        ALT,    kohdistin_sivulle,  {.i=1}            },
+  { SDLK_a,        ALT,    kohdistin_alas,     {.i=1}            },
+  { SDLK_i,        ALT,    kohdistin_alas,     {.i=-1}           },
+  { SDLK_g,        CTRL,   kuvan_alku_sivulle, {.i=-1}           },
+  { SDLK_o,        CTRL,   kuvan_alku_sivulle, {.i=1}            },
+  { SDLK_SPACE,    0,      vaihda_toistaminen, {0}               },
+  { SDLK_SPACE,    VAIHTO, vaihda_toistaminen, {.v=&toiston_x}   },
+  { SDLK_SPACE,    CTRL,   alusta_valinta,     {.v=&kohdistin.x} },
+  { SDLK_ESCAPE,   0,      alusta_valinta,     {0}               },
+  { SDLK_PLUS,     0,      zoomaa,             {.f=1.1}          },
+  { SDLK_KP_PLUS,  0,      zoomaa,             {.f=1.1}          },
+  { SDLK_MINUS,    0,      zoomaa,             {.f=1/1.1}        },
+  { SDLK_KP_MINUS, 0,      zoomaa,             {.f=1/1.1}        },
+  { SDLK_RETURN,   0,      laita_unixaika,     {.v=&kohdistin.x} },
+  { SDLK_KP_ENTER, 0,      laita_unixaika,     {.v=&kohdistin.x} },
+};
+
+Sidonta tapaht_sid[] = {
+  { SDL_QUIT,    0, int_nollaksi, {.v=&jatka} },
+  { SDL_KEYDOWN, 0, napp_alas,    {0}         },
+  { SDL_KEYUP,   0, napp_ylos,    {0}         },
+};
+
+void aja() {
+ ALKU:
+  for( int i=0; i<PITUUS(tapaht_sid); i++ )
+    if( tapaht.type == tapaht_sid[i].tapahtuma )
+      tapaht_sid[i].fun(tapaht_sid[i].arg);
+  if(piirto_raidat) {
+    piirra_raidat();
+    piirto_raidat = 0;
+  }
+  SDL_RenderCopy( rend, tausta, NULL, NULL );
+  piirra_kohdistin( kohdistin.x-kuvan_alku_x, kohdistin.r );
+  if(toistaa) {
+    if( (toiston_x = toiston_sijainti()) < 0 ||
+	(valinta_x.a[0] >= 0 && toiston_x >= valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
+      toistaa = 0;
+    piirra_kohdistin(toiston_x, kohdistin.r);
+  } else
+    valinta_x.a[1] = kohdistin.x;
+  piirra_valinta(&valinta_x);
+  SDL_RenderPresent(rend);
+  if(!jatka)
+    return;
+  SDL_Delay(15);
+  goto ALKU;
+}
+
+void napp_alas(Arg turha) {
+  for( int i=0; i<PITUUS(napp_alas_sid); i++ )
+    if( tapaht.key.keysym.sym == napp_alas_sid[i].tapahtuma &&
+	modkey == modkey_tuplana(modkey) )
+      napp_alas_sid[i].fun(napp_alas_sid[i].arg);
+  
+  if( '0' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9' )
+    siirtoluku = 1<<(tapaht.key.keysym.sym-'0');
+  switch(tapaht.key.keysym.sym) {
+#define _MODKEYS_SWITCH_KEYDOWN
+#include "modkeys.h"
+  }
+}
+
+void napp_ylos(Arg turha) {
+  switch(tapaht.key.keysym.sym) {
+#define _MODKEYS_SWITCH_KEYUP
+#include "modkeys.h"
+  }
+}
+
+void kohdistin_sivulle(Arg arg) {
+  kohdistin.x += arg.i*siirtoluku;
+  if(kohdistin.x < 0)
+    kohdistin.x = 0;
+  else if(kohdistin.x > raidan_pit/ivali)
+    kohdistin.x = raidan_pit/ivali;
+}
+
+void kohdistin_alas(Arg arg) {
+  kohdistin.r = ( kohdistin.r + raitoja + arg.i ) % raitoja;
+}
+
+void kuvan_alku_sivulle(Arg arg) {
+  kuvan_alku_x += siirtoluku*arg.i;
+  if(kuvan_alku_x < 0) {
+    kuvan_alku_x = 0;
+    return;
+  }
+  int ylimeno_oikealla = kuvan_alku_x + ikk_w - raidan_pit/ivali;
+  if(ylimeno_oikealla > 0)
+    kuvan_alku_x -= ylimeno_oikealla;
+  piirto_raidat = 1;
+}
+
+void zoomaa(Arg arg) {
+  zoom *= arg.f;
+  if( zoom < 1 )
+    zoom = 1;
+  ivali = LASKE_IVALI;
+  kuvan_alku_sivulle((Arg){.i=0}); //alku siirtyy tarvittaessa vasemmalle
+  piirto_raidat = 1;
+}
+
+void vaihda_toistaminen(Arg arg) {
+  if(( toistaa = (toistaa+1)%2 )) {
+    if( valinta_x.a[0] < 0 )
+      toista_valinta( (struct int2){{ kohdistin.x, raidan_pit/ivali }} );
+    else
+      toista_valinta(valinta_x);
+    return;
+  }
+  snd_pcm_drop(kahva);
+  if(arg.v)
+    kohdistin.x = *(int*)arg.v;
+}
+
+void alusta_valinta(Arg arg) {
+  valinta_x.a[0] = valinta_x.a[1] = arg.v? *(int*)arg.v : -1;
+}
+
+void laita_unixaika(Arg arg) {
+  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + *(int*)arg.v*ivali/48;
+  if(ulos_fno < 0) {
+    printf("%lu\n", aika);
+    return;
+  }
+  int apu = seuraavaksi_kohdan_unixaika;
+  write(ulos_fno, &apu, 4);
+  if((apu=write(ulos_fno, &aika, 8)) == 8)
+    return;
+  if(apu < 0) {
+    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_unixaika)\033[0m");
+    return;
+  }
+  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_unixaika)\033[0m\n");
+}
+
+void int_nollaksi(Arg arg) {
+  *(int*)arg.v = 0;
+}
 
 float skaalaa(float* data, int pit) {
   float max = -INFINITY;
@@ -123,13 +299,13 @@ void toista_kohdistin() {
   }
 }
 
-void toista_valinta(struct int2* vnta) {
+void toista_valinta(struct int2 vnta) {
   snd_pcm_drop(kahva);
   toistaa = 1;
   toistohetki0 = hetkinyt();
   int pienempi = vnta->a[1] < vnta->a[0];
   toiston_alku = vnta->a[pienempi];
-  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, vnta->a[pienempi]), (vnta->a[!pienempi]-vnta->a[pienempi])*ivali ) < 0)
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA( kohdistin.r, vnta->a[pienempi] ), (vnta->a[!pienempi]-vnta->a[pienempi])*ivali ) < 0)
     snd_pcm_prepare(kahva);
 }
 
@@ -157,42 +333,7 @@ void laita_kohdan_aika_ms(int xkohta) {
 }
 #endif
 
-void laita_kohdan_unixaika(int xkohta) {
-  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + xkohta*ivali/48;
-  if(ulos_fno < 0) {
-    printf("%lu\n", aika);
-    return;
-  }
-  int apu = seuraavaksi_kohdan_unixaika;
-  write(ulos_fno, &apu, 4);
-  if((apu=write(ulos_fno, &aika, 8)) == 8)
-    return;
-  if(apu < 0) {
-    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_unixaika)\033[0m");
-    return;
-  }
-  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_unixaika)\033[0m\n");
-}
-
-void kohdistin_sivulle(int maara) {
-  kohdistin.x += maara;
-  if(kohdistin.x < 0)
-    kohdistin.x = 0;
-  else if(kohdistin.x > raidan_pit/ivali)
-    kohdistin.x = raidan_pit/ivali;
-}
-
-void kuvan_alku_sivulle(int maara) {
-  kuvan_alku_x += maara;
-  if(kuvan_alku_x < 0) {
-    kuvan_alku_x = 0;
-    return;
-  }
-  int ylimeno_oikealla = kuvan_alku_x + ikk_w - raidan_pit/ivali;
-  if(ylimeno_oikealla > 0)
-    kuvan_alku_x -= ylimeno_oikealla;
-}
-
+#if 0
 void aja() {
   SDL_Event tapaht;
   int siirtoluku = 1;
@@ -322,6 +463,7 @@ void aja() {
   SDL_Delay(15);
   goto ALKU;
 }
+#endif
 
 static int oli_sdl = 0;
 void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1, int ulos_fno1) {

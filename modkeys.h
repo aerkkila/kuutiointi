@@ -1,5 +1,15 @@
 #ifndef __MODKEYS__
 #define __MODKEYS__
+
+unsigned modkey_tuplana(unsigned modkey) {
+  for(int i=0; i<4; i++)
+    if( modkey & 1<<i*2 )
+      modkey |= 1<<(i*2+1);
+    else if( modkey & 1<<(i*2+1) )
+      modkey |= 1<<i*2;
+  return modkey;
+}
+
 #define LVAIHTO (1<<0)
 #define RVAIHTO (1<<1)
 #define LCTRL   (1<<2)
