@@ -83,12 +83,12 @@ static uint64_t hiirihetki0, toistohetki0, hetki=0;
 static unsigned modkey;
 
 Sidonta napp_alas_sid[] = {
-  { SDLK_g,        ALT,    kohdistin_sivulle,  {.i=-1}           },
-  { SDLK_o,        ALT,    kohdistin_sivulle,  {.i=1}            },
-  { SDLK_a,        ALT,    kohdistin_alas,     {.i=1}            },
-  { SDLK_i,        ALT,    kohdistin_alas,     {.i=-1}           },
-  { SDLK_g,        CTRL,   kuvan_alku_sivulle, {.i=-1}           },
-  { SDLK_o,        CTRL,   kuvan_alku_sivulle, {.i=1}            },
+  { SDLK_g,        0,      kohdistin_sivulle,  {.i=-1}           },
+  { SDLK_o,        0,      kohdistin_sivulle,  {.i=1}            },
+  { SDLK_a,        0,      kohdistin_alas,     {.i=1}            },
+  { SDLK_i,        0,      kohdistin_alas,     {.i=-1}           },
+  { SDLK_g,        ALT,    kuvan_alku_sivulle, {.i=-1}           },
+  { SDLK_o,        ALT,    kuvan_alku_sivulle, {.i=1}            },
   { SDLK_SPACE,    0,      vaihda_toistaminen, {0}               },
   { SDLK_SPACE,    VAIHTO, vaihda_toistaminen, {.v=&toiston_x}   },
   { SDLK_SPACE,    CTRL,   alusta_valinta,     {.v=&kohdistin.x} },
@@ -110,9 +110,11 @@ Sidonta tapaht_sid[] = {
 
 void aja() {
  ALKU:
-  for( int i=0; i<PITUUS(tapaht_sid); i++ )
-    if( tapaht.type == tapaht_sid[i].tapahtuma )
-      tapaht_sid[i].fun(tapaht_sid[i].arg);
+  while(SDL_PollEvent(&tapaht))
+    for( int i=0; i<PITUUS(tapaht_sid); i++ )
+      if( tapaht.type == tapaht_sid[i].tapahtuma )
+	tapaht_sid[i].fun(tapaht_sid[i].arg);
+  
   if(piirto_raidat) {
     piirra_raidat();
     piirto_raidat = 0;
@@ -128,8 +130,10 @@ void aja() {
     valinta_x.a[1] = kohdistin.x;
   piirra_valinta(&valinta_x);
   SDL_RenderPresent(rend);
-  if(!jatka)
+  if(!jatka) {
+    jatka=1;
     return;
+  }
   SDL_Delay(15);
   goto ALKU;
 }
@@ -137,7 +141,7 @@ void aja() {
 void napp_alas(Arg turha) {
   for( int i=0; i<PITUUS(napp_alas_sid); i++ )
     if( tapaht.key.keysym.sym == napp_alas_sid[i].tapahtuma &&
-	modkey == modkey_tuplana(modkey) )
+	napp_alas_sid[i].mod == modkey_tuplana(modkey) )
       napp_alas_sid[i].fun(napp_alas_sid[i].arg);
   
   if( '0' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9' )
