@@ -69,7 +69,7 @@ static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
 static float zoom = 1;
 static unsigned tuplaklikkaus_ms = 240, siirtoluku = 1;
 
-static struct {int x; int r;} kohdistin = {.x = 0, .r = 0};
+static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //x-sijainti raidan, ei kuvan mukaan
 static int toiston_x, toiston_alku;
 static struct int2 valinta_x = {{-1, -1}};
 static float* data;
@@ -78,7 +78,7 @@ static float* skaalat;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static int ulos_fno;
-static int toistaa = 0, piirto_raidat=1, jatka=1;
+static int toistaa = 0, piirto_raidat=0, jatka=1;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
 static unsigned modkey;
 
@@ -196,8 +196,21 @@ void zoomaa(Arg arg) {
   zoom *= arg.f;
   if( zoom < 1 )
     zoom = 1;
+  /*päivitetään ivali,
+    päivitetään kohdistin vastaamaan uutta ivalia,
+    siirretään kuvan alkua, niin että kohdistin pysyy kuvassa paikallaan, jos mahdollista*/
+  int vanha_kohd = kohdistin.x;
+  unsigned vanha_siirtoluku = siirtoluku;
+  kohdistin.x *= ivali;
   ivali = LASKE_IVALI;
-  kuvan_alku_sivulle((Arg){.i=0}); //alku siirtyy tarvittaessa vasemmalle
+  if( ivali <= 0 ) {
+    ivali = 1;
+    zoom = raidan_pit/(ikk_w*ivali);
+  }
+  kohdistin.x /= ivali;
+  siirtoluku = kohdistin.x-vanha_kohd;
+  kuvan_alku_sivulle((Arg){.i=1});
+  siirtoluku = vanha_siirtoluku;
   piirto_raidat = 1;
 }
 
