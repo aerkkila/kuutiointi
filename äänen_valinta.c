@@ -24,6 +24,7 @@ struct int2 {int a[2];};
 
 void napp_alas(Arg turha);
 void napp_ylos(Arg turha);
+void hiiri_alas(Arg turha);
 void ikkunatapahtuma(Arg turha);
 void kohdistin_sivulle(Arg i_suunta);
 void kohdistin_alas(Arg i_suunta);
@@ -32,6 +33,7 @@ void zoomaa(Arg f_suunta);
 void vaihda_toistaminen(Arg vp_uusi_kohdistin);
 void alusta_valinta(Arg vp_kohta);
 void laita_unixaika(Arg vp_xkohta);
+void laita_aika(Arg vp_xkohta);
 void int_nollaksi(Arg vp_muuttuja);
 
 void piirra_raidat();
@@ -90,7 +92,7 @@ Sidonta napp_alas_sid[] = {
   { SDLK_g,        ALT,    kuvan_alku_sivulle, {.i=-1}           },
   { SDLK_o,        ALT,    kuvan_alku_sivulle, {.i=1}            },
   { SDLK_SPACE,    0,      vaihda_toistaminen, {0}               },
-  { SDLK_SPACE,    VAIHTO, vaihda_toistaminen, {.v=&toiston_x}   },
+  { SDLK_SPACE,    ALT,    vaihda_toistaminen, {.v=&toiston_x}   },
   { SDLK_SPACE,    CTRL,   alusta_valinta,     {.v=&kohdistin.x} },
   { SDLK_ESCAPE,   0,      alusta_valinta,     {0}               },
   { SDLK_PLUS,     0,      zoomaa,             {.f=1.1}          },
@@ -99,13 +101,16 @@ Sidonta napp_alas_sid[] = {
   { SDLK_KP_MINUS, 0,      zoomaa,             {.f=1/1.1}        },
   { SDLK_RETURN,   0,      laita_unixaika,     {.v=&kohdistin.x} },
   { SDLK_KP_ENTER, 0,      laita_unixaika,     {.v=&kohdistin.x} },
+  { SDLK_RETURN,   ALT,    laita_aika,         {.v=&kohdistin.x} },
+  { SDLK_KP_ENTER, ALT,    laita_aika,         {.v=&kohdistin.x} },
 };
 
 Sidonta tapaht_sid[] = {
-  { SDL_QUIT,        0, int_nollaksi,    {.v=&jatka} },
-  { SDL_KEYDOWN,     0, napp_alas,       {0}         },
-  { SDL_KEYUP,       0, napp_ylos,       {0}         },
-  { SDL_WINDOWEVENT, 0, ikkunatapahtuma, {0}         },
+  { SDL_QUIT,            0, int_nollaksi,    {.v=&jatka} },
+  { SDL_KEYDOWN,         0, napp_alas,       {0}         },
+  { SDL_KEYUP,           0, napp_ylos,       {0}         },
+  { SDL_MOUSEBUTTONDOWN, 0, hiiri_alas,      {0}         },
+  { SDL_WINDOWEVENT,     0, ikkunatapahtuma, {0}         },
 };
 
 void aja() {
@@ -157,6 +162,16 @@ void napp_ylos(Arg turha) {
 #define _MODKEYS_SWITCH_KEYUP
 #include "modkeys.h"
   }
+}
+
+void hiiri_alas(Arg turha) {
+  if( (hetki=hetkinyt()) - hiirihetki0 < tuplaklikkaus_ms ) {
+    toista_kohdistin();
+    return;
+  }
+  hiirihetki0 = hetki;
+  kohdistin.x = tapaht.button.x + kuvan_alku_x;
+  kohdistin.r = tapaht.button.y / raidan_kork;
 }
 
 void ikkunatapahtuma(Arg turha) {
@@ -246,6 +261,22 @@ void laita_unixaika(Arg arg) {
     return;
   }
   fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_unixaika)\033[0m\n");
+}
+
+void laita_aika(Arg arg) {
+  int32_t aika_ms = *(int*)arg.v*ivali / 48;
+  if(ulos_fno < 0) {
+    printf("%i ms\n", aika_ms);
+    return;
+  }
+  int montako;
+  if((montako=write(ulos_fno, &aika_ms, 4)) == 4)
+    return;
+  if(montako < 0) {
+    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_aika_ms)\033[0m");
+    return;
+  }
+  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_aika_ms)\033[0m\n");
 }
 
 void int_nollaksi(Arg arg) {
@@ -346,92 +377,6 @@ float skaalaa(float* data, int pit) {
     data[i] /= max;
   return max;
 }
-
-#if 0
-void laita_kohdan_aika_ms(int xkohta) {
-  int32_t aika_ms = xkohta*ivali / 48;
-  if(ulos_fno < 0) {
-    printf("%i ms\n", aika_ms);
-    return;
-  }
-  int montako;
-  if((montako=write(ulos_fno, &aika_ms, 4)) == 4)
-    return;
-  if(montako < 0) {
-    perror("\033[31mVirhe kirjoittamisessa (laita_kohdan_aika_ms)\033[0m");
-    return;
-  }
-  fprintf(stderr, "\033[31mVirhe: kirjoitettiin vähemmän kuin pitäisi (laita_kohdan_aika_ms)\033[0m\n");
-}
-#endif
-
-#if 0
-void aja() {
-  SDL_Event tapaht;
-  int siirtoluku = 1;
-  unsigned modkey = 0;
- ALKU:
-  while(SDL_PollEvent(&tapaht)) {
-    switch(tapaht.type) {
-    case SDL_QUIT:
-      return;
-    case SDL_MOUSEBUTTONDOWN:
-      if( (hetki=hetkinyt()) - hiirihetki0 < tuplaklikkaus_ms ) {
-	toista_kohdistin();
-	break;
-      }
-      hiirihetki0 = hetki;
-      kohdistin.x = tapaht.button.x + kuvan_alku_x;
-      kohdistin.r = tapaht.button.y / raidan_kork;
-      break;
-    case SDL_KEYDOWN:
-      switch(tapaht.key.keysym.scancode) {
-      case SDL_SCANCODE_J:
-	if(modkey & CTRL)
-	  kohdistin.x = kuvan_alku_x;
-	break;
-      case SDL_SCANCODE_SEMICOLON:
-	if(modkey & CTRL)
-	  kohdistin.x = kuvan_alku_x + ikk_w;
-	break;
-      default:
-	break;
-      } //endswitch scancode
-      switch(tapaht.key.keysym.sym) {
-#define _MODKEYS_SWITCH_KEYDOWN
-#include "modkeys.h"
-      default:
-	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	  siirtoluku = 1<<(tapaht.key.keysym.sym - '0');
-      } //endswitch symcode
-      break; //keydown
-    case SDL_KEYUP:
-      switch(tapaht.key.keysym.sym) {
-#define _MODKEYS_SWITCH_KEYUP
-#include "modkeys.h"
-      default:
-	break;
-      }
-      if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
-	siirtoluku = 1;
-      break;
-    }
-  }
-  SDL_RenderCopy(rend, tausta, NULL, NULL);
-  piirra_kohdistin(kohdistin.x-kuvan_alku_x, kohdistin.r);
-  if(toistaa) {
-    if( (toiston_x = toiston_sijainti()) < 0 ||
-	(valinta_x.a[0] >= 0 && toiston_x >= valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
-      toistaa = 0;
-    piirra_kohdistin(toiston_x, kohdistin.r);
-  } else
-    valinta_x.a[1] = kohdistin.x;
-  piirra_valinta(&valinta_x);
-  SDL_RenderPresent(rend);
-  SDL_Delay(15);
-  goto ALKU;
-}
-#endif
 
 static int oli_sdl = 0;
 void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarvot1, snd_pcm_t* kahva1, int ulos_fno1) {
