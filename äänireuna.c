@@ -19,7 +19,7 @@ void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, float* kynnysar
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
-const int taaj = 48000;
+const int taaj = TAAJ_Hz;
 int jaksonaika_ms = 30;
 int tallennusaika_ms = 5000;
 int gauss_sigma_kpl = 180;

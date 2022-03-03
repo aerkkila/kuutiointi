@@ -244,7 +244,7 @@ void alusta_valinta(Arg arg) {
 }
 
 void laita_unixaika(Arg arg) {
-  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + *(int*)arg.v/48;
+  uint64_t aika = aanen_loppuhetki - raidan_pit/TAAJ_mHz + *(int*)arg.v/TAAJ_mHz;
   if(ulos_fno < 0) {
     printf("%lu\n", aika);
     return;
@@ -261,7 +261,7 @@ void laita_unixaika(Arg arg) {
 }
 
 void laita_aika(Arg arg) {
-  int32_t aika_ms = *(int*)arg.v/48;
+  int32_t aika_ms = *(int*)arg.v/TAAJ_mHz;
   if(ulos_fno < 0) {
     printf("%i ms\n", aika_ms);
     return;
@@ -332,7 +332,7 @@ void piirra_valinta(struct int2* vnta) {
 }
 
 int toiston_sijainti() {
-  int r =  toiston_alku + (hetkinyt()-toistohetki0) * 48;
+  int r =  toiston_alku + (hetkinyt()-toistohetki0) * TAAJ_mHz;
   if( r >= raidan_pit )
     r *= -1;
   return r;
