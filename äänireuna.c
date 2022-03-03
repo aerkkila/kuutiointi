@@ -284,7 +284,6 @@ void putki0_tapahtumat() {
 	fprintf(stderr, "Viestiä ei luettu, vaikka oli muka saatavilla (äänireuna->putki0_tapahtumat)\n");
       return;
     } else if(poll_0[i].revents & POLLHUP) {
-      printf("Luettava putki %i sulkeutui. Ääniohjelma yrittää lopettaa.\n", poll_0[i].fd);
       nauh_jatka = 0;
       return;
     } else if(poll_0[i].revents & POLLERR)
