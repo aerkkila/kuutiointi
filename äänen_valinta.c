@@ -32,12 +32,12 @@ void kuvan_alku_sivulle(Arg i_suunta);
 void zoomaa(Arg f_suunta);
 void vaihda_toistaminen(Arg vp_uusi_kohdistin);
 void alusta_valinta(Arg vp_kohta);
-void laita_unixaika(Arg vp_xkohta);
-void laita_aika(Arg vp_xkohta);
+void laita_unixaika(Arg vp_naute);
+void laita_aika(Arg vp_naute);
 void int_nollaksi(Arg vp_muuttuja);
 
 void piirra_raidat();
-void piirra_kohdistin(int x, int r);
+void piirra_kohdistin(int x, int r); //x määritellään ääniraidan näytteenä
 void piirra_valinta(struct int2*);
 int toiston_sijainti();
 void toista_kohdistin();
@@ -48,7 +48,7 @@ float skaalaa(float* data, int pit);
 void aja();
 void aanen_valinta(float* data, int raitoja, int raidan_pit, float* kynnysarvot, snd_pcm_t* kahva, int ulos_fno);
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
-#define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta)*ivali)
+#define DATAxKOHTA(raita,xkohta) ( (raita)*raidan_pit + (xkohta) )
 #define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
 #define PITUUS(taul) (sizeof(taul)/sizeof(*taul))
 
@@ -67,11 +67,11 @@ static SDL_Color kynnysvari = {50,180,255,255};
 static SDL_Color vntavari = {255,255,255,60};
 static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
-static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku_x;
+static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku;
 static float zoom = 1;
 static unsigned tuplaklikkaus_ms = 240, siirtoluku = 1;
 
-static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //x-sijainti raidan, ei kuvan mukaan
+static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //monesko näyte ääniraidalla
 static int toiston_x, toiston_alku;
 static struct int2 valinta_x = {{-1, -1}};
 static float* data;
@@ -115,17 +115,17 @@ Sidonta tapaht_sid[] = {
 
 void aja() {
  ALKU:
-  while(SDL_PollEvent(&tapaht))
+  while(SDL_PollEvent(&tapaht)) {
     for( int i=0; i<PITUUS(tapaht_sid); i++ )
       if( tapaht.type == tapaht_sid[i].tapahtuma )
 	tapaht_sid[i].fun(tapaht_sid[i].arg);
-  
+  }
   if(piirto_raidat) {
     piirra_raidat();
     piirto_raidat = 0;
   }
   SDL_RenderCopy( rend, tausta, NULL, NULL );
-  piirra_kohdistin( kohdistin.x-kuvan_alku_x, kohdistin.r );
+  piirra_kohdistin( kohdistin.x, kohdistin.r );
   if(toistaa) {
     if( (toiston_x = toiston_sijainti()) < 0 ||
 	(valinta_x.a[0] >= 0 && toiston_x >= valinta_x.a[ valinta_x.a[1]>valinta_x.a[0] ]) )
@@ -170,7 +170,7 @@ void hiiri_alas(Arg turha) {
     return;
   }
   hiirihetki0 = hetki;
-  kohdistin.x = tapaht.button.x + kuvan_alku_x;
+  kohdistin.x = tapaht.button.x*ivali + kuvan_alku;
   kohdistin.r = tapaht.button.y / raidan_kork;
 }
 
@@ -184,11 +184,11 @@ void ikkunatapahtuma(Arg turha) {
 }
 
 void kohdistin_sivulle(Arg arg) {
-  kohdistin.x += arg.i*siirtoluku;
+  kohdistin.x += (arg.i*siirtoluku)*ivali;
   if(kohdistin.x < 0)
     kohdistin.x = 0;
-  else if(kohdistin.x > raidan_pit/ivali)
-    kohdistin.x = raidan_pit/ivali;
+  else if(kohdistin.x >= raidan_pit)
+    kohdistin.x = raidan_pit-1;
 }
 
 void kohdistin_alas(Arg arg) {
@@ -196,14 +196,14 @@ void kohdistin_alas(Arg arg) {
 }
 
 void kuvan_alku_sivulle(Arg arg) {
-  kuvan_alku_x += siirtoluku*arg.i;
-  if(kuvan_alku_x < 0) {
-    kuvan_alku_x = 0;
+  kuvan_alku += (siirtoluku*arg.i)*ivali;
+  if(kuvan_alku < 0) {
+    kuvan_alku = 0;
     return;
   }
-  int ylimeno_oikealla = kuvan_alku_x + ikk_w - raidan_pit/ivali;
+  int ylimeno_oikealla = kuvan_alku + ikk_w*ivali - raidan_pit;
   if(ylimeno_oikealla > 0)
-    kuvan_alku_x -= ylimeno_oikealla;
+    kuvan_alku -= ylimeno_oikealla;
   piirto_raidat = 1;
 }
 
@@ -212,18 +212,15 @@ void zoomaa(Arg arg) {
   if( zoom < 1 )
     zoom = 1;
   /*päivitetään ivali,
-    päivitetään kohdistin vastaamaan uutta ivalia,
     siirretään kuvan alkua, niin että kohdistin pysyy kuvassa paikallaan, jos mahdollista*/
-  int vanha_kohd = kohdistin.x;
   unsigned vanha_siirtoluku = siirtoluku;
-  kohdistin.x *= ivali;
+  int vanha_ivali = ivali;
   ivali = LASKE_IVALI;
   if( ivali <= 0 ) {
     ivali = 1;
     zoom = raidan_pit/(ikk_w*ivali);
   }
-  kohdistin.x /= ivali;
-  siirtoluku = kohdistin.x-vanha_kohd;
+  siirtoluku = (1-(float)ivali/vanha_ivali)*(kohdistin.x-kuvan_alku)/ivali; //saadaan ratkaisemalla yhtälö
   kuvan_alku_sivulle((Arg){.i=1});
   siirtoluku = vanha_siirtoluku;
   piirto_raidat = 1;
@@ -232,7 +229,7 @@ void zoomaa(Arg arg) {
 void vaihda_toistaminen(Arg arg) {
   if(( toistaa = (toistaa+1)%2 )) {
     if( valinta_x.a[0] < 0 )
-      toista_vali( (struct int2){{ kohdistin.x, raidan_pit/ivali }} );
+      toista_vali( (struct int2){{ kohdistin.x, raidan_pit }} );
     else
       toista_vali(valinta_x);
     return;
@@ -247,7 +244,7 @@ void alusta_valinta(Arg arg) {
 }
 
 void laita_unixaika(Arg arg) {
-  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + *(int*)arg.v*ivali/48;
+  uint64_t aika = aanen_loppuhetki - raidan_pit/48 + *(int*)arg.v/48;
   if(ulos_fno < 0) {
     printf("%lu\n", aika);
     return;
@@ -264,7 +261,7 @@ void laita_unixaika(Arg arg) {
 }
 
 void laita_aika(Arg arg) {
-  int32_t aika_ms = *(int*)arg.v*ivali / 48;
+  int32_t aika_ms = *(int*)arg.v/48;
   if(ulos_fno < 0) {
     printf("%i ms\n", aika_ms);
     return;
@@ -299,9 +296,9 @@ void piirra_raidat() {
     SDL_RenderFillRect(rend, &alue);
     ASETA_VARI(piirtovari);
     y += raidan_h / 2;
-    float* p = data+raita*raidan_pit + ivali*kuvan_alku_x;       //p viittaa sijaintiin ääniraidalla
-    for(int x=0; x<ikk_w; x++)                                    //x on sijainti kuvassa
-      for(int ii=0; ii<ivali; ii++,p++)                           //ii on näytöllä samaan x-kohtaan tulevan näytteen indeksi
+    float* p = data+raita*raidan_pit + kuvan_alku;        //p viittaa sijaintiin ääniraidalla
+    for(int x=0; x<ikk_w; x++)                            //x on sijainti kuvassa
+      for(int ii=0; ii<ivali; ii++,p++)                   //ii on näytöllä samaan x-kohtaan tulevan näytteen indeksi
 	SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
     if(kynnysarvot && kynnysarvot[raita]==kynnysarvot[raita]) {
       ASETA_VARI(kynnysvari);
@@ -314,7 +311,8 @@ void piirra_raidat() {
   SDL_SetRenderTarget(rend, NULL);
 }
 
-void piirra_kohdistin(int x, int r) {
+void piirra_kohdistin(int naute, int r) {
+  int x = (naute-kuvan_alku) / ivali;
   ASETA_VARI(kohdistin_muuraita);
   SDL_RenderDrawLine(rend, x, 0, x, ikk_h);
   ASETA_VARI(kohdistin_paaraita);
@@ -326,18 +324,18 @@ void piirra_valinta(struct int2* vnta) {
     return;
   int pienempi = vnta->a[1] < vnta->a[0];
   static SDL_Rect vntarect;
-  vntarect.x = vnta->a[pienempi] - kuvan_alku_x;
-  vntarect.w = vnta->a[!pienempi] - vnta->a[pienempi];
+  vntarect.x = ( vnta->a[pienempi] - kuvan_alku ) / ivali;
+  vntarect.w = ( vnta->a[!pienempi] - vnta->a[pienempi] ) / ivali;
   vntarect.h = ikk_h;
   ASETA_VARI(vntavari);
   SDL_RenderFillRect(rend, &vntarect);
 }
 
 int toiston_sijainti() {
-  int r =  toiston_alku*ivali + (hetkinyt()-toistohetki0) * 48;
+  int r =  toiston_alku + (hetkinyt()-toistohetki0) * 48;
   if( r >= raidan_pit )
     r *= -1;
-  return r/ivali;
+  return r;
 }
 
 void toista_kohdistin() {
@@ -345,7 +343,7 @@ void toista_kohdistin() {
   toistaa = 1;
   toistohetki0 = hetkinyt();
   toiston_alku = kohdistin.x;
-  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku*ivali ) < 0) {
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku ) < 0) {
     snd_pcm_prepare(kahva); //fprintf(stderr, "Puskurin alitäyttö\n");
   }
 }
@@ -356,7 +354,7 @@ void toista_vali(struct int2 vali) {
   toistohetki0 = hetkinyt();
   int pienempi = vali.a[1] < vali.a[0];
   toiston_alku = vali.a[pienempi];
-  while(snd_pcm_writei( kahva, data+DATAxKOHTA( kohdistin.r, vali.a[pienempi] ), (vali.a[!pienempi]-vali.a[pienempi])*ivali ) < 0)
+  while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r,vali.a[pienempi]), vali.a[!pienempi]-vali.a[pienempi] ) < 0)
     snd_pcm_prepare(kahva);
 }
 
@@ -407,6 +405,7 @@ void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, float* kynnysarv
   tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
   SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
+  modkey = 0;
   piirra_raidat();
   aja();
 
