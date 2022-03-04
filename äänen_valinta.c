@@ -37,6 +37,7 @@ void laita_unixaika(Arg vp_naute);
 void laita_aika(Arg vp_naute);
 void int_nollaksi(Arg vp_muuttuja);
 void alueen_kynnysarvo(Arg n_iter);
+void valitse_ylimenot(Arg turha);
 
 void piirra_raidat();
 void piirra_kynnysarvot();
@@ -108,6 +109,7 @@ Sidonta napp_alas_sid[] = {
   { SDLK_KP_ENTER, ALT,    laita_aika,         {.v=&kohdistin.x} },
   { SDLK_PERIOD,   0,      alueen_kynnysarvo,  {.i=1}            }, // yksi iterointi lisää
   { SDLK_PERIOD,   ALT,    alueen_kynnysarvo,  {.i=-1}           }, // aloittaa iteroinnin alusta
+  { SDLK_INSERT,   0,      valitse_ylimenot,   {0}               },
 };
 
 Sidonta tapaht_sid[] = {
@@ -290,10 +292,17 @@ void alueen_kynnysarvo(Arg arg) {
   int r = kohdistin.r;
   float hylkraja1 = (arg.i>0 && kynnarv[1][r]==kynnarv[1][r])? kynnarv[1][r]: INFINITY;
   float hylkraja0 = (arg.i>0 && kynnarv[0][r]==kynnarv[0][r])? kynnarv[0][r]: -INFINITY;
+  int eivalintaa = valinta.a[0] < 0;
+  if( eivalintaa ) {
+    valinta.a[0] = 0;
+    valinta.a[1] = raidan_pit;
+  }
   int suurempi = valinta.a[1] > valinta.a[0];
   int pit0 = valinta.a[suurempi]-valinta.a[!suurempi], pit = 0;
   float* dp = data + DATAxKOHTA(r,valinta.a[!suurempi]);
   double avg = 0;
+  if( eivalintaa )
+    valinta.a[0] = -1;
   for(int i=0; i<pit0; i++)
     if( hylkraja0<dp[i] && dp[i]<hylkraja1 ) {
       avg += dp[i];
@@ -305,12 +314,32 @@ void alueen_kynnysarvo(Arg arg) {
     if( hylkraja0<dp[i] && dp[i]<hylkraja1 )
       std += (dp[i]-avg)*(dp[i]-avg);
   std = sqrt(std/pit);
-  kynnarv[1][r] = avg+std*2;
-  kynnarv[0][r] = avg-std*2;
+  kynnarv[1][r] = avg+std*3;
+  kynnarv[0][r] = avg-std*3;
   if(arg.i<0)
     arg.i = -arg.i;
   if(arg.i>1)
     alueen_kynnysarvo((Arg){.i=--arg.i});
+}
+
+void valitse_ylimenot(Arg turha) {
+  int r = kohdistin.r;
+  if( !( kynnarv[0][r] && kynnarv[1][r] ) )
+    alueen_kynnysarvo((Arg){.i=-1});
+  int eivalintaa = valinta.a[0] < 0;
+  if(eivalintaa) {
+    valinta.a[0] = 0;
+    valinta.a[1] = raidan_pit;
+  }
+  int suurempi = valinta.a[1] > valinta.a[0];
+  int pit = valinta.a[suurempi] - valinta.a[!suurempi];
+  float *dp = data+DATAxKOHTA(r,0);
+  for(int i=valinta.a[!suurempi]; i<pit; i++) {
+    if(dp[i] > kynnarv[1][r] || dp[i] < kynnarv[0][r]) {
+      valinta.a[0] = i;
+      break;
+    }
+  }
 }
 
 void piirra_raidat() {
