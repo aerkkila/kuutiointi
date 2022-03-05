@@ -20,7 +20,7 @@ asetelma1.c: asetelma.c configure.sh
 	gcc -Wall -g -o $@ äänireuna.c -lasound -lm -pthread -läänen_valinta -L.
 
 libäänen_valinta.so: äänen_valinta.c
-	gcc -Wall -g -shared -fPIC -o $@ äänen_valinta.c -lSDL2 -lm
+	gcc -Wall -g -shared -fPIC -o $@ äänen_valinta.c -lSDL2
 
 install: skello kuutio.d/kuutio kellonajat.so äänireuna libäänen_valinta.so
 	cp -f skello /usr/bin
