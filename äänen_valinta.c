@@ -39,6 +39,7 @@ void int_nollaksi(Arg vp_muuttuja);
 void alueen_kynnysarvo(Arg n_iter);
 void alueen_kynnysarvo_iteroi(Arg f_toler);
 void valitse_ylimenot(Arg turha);
+void toiseen_reunaan(Arg turha);
 
 void piirra_raidat();
 void piirra_kynnysarvot();
@@ -118,6 +119,7 @@ Sidonta napp_alas_sid[] = {
   { SDLK_PERIOD,   ALT,    alueen_kynnysarvo,        {.i=0}            }, // aloittaa iteroinnin alusta
   { SDLK_PERIOD,   CTRL,   alueen_kynnysarvo_iteroi, {.f=KYNNYS_SIETO} },
   { SDLK_INSERT,   0,      valitse_ylimenot,         {0}               },
+  { SDLK_TAB,      0,      toiseen_reunaan,          {0}               },
 };
 
 Sidonta tapaht_sid[] = {
@@ -365,6 +367,13 @@ void valitse_ylimenot(Arg turha) {
       break;
   valinta.a[1] = i-puskuri+1;
   kohdistin.x = valinta.a[1];
+}
+
+void toiseen_reunaan(Arg turha) { //kohdistin kauimmaiseen valinnan reunaan
+  int kauempi = ABS(kohdistin.x-valinta.a[1]) > ABS(kohdistin.x-valinta.a[0]);
+  kohdistin.x = valinta.a[kauempi];
+  valinta.a[0] = valinta.a[!kauempi]; //valinta.a[1] seuraa kohdistinta, mikä huomioidaan tässä
+  valinta.a[1] = kohdistin.x;
 }
 
 void piirra_raidat() {
