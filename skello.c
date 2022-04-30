@@ -63,12 +63,16 @@ enum {
 
 enum {
   ei_mitaan,
-  aloita,
+  aloittaminen,
   tarkastelu,
 } nostotoimi;
 
 int kaunnista();
-int lopeta();
+void tarkastele();
+void aloita_aika();
+int lopeta_aika();
+int jatka_aikaa();
+char* tulos_merkkijonoksi(int ind, char* mjon);
 int edellinen_kohta(const char* suote, int* kohta);
 int seuraava_kohta(const char* suote, int* kohta);
 void pyyhi(char* suote, int kohta);
@@ -121,6 +125,7 @@ static int aaniputki0[2] = {-1,-1}, aaniputki1[2] = {-1,-1};
 static struct pollfd poll_aani = {-1, POLLIN, POLLIN};
 
 static struct timeval alku, nyt;
+static double dalku;
 static int avgind[6];
 static char apuc[1500];
 static unsigned modkey;
@@ -128,10 +133,10 @@ static unsigned modkey;
 int kaunnista() {
   SDL_Event tapaht;
   short min, sek, csek;
-  double dalku=0, dnyt;
+  double dnyt;
   int apuind;
   ipc = NULL;
-  nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+  nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
   kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_SetCursor(kursori);
 
@@ -153,7 +158,7 @@ int kaunnista() {
 #define _MODKEYS_SWITCH_KEYDOWN
 #include "modkeys.h"
 	  case SDLK_SPACE:
-	    if(lopeta())
+	    if(lopeta_aika())
 	      break; //ei lopetettu
 	    if(aanitila) {
 	      uint8_t kirj = aanireuna_valinta;
@@ -161,11 +166,7 @@ int kaunnista() {
 	    }
 	    break;
 	  case SDLK_TAB:
-	  JATKA:
-	    if(tila == seis) {
-	      tila = juoksee;
-	      nostotoimi = ei_mitaan;
-	    }
+	    jatka_aikaa();
 	    break;
 	  case SDLK_o:
 	    if(tila == seis) {
@@ -231,7 +232,7 @@ int kaunnista() {
 	    laitot = jaaduta;
 	    SDL_StopTextInput();
 	    tila = seis;
-	    nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	    nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
 	    kohdistin = -1;
 	    switch((int)kirjoituslaji) {
 	    case aikaKirj:
@@ -337,7 +338,7 @@ int kaunnista() {
 	    if(tila == kirjoitustila) {
 	      SDL_StopTextInput();
 	      tila = seis;
-	      nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	      nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
 	      kohdistin = -1;
 	      if(stulos->pit>0)
 		strcpy(KELLO, *VIIMEINEN(stulos));
@@ -403,33 +404,15 @@ int kaunnista() {
 #include "modkeys.h"
 	  case SDLK_SPACE:
 	    switch(nostotoimi) {
-	    case aloita:
-	    ALOITA:
-	      if(tila != tarkastelee)
-		sakko = ei;
-	      gettimeofday(&alku, NULL);
-	      nostotoimi = ei_mitaan;
-	      tila = juoksee;
-	      kellool.vari = kellovarit[0];
-	      if(sakko==plus)
-		alku.tv_sec -= 2;
-	      strcpy(TEKSTI, "");
-	      laitot = kaikki_laitot;
+	    case aloittaminen:
+	      aloita_aika();
 	      break;
 	    case tarkastelu:
-	    TARKASTELU:
-	      sakko = ei;
-	      gettimeofday(&alku, NULL);
-	      dalku = alku.tv_sec + alku.tv_usec/1.0e6;
-	      nostotoimi = aloita;
-	      tila = tarkastelee;
-	      kellool.vari = kellovarit[1];
-	      strcpy(TEKSTI, "");
-	      laitot = kaikki_laitot;
+	      tarkastele();
 	      break;
 	    case ei_mitaan:
 	      if(tila != kirjoitustila) //pysäytetty juuri äsken
-		nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+		nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
 	      break;
 	    }
 	  }
@@ -518,7 +501,7 @@ int kaunnista() {
 	case tarkasteluaikanappial:
 	  if(tapaht.button.button == SDL_BUTTON_LEFT) {
 	    tarknap.valittu = (tarknap.valittu+1) % 2;
-	    nostotoimi = (tarknap.valittu)? tarkastelu : aloita;
+	    nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
 	    laitot |= vntalai;
 	  }
 	  break;
@@ -543,18 +526,8 @@ int kaunnista() {
 	      poista_listoilta(apuind);
 	      TEE_TIEDOT;
 	      alue = hae_alue(tapaht.button.x, tapaht.button.y);
-	    } else {
-	      /*kopioidaan leikepöydälle (hiiri1)*/
-	      char* tmpstr = stulos->taul[apuind];
-	      time_t aika_t = thetki->taul[apuind];
-	      struct tm *aika = localtime(&aika_t);
-	      strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M", aika);
-	      /*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
-	      if(sektus->taul[apuind]) {
-		sprintf(apuc, "%s; %s\n%s", tmpstr, TEKSTI, sektus->taul[apuind]);
-		SDL_SetClipboardText(apuc);
-	      }
-	    }
+	    } else
+	      SDL_SetClipboardText(tulos_merkkijonoksi(apuind, apuc));
 	  } else if (tapaht.button.button == SDL_BUTTON_RIGHT) {
 	    muuta_sakko((apuind==stulos->pit-1)? KELLO: apuc, apuind);
 	    TEE_TIEDOT;
@@ -712,17 +685,20 @@ int kaunnista() {
       break;
     case ipcTarkastelu:
       ipc->viesti = 0;
-      goto TARKASTELU;
+      tarkastele();
+      break;
     case ipcAloita:
       ipc->viesti = 0;
-      goto ALOITA;
+      aloita_aika();
+      break;
     case ipcLopeta:
       ipc->viesti = 0;
-      lopeta();
+      lopeta_aika();
       break;
     case ipcJatka:
       ipc->viesti = 0;
-      goto JATKA;
+      jatka_aikaa();
+      break;
     }
   } while(0);
   
@@ -746,7 +722,7 @@ int kaunnista() {
 	break;
       case havaittiin_reuna:
 	if(aanitila == aani_pusautus_e)
-	  lopeta();
+	  lopeta_aika();
 	break;
       }
     } else if( poll_aani.revents & POLLHUP ) {
@@ -807,7 +783,30 @@ double hetkinyt() {
   return (double)t.tv_sec + t.tv_usec*1e-6;
 }
 
-int lopeta() {
+void tarkastele() {
+  sakko = ei;
+  dalku = hetkinyt();
+  nostotoimi = aloittaminen;
+  tila = tarkastelee;
+  kellool.vari = kellovarit[1];
+  strcpy(TEKSTI, "");
+  laitot = kaikki_laitot;
+}
+
+void aloita_aika() {
+  if(tila != tarkastelee)
+    sakko = ei;
+  gettimeofday(&alku, NULL);
+  nostotoimi = ei_mitaan;
+  tila = juoksee;
+  kellool.vari = kellovarit[0];
+  if(sakko==plus)
+    alku.tv_sec -= 2;
+  strcpy(TEKSTI, "");
+  laitot = kaikki_laitot;
+}
+
+int lopeta_aika() {
   if(tila != juoksee)
     return 1;
   tila = seis;
@@ -816,6 +815,32 @@ int lopeta() {
   TEE_TIEDOT;
   laitot = jaaduta;
   return 0;
+}
+
+int jatka_aikaa() {
+  if(tila != seis)
+    return 1;
+  tila = juoksee;
+  nostotoimi = ei_mitaan;
+  return 0;
+}
+
+char* tulos_merkkijonoksi(int apuind, char* mjon) {
+  char* tmpstr = stulos->taul[apuind];
+  time_t aika_t = thetki->taul[apuind];
+  struct tm *aika = localtime(&aika_t);
+  size_t pit = strftime(mjon, 256, "%A %d.%m.%Y klo %H.%M", aika);
+  if(!pit) {
+    strcpy(TEKSTI, "Liian laaja strftime");
+    mjon[0] = '\0';
+  }
+  pit++;
+  /*sekoituksia ei tallenneta, joten tätä ei välttämättä ole*/
+  if(sektus->pit>apuind && sektus->taul[apuind])
+    sprintf(mjon+pit, "%s; %s\n%s", tmpstr, mjon, sektus->taul[apuind]);
+  else
+    sprintf(mjon+pit, "%s; %s", tmpstr, mjon);
+  return mjon+pit;
 }
 
 /*näissä siirrytään eteen- tai taakespäin koko utf-8-merkin verran*/
