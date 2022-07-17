@@ -28,7 +28,7 @@ shm_tietue* liity_muistiin() {
     perror("\033[31mVirhe (liity_muistiin()->ftok)\033[0m");
     return NULL;
   }
-  int shmid = shmget( avain, sizeof(shm_tietue), (IPC_CREAT | 0666)*(!!luotu) );
+  int shmid = shmget( avain, sizeof(shm_tietue), (IPC_CREAT | 0666)*(!luotu) );
   luotu = 1;
   if(shmid < 0) {
     perror("\033[31mVirhe (liity_muistiin()->shmget)\033[0m");
