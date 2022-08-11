@@ -12,6 +12,10 @@
 #include <signal.h>
 #include <errno.h>
 #include <poll.h>
+#define HAVE_INLINE
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_fit.h>
+#include <gsl/gsl_statistics.h>
 #include "grafiikka.h"
 #include "tulokset.h"
 #include "asetelma.h"
@@ -97,6 +101,7 @@ void aanitila_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
 double hetkinyt();
+double* suoran_sovitus(double*);
 
 #define KELLO (kellool.teksti)
 #define TEKSTI (tkstalol.teksti)
@@ -927,7 +932,7 @@ char* sekoitus(char* s) {
 
   for (int i=0; i<pit; i++) {
     /*akseli*/
-    akseli = rand() % (3-akselikielto); //akselikielto on 1 tai 0
+    akseli = rand() % (3-akselikielto); // akselikielto on 1 tai 0
     if (akselikielto && akseli >= kieltoakseli) akseli++;
     if(akseli != viimeakseli) {
       puoliskokielto = 0;
@@ -942,7 +947,7 @@ char* sekoitus(char* s) {
     pinta = akseli*2 + puolisko;
     
     /*paksuus*/
-    //esim N=3 --> % N/2=1 --> aina 0
+    // esim N=3 --> % N/2=1 --> aina 0
     char paksind = rand() % (paksuus - paksKieltoja[puolisko]);
     /*haetaan oikea paksuus
       paksind on indeksi sallittujen paksuuksien joukossa*/
@@ -955,19 +960,19 @@ char* sekoitus(char* s) {
 	  loutui = 0;
 	  break;
 	}
-      if(loutui) //kys paksuus oli sallittu
+      if(loutui) // kys paksuus oli sallittu
 	if(++loutuneet == paksind)
 	  break;
       paks++;
     }
-    if(paks > 1) pinta += 6; //esim R --> r jne.
+    if(paks > 1) pinta += 6; // esim R --> r jne.
 
     /*lisätään uudet kiellot*/
     paksKiellot[puolisko][paksKieltoja[puolisko]] = paks;
     paksKieltoja[puolisko]++;
     /*Parillisilla kuutioilla ei sallita esim N/2u ja N/2d peräkkäin*/
     if(NxN % 2 == 0 && paks == paksuus) {
-      int toinen = (puolisko+1) % 2;
+      int toinen = !puolisko;
       paksKiellot[toinen][paksKieltoja[toinen]] = paksuus;
       paksKieltoja[toinen]++;
     }
@@ -978,7 +983,7 @@ char* sekoitus(char* s) {
 	  kieltoakseli = akseli;
 	} else {
 	  puoliskokielto = 1;
-	  sallittuPuolisko = (j+1) % 2;
+	  sallittuPuolisko = !j;
 	}
       }
     /*tulostus*/
@@ -991,15 +996,15 @@ char* sekoitus(char* s) {
   return s;
 }
 
-inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
+void laita_eri_sekunnit(char* tmps) {
   int *erisek = eri_sekunnit(ftulos);
   float osuus;
   float kertuma = 0;
   int i;
   tuhjenna_slista(lisatd);
   slistalle_kopioiden(lisatd, "aika  määrä");
-  for(i=0; erisek[i] >= 0; i+=2) { //erisek päättyy negatiiviseen ja dnf < -1
-    osuus = erisek[i+1]/(float)ftulos->pit; //tmp on sekunti, tmp+1 on näitten määrä
+  for(i=0; erisek[i] >= 0; i+=2) { // erisek päättyy negatiiviseen ja dnf < -1
+    osuus = erisek[i+1]/(float)ftulos->pit; // tmp on sekunti, tmp+1 on näitten määrä
     kertuma += osuus;
     sprintf(tmps, "%i    %i    %.3f    %.3f",		\
 	    erisek[i], erisek[i+1], osuus, kertuma);
@@ -1016,23 +1021,52 @@ inline void __attribute__((always_inline)) laita_eri_sekunnit(char* tmps) {
   return;
 }
 
+double* suoran_sovitus(double* p) {
+  double *dtulos = malloc(ftulos->pit * 2 * sizeof(double));
+  double *dx = dtulos + ftulos->pit;
+  double _;
+  if(!dtulos)
+    return NULL;
+  int pit = 0;
+  for(int i=0; i<ftulos->pit; i++)
+    if(ftulos->taul[i] < INFINITY) {
+      dtulos[pit  ] = (double)ftulos->taul[i];
+      dx    [pit++] = i;
+    }
+
+  gsl_fit_linear(dx, 1, dtulos, 1, pit, p+0, p+1, &_, &_, &_, &_);
+
+  /* Trendin merkitsevyys t-testillä.
+     Testisuureen kaava löytyy esim Wikipediasta: Student's t-test.
+     Tässä residuaalien pitäisi jakautua normaalisti, mikä tuskin toteutuu. */
+  double r = gsl_stats_correlation(dx, 1, dtulos, 1, pit);
+  double t = r*sqrt(pit-2.0) / sqrt(1-r*r);
+  p[2] = gsl_cdf_tdist_P(t, (double)pit-2);
+  
+  free(dtulos);
+  return p;
+}
+
 void tee_kuvaaja() {
   int putki[2];
   char apuc[100];
   pipe(putki);
+  double param[3];
+  suoran_sovitus(param);
   sprintf(apuc, KOTIKANSIO"/kuvaaja.py %i %i", putki[0], putki[1]);
   taustaprosessina(apuc);
   close(putki[0]);
   write(putki[1], &(ftulos->pit), 4);
+  write(putki[1], param, 3*8);
   write(putki[1], ftulos->taul, ftulos->koko*ftulos->pit);
   close(putki[1]);
 }
 
-inline void __attribute__((always_inline)) vaihda_fonttikoko_abs(tekstiolio_s* olio, int y) {
+void vaihda_fonttikoko_abs(tekstiolio_s* olio, int y) {
   vaihda_fonttikoko(olio, y-olio->fonttikoko);
 }
 
-inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio, int y) {
+void vaihda_fonttikoko(tekstiolio_s* olio, int y) {
   TTF_CloseFont(olio->font);
   olio->font = NULL;
   olio->fonttikoko += y;
@@ -1042,7 +1076,7 @@ inline void __attribute__((always_inline)) vaihda_fonttikoko(tekstiolio_s* olio,
   return;
 }
 
-inline void __attribute__((always_inline)) laita_sekoitus(shm_tietue* ipc, char* sek) {
+void laita_sekoitus(shm_tietue* ipc, char* sek) {
   strncpy(ipc->data, sek, SHM_KOKO_DATA-1);
   ipc->viesti = 0;
 }
@@ -1051,7 +1085,7 @@ inline void __attribute__((always_inline)) laita_sekoitus(shm_tietue* ipc, char*
 void rullaustapahtuma_alusta(tekstiolio_s* o, int pit, SDL_Event tapaht) {
   int riveja = o->toteutuma.h / TTF_FontLineSkip(o->font);
   o->rullaus += tapaht.wheel.y;
-  o->rullaus *= o->rullaus <= 0; //if(tämä > 0) tämä = 0;
+  o->rullaus *= o->rullaus <= 0; // if(tämä > 0) tämä = 0;
   if(-o->rullaus + riveja > pit)
     o->rullaus = -pit+riveja;
 }

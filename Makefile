@@ -5,7 +5,7 @@ otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h muistin_jako.h
 libs=-lSDL2 -lSDL2_ttf -lm
 
 skello: ${tiedostot} ${otsakkeet}
-	gcc -Wall -Wno-restrict -Og -g -o skello ${tiedostot} ${libs}
+	gcc -Wall -Wno-restrict -Og -g -o skello ${tiedostot} ${libs} `pkg-config --libs gsl`
 
 kuutio.d/kuutio: kuutio.d/*.[ch]
 	cd kuutio.d && make
