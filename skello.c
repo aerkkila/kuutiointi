@@ -775,7 +775,7 @@ TOISTOLAUSE:
 	}
     }
 
-    piirra();
+    piirrä();
     laitot = kellolai * (tila != seis);
     SDL_Delay(viive);
     goto TOISTOLAUSE;

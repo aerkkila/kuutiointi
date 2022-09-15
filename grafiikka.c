@@ -42,7 +42,7 @@ int xsijainti(tekstiolio_s* o, int p) {
   return lev + o->toteutuma.x;
 }
 
-void saada_kohdistin() {
+void säädä_kohdistin() {
   kohdistinsij.y = kellool.sij.y;
   kohdistinsij.h = TTF_FontLineSkip(kellool.font);
   TTF_GlyphMetrics(kellool.font, ' ', NULL, NULL, NULL, NULL, &kohdistinsij.w);
@@ -55,28 +55,28 @@ void aseta_vari(SDL_Renderer* rend, SDL_Color* vari) {
   SDL_SetRenderDrawColor(rend, vari->g, vari->b, vari->b, vari->a);
 }
 
-void laita_ehka_kohdistin() {
+void laita_ehkä_kohdistin() {
   if(kohdistin >= 0) {
-    saada_kohdistin();
+    säädä_kohdistin();
     aseta_vari(rend, &kohdistinvari);
     kohdistinsij.x = xsijainti(&kellool, strlen(kellool.teksti)-kohdistin);
     SDL_RenderFillRect(rend, &kohdistinsij);
   }
 }
 
-void piirra() {
+void piirrä() {
   if(laitot == kellolai) {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
     if(KELLO[0])
       laita_teksti_ttf(&kellool, rend);
-    laita_ehka_kohdistin();
-    laita_ehka_korostus();
+    laita_ehkä_kohdistin();
+    laita_ehkä_korostus();
     SDL_RenderPresent(rend);
     return;
   }
   if(!laitot) {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
-    laita_ehka_korostus();
+    laita_ehkä_korostus();
     SDL_RenderPresent(rend);
     return;
   }
@@ -148,17 +148,17 @@ void piirra() {
     SDL_RenderCopy(rend, tausta, NULL, NULL);
     if(KELLO[0]) //ei tarkisteta, onko kelloa käsketty laittaa, 0:sta on palattu jo aiemmin
       laita_teksti_ttf(&kellool, rend);
-    laita_ehka_kohdistin();
-    laita_ehka_korostus();
+    laita_ehkä_kohdistin();
+    laita_ehkä_korostus();
     SDL_RenderPresent(rend);
     return;
   }
   if(KELLO[0]) //jäädytä
     laita_teksti_ttf(&kellool, rend);
-  laita_ehka_kohdistin(); //tuskin laitetaan
+  laita_ehkä_kohdistin(); //tuskin laitetaan
   SDL_SetRenderTarget(rend, NULL);
   SDL_RenderCopy(rend, tausta, NULL, NULL);
-  laita_ehka_korostus();
+  laita_ehkä_korostus();
   SDL_RenderPresent(rend);
 }
 
@@ -301,7 +301,7 @@ void laita_valinta(vnta_s* o, SDL_Renderer *rend) {
   return;
 }
 
-void laita_ehka_korostus() { //jos korostusol.paksuus <= 0, ei laiteta
+void laita_ehkä_korostus() { //jos korostusol.paksuus <= 0, ei laiteta
   aseta_vari(rend, &korostusol.vari);
   SDL_Rect apu = korostusol.kulmio;
   for(int i=0; i<korostusol.paksuus; i++) {
