@@ -1,6 +1,6 @@
 /*Tämä liitetään include-komennolla pääfunktioon*/
 
-#define siirtoInl1(tahko, maara) siirtoInl(tahko, siirtokaista, maara)
+#define siirtoInl1(tahko, maara) siirto_(tahko, siirtokaista, maara)
 SDL_Event tapaht; 
 int xVanha=0, yVanha=0; //alustetaan ettei kääntäjä varoittele turhaan
 char hiiri_painettu = 0;
@@ -79,30 +79,30 @@ while(SDL_PollEvent(&tapaht)) {
       break;
     case SDL_SCANCODE_U:
       for(int kaista=2; kaista<N; kaista++)
-	siirtoInl(_r, kaista, 1);
+	siirto_(_r, kaista, 1);
       break;
     case SDL_SCANCODE_R:
       for(int kaista=2; kaista<N; kaista++)
-	siirtoInl(_l, kaista, 1);
+	siirto_(_l, kaista, 1);
       break;
       /*käytetään kääntämisten määrässä siirtokaistaa*/
     case SDL_SCANCODE_H:
-      kaantoInl('y', (3*(siirtokaista)) % 4);
+      kääntö_('y', (3*(siirtokaista)) % 4);
       break;
     case SDL_SCANCODE_G:
-      kaantoInl('y', (1*(siirtokaista)) % 4);
+      kääntö_('y', (1*(siirtokaista)) % 4);
       break;
     case SDL_SCANCODE_N:
-      kaantoInl('x', (1*(siirtokaista)) % 4);
+      kääntö_('x', (1*(siirtokaista)) % 4);
       break;
     case SDL_SCANCODE_V:
-      kaantoInl('x', (3*(siirtokaista)) % 4);
+      kääntö_('x', (3*(siirtokaista)) % 4);
       break;
     case SDL_SCANCODE_COMMA:
-      kaantoInl('z', (1*(siirtokaista)) % 4);
+      kääntö_('z', (1*(siirtokaista)) % 4);
       break;
     case SDL_SCANCODE_C:
-      kaantoInl('z', (3*(siirtokaista)) % 4);
+      kääntö_('z', (3*(siirtokaista)) % 4);
       break;
     default:
       switch(tapaht.key.keysym.sym) {
@@ -263,7 +263,7 @@ while(SDL_PollEvent(&tapaht)) {
     xEro = 0; yEro = 0;
 	
     for(int i=0; i<3; i++)
-      kuva.kannat[i] = puorauta(kuva.kannat[i], akseli);
+      kuva.kannat[i] = pyöräytä(kuva.kannat[i], akseli);
 	  
     tee_ruutujen_koordtit();
     kuva.paivita = 1;
@@ -271,9 +271,9 @@ while(SDL_PollEvent(&tapaht)) {
   case SDL_MOUSEBUTTONUP:
     hiiri_painettu = 0;
     if(!raahattiin) {
-      int tahko = mika_tahko(tapaht.motion.x, tapaht.motion.y);
+      int tahko = mikä_tahko(tapaht.motion.x, tapaht.motion.y);
       if(tahko >= 0)
-	siirtoInl(tahko, siirtokaista, (tapaht.button.button == 1)? 3: 1);
+	siirto_(tahko, siirtokaista, (tapaht.button.button == 1)? 3: 1);
     }
     break;
   }

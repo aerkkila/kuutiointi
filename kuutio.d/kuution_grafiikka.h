@@ -29,21 +29,21 @@ typedef struct {
 extern kuva_t kuva;
 extern SDL_Texture* alusta[];
 
-koordf yleispuorautus(koordf koord, koordf aks, float kulma);
-koordf puorauta(koordf xyz, koordf kulmat);
+koordf yleispyöräytys(koordf koord, koordf aks, float kulma);
+koordf pyöräytä(koordf xyz, koordf kulmat);
 kuva_t* suora_sivu_kuvaksi(int puoli);
-int mika_tahko(int x, int y);
+int mikä_tahko(int x, int y);
 int piste_alueella(float x, float y, int n, ...);
 void tee_ruutujen_koordtit();
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd);
-void piirra_suunnikas(koordf*);
+void piirrä_suunnikas(koordf*);
 koordf* jarjestaKoord(koordf* ret, koordf* ktit, int akseli, int pit);
-void piirra_kuvaksi();
-void piirra_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
+void piirrä_kuvaksi();
+void piirrä_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 int korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
 void korosta_siivu(int3 siivu);
-void kaantoanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);
+void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);
 double hetkiNyt();
 
 inline void __attribute__((always_inline)) aseta_vari(vari v) {
