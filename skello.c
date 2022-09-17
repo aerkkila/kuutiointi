@@ -30,10 +30,9 @@ enum alue_e {
     jarjestus2al,
     tiedotal,
     sektusal,
-    tarkasteluaikanappial,
     tietoalue,
     lisatdal,
-    muutal,
+    valikkoal,
     muual
 } alue = muual;
 
@@ -87,6 +86,7 @@ void laita_eri_sekunnit(char* tmp);
 void tee_kuvaaja();
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
 void vaihda_fonttikoko_abs(tekstiolio_s* olio, int y);
+void vaihda_tarkasteluaikatila();
 void laita_sekoitus(shm_tietue* ipc, char* sek);
 void rullaustapahtuma_alusta(tekstiolio_s*, int, SDL_Event);
 void rullaustapahtuma_lopusta(tekstiolio_s*, SDL_Event);
@@ -120,7 +120,7 @@ double* suoran_sovitus(double*);
 	strcpy(TEKSTI, tekstialue[kirjoituslaji]);	\
 	laitot = kaikki_laitot;				\
     }
-#define LAITOT (laitot = (tila == seis)? jaaduta : kaikki_laitot)
+#define LAITOT (laitot = (tila==seis)? jäädytä: kaikki_laitot)
 
 extern float skaala;
 int kohdistin=-1; //kasvaa vasemmalle ja negatiivinen on piilotettu
@@ -141,7 +141,7 @@ int kaunnista() {
     double dnyt;
     int apuind;
     ipc = NULL;
-    nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
+    nostotoimi = (tarkasteluaikatila)? tarkastelu : aloittaminen;
     kursori = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     SDL_SetCursor(kursori);
 
@@ -212,7 +212,7 @@ TOISTOLAUSE:
 		    if(stulos->pit)
 			strcpy(KELLO, *VIIMEINEN(stulos));
 		    TEE_TIEDOT;
-		    laitot = jaaduta;
+		    laitot = jäädytä;
 		} else if (tila == kirjoitustila)
 		    pyyhi(KELLO,kohdistin);
 		break;
@@ -233,10 +233,10 @@ TOISTOLAUSE:
 		    LAITOT;
 		    break;
 		}
-		laitot = jaaduta;
+		laitot = jäädytä;
 		SDL_StopTextInput();
 		tila = seis;
-		nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
+		nostotoimi = tarkasteluaikatila? tarkastelu : aloittaminen;
 		kohdistin = -1;
 		switch((int)kirjoituslaji) {
 		case aikaKirj:
@@ -342,12 +342,12 @@ TOISTOLAUSE:
 		if(tila == kirjoitustila) {
 		    SDL_StopTextInput();
 		    tila = seis;
-		    nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
+		    nostotoimi = tarkasteluaikatila? tarkastelu : aloittaminen;
 		    kohdistin = -1;
 		    if(stulos->pit>0)
 			strcpy(KELLO, *VIIMEINEN(stulos));
 		    TEKSTI[0] = '\0';
-		    laitot = jaaduta;
+		    laitot = jäädytä;
 		}
 		break;
 	    case SDLK_PLUS:
@@ -416,7 +416,7 @@ TOISTOLAUSE:
 		    break;
 		case ei_mitaan:
 		    if(tila != kirjoitustila) //pysäytetty juuri äsken
-			nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
+			nostotoimi = tarkasteluaikatila? tarkastelu : aloittaminen;
 			    break;
 		}
 	    }
@@ -431,10 +431,10 @@ TOISTOLAUSE:
 	    case tietoalue:
 		if(tapaht.button.button == SDL_BUTTON_LEFT ||	\
 		   tapaht.button.button == SDL_BUTTON_RIGHT) {
-		    char rivi = ((tapaht.button.y - tluvutol.toteutuma.y) / \
-				 TTF_FontLineSkip(tluvutol.font));
-		    int sarake = ((tapaht.button.x - tluvutol.toteutuma.x) / \
-				  (tluvutol.toteutuma.w / 6));
+		    char rivi = ((tapaht.button.y - tilastoluvutol.toteutuma.y) / \
+				 TTF_FontLineSkip(tilastoluvutol.font));
+		    int sarake = ((tapaht.button.x - tilastoluvutol.toteutuma.x) / \
+				  (tilastoluvutol.toteutuma.w / 6));
 		    sarake -= (sarake/2 + 1); //nyt tämä on 0, 1 tai 2
 		    tuhjenna_slista(lisatd);
 		    char** sektus1 = (tapaht.button.button == SDL_BUTTON_LEFT)? NULL : sektus->taul;
@@ -473,9 +473,11 @@ TOISTOLAUSE:
 		if(tapaht.button.button == SDL_BUTTON_RIGHT)
 		    KIRJOITUSLAJIKSI(kuutionKokoKirj);
 		break;
-	    case muutal:;
-		int rivi = LISTARIVI(muutol, button);
+	    case valikkoal:;
+		int rivi = LISTARIVI(valikkool, button);
 		switch(rivi) {
+		case tarkasteluaika_e:
+		    vaihda_tarkasteluaikatila();    break;
 		case ulosnimi_e:
 		    KIRJOITUSLAJIKSI(ulosnimiKirj); break;
 		case eri_sekunnit_e:
@@ -495,20 +497,13 @@ TOISTOLAUSE:
 		case aani_e:
 		    aanitila_seuraava();           break;
 		}
-		break; //case muutal
+		break; //case valikkoal
 	    default:
 		break;
 	    }
 	    break;
 	case SDL_MOUSEBUTTONUP:
 	    switch(alue) {
-	    case tarkasteluaikanappial:
-		if(tapaht.button.button == SDL_BUTTON_LEFT) {
-		    tarknap.valittu = (tarknap.valittu+1) % 2;
-		    nostotoimi = (tarknap.valittu)? tarkastelu : aloittaminen;
-		    laitot |= vntalai;
-		}
-		break;
 		/*tulos- ja järjestysalue johtavat samaan toimintoon
 		  järjestysalueilta luettu indeksi muunnetaan tulosalueen indeksiksi*/
 	    case tuloksetal:
@@ -593,9 +588,9 @@ TOISTOLAUSE:
 		    rullaustapahtuma_alusta(&lisaol, lisatd->pit, tapaht);
 		    laitot |= lisatdlai;
 		    break;
-		case muutal:
-		    rullaustapahtuma_alusta(&muutol, muut_a->pit, tapaht);
-		    laitot |= muutlai;
+		case valikkoal:
+		    rullaustapahtuma_alusta(&valikkool, muut_a->pit, tapaht);
+		    laitot |= valikkolai;
 		    break;
 		default:
 		    break;
@@ -640,10 +635,9 @@ TOISTOLAUSE:
 		laitot |= tkstallai;
 		hiireksi(kasi);
 		break;
-	    case muutal:
-		korostukseksi(&muutol, LISTARIVI(muutol, motion));
+	    case valikkoal:
+		korostukseksi(&valikkool, LISTARIVI(valikkool, motion));
 	    case tietoalue:
-	    case tarkasteluaikanappial:
 		hiireksi(kasi);
 		break;
 	    case tiedotal:
@@ -725,7 +719,7 @@ TOISTOLAUSE:
 		aani_lue_kohdan_unixaika();
 		break;
 	    case havaittiin_reuna:
-		if(aanitila == aani_pusautus_e)
+		if(aanitila == ääni_pysäytys_e)
 		    lopeta_aika();
 		break;
 	    }
@@ -767,15 +761,15 @@ TOISTOLAUSE:
 	} else if(aika > -2) {
 	    sprintf(KELLO, " +2");
 	    sakko = plus;
-	    kellool.vari = kellovarit[2];
+	    kellool.vari = kellovärit[2];
 	} else {
 	    sprintf(KELLO, "DNF");
 	    sakko = dnf;
-	    kellool.vari = kellovarit[3];
+	    kellool.vari = kellovärit[3];
 	}
     }
 
-    piirrä();
+    piirrä(1);
     laitot = kellolai * (tila != seis);
     SDL_Delay(viive);
     goto TOISTOLAUSE;
@@ -792,7 +786,7 @@ void tarkastele() {
     dalku = hetkinyt();
     nostotoimi = aloittaminen;
     tila = tarkastelee;
-    kellool.vari = kellovarit[1];
+    kellool.vari = kellovärit[1];
     strcpy(TEKSTI, "");
     laitot = kaikki_laitot;
 }
@@ -803,7 +797,7 @@ void aloita_aika() {
     gettimeofday(&alku, NULL);
     nostotoimi = ei_mitaan;
     tila = juoksee;
-    kellool.vari = kellovarit[0];
+    kellool.vari = kellovärit[0];
     if(sakko==plus)
 	alku.tv_sec -= 2;
     strcpy(TEKSTI, "");
@@ -817,7 +811,7 @@ int lopeta_aika() {
     lisaa_listoille(KELLO, nyt.tv_sec);
     slistalle_kopioiden(sektus, sekoitus(apuc));
     TEE_TIEDOT;
-    laitot = jaaduta;
+    laitot = jäädytä;
     return 0;
 }
 
@@ -897,18 +891,16 @@ enum alue_e hae_alue(int x, int y) {
 	return jarjestus1al;
     if(piste_alueella(x, y, &jarjol2.toteutuma))
 	return jarjestus2al;
-    if(piste_alueella(x, y, &tiedotol.toteutuma))
+    if(piste_alueella(x, y, &tilastotol.toteutuma))
 	return tiedotal;
     if(piste_alueella(x, y, &sektusol.toteutuma))
 	return sektusal;
-    if(piste_alueella(x, y, &tarknap.kuvat.sij))
-	return tarkasteluaikanappial;
-    if(piste_alueella(x, y, &muutol.toteutuma))
-	return muutal;
+    if(piste_alueella(x, y, &valikkool.toteutuma))
+	return valikkoal;
     if(piste_alueella(x, y, &lisaol.toteutuma))
 	return lisatdal;
-    if(piste_alueella(x, y, &tluvutol.toteutuma)) {
-	if(((x - tluvutol.toteutuma.x) / (tluvutol.toteutuma.w / 6)) % 2)
+    if(piste_alueella(x, y, &tilastoluvutol.toteutuma)) {
+	if(((x - tilastoluvutol.toteutuma.x) / (tilastoluvutol.toteutuma.w / 6)) % 2)
 	    return tietoalue;
     }
     return muual;
@@ -993,6 +985,15 @@ char* sekoitus(char* s) {
     }
     s[strlen(s)-1] = '\0';
     return s;
+}
+
+void vaihda_tarkasteluaikatila() {
+    int pit0 = strlen(tarkastelu_str[tarkasteluaikatila]);
+    tarkasteluaikatila = !tarkasteluaikatila;
+    char* apuc = muut_a->taul[tarkasteluaika_e];
+    strcpy(apuc+strlen(apuc)-pit0, tarkastelu_str[tarkasteluaikatila]);
+    nostotoimi = (tarkasteluaikatila)? tarkastelu : aloittaminen;
+    LAITOT;
 }
 
 void laita_eri_sekunnit(char* tmps) {
@@ -1101,7 +1102,7 @@ void rullaustapahtuma_lopusta(tekstiolio_s* o, SDL_Event tapaht) {
 
 void ulosnimeksi(const char* nimi) {
     strcpy(ulosnimi, nimi); 
-    laitot |= muutlai;
+    laitot |= valikkolai;
 }
 
 void korostukseksi(tekstiolio_s* ol, int ind) {
@@ -1187,7 +1188,7 @@ void aani_lue_kohdan_unixaika() {
 	    free(*VIIMEINEN(stulos));
 	    *VIIMEINEN(stulos) = strdup(KELLO);
 	    TEE_TIEDOT;
-	    laitot = jaaduta;
+	    laitot = jäädytä;
 	} else if( apuind < 0 )
 	    perror("\033[31mVirhe 2 (aani_lue_kohdan_unixaika)\033[0m");
     }
@@ -1203,7 +1204,7 @@ void aanitila_seuraava() {
     if(aanitila == aani_pois_e)
 	sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
     strcpy(aanitila_str, aanivaihtoehdot[aanitila]);
-    laitot |= muutlai;
+    laitot |= valikkolai;
 }
 
 void avaa_aanireuna(int *putki0, int *putki1, struct pollfd* poll_aani) {
@@ -1245,37 +1246,22 @@ int main(int argc, char** argv) {
     ikkuna = SDL_CreateWindow\
 	(ohjelman_nimi, ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h, SDL_WINDOW_RESIZABLE);
     rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
-    SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
+    SDL_GetWindowSize(ikkuna, &ikkuna_w, &ikkuna_h); // ikkunointimanageri voi muuttaa kokoa pyydetystä
     tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikkuna_w, ikkuna_h);
 
     if(asetelma())
 	goto EI_FONTTI;
   
-    /*valintaolion kuvat*/
-    SDL_Surface* kuva;
-    if(!(kuva = SDL_LoadBMP(url_valittu))) {
-	fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_valittu);
-	goto EI_FONTTI;
-    }
-    tarknap.kuvat.valittu = SDL_CreateTextureFromSurface(rend, kuva);
-    SDL_FreeSurface(kuva);
-    if(!(kuva = SDL_LoadBMP(url_eivalittu))) {
-	fprintf(stderr, "Virhe: Ei luettu kuvaa \"%s\"\n", url_eivalittu);
-	goto EI_FONTTI;
-    }
-    tarknap.kuvat.ei_valittu = SDL_CreateTextureFromSurface(rend, kuva);
-    SDL_FreeSurface(kuva);
-  
     time_t t;
     srand((unsigned) time(&t));
     strcpy(kellool.teksti, " ");
 
-    /*luetaan tiedosto tarvittaessa*/
-    /*luettavaa voidaan rajata:
-      viimeiset 1000 --> -1000:
-      alkaen 1000:sta --> 1000:
-      1000 ensimmäistä --> :1000
-      alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne*/
+    /** luetaan tiedosto tarvittaessa
+	luettavaa voidaan rajata:
+	viimeiset 1000 --> -1000:
+	alkaen 1000:sta --> 1000:
+	1000 ensimmäistä --> :1000
+	alkaen 1000:sta viimeiseen 1000:en asti --> 1000:-1000 jne */
     if(argc > 1) {
 	int pit = viimeinen_sij(ulosnimi,'/') + 1;
 	strncpy(KELLO,ulosnimi,pit);
@@ -1293,9 +1279,9 @@ int main(int argc, char** argv) {
     sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
     tuhoa_asetelma();
 EI_FONTTI:
+    SDL_DestroyTexture(tausta);
     SDL_DestroyRenderer(rend);
     SDL_DestroyWindow(ikkuna);
-    SDL_DestroyTexture(tausta);
     TTF_Quit();
 EI_TTF:
     SDL_Quit();

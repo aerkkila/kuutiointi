@@ -8,6 +8,12 @@
 #define TULOSKANSIO "skello"
 #define KOTIKANSIO "/usr/share/skello"
 
+enum oliot {
+    kello_oe, sektus_oe, tulos_oe, jarj_oe,
+    tilastot_oe, lisä_oe, valikko_oe,
+    tkstal_oe, Viimeinen_oe, Null_oe,
+};
+
 extern int ikkuna_x, ikkuna_y, ikkuna_w, ikkuna_h;
 extern Uint32 viive;
 extern unsigned NxN;
@@ -23,10 +29,11 @@ extern const char* restrict ulosnimi0;
 extern const char* restrict url_valittu;
 extern const char* restrict url_eivalittu;
 extern const char* restrict tietoalkustr;
-extern const char* restrict muut_a_str;
-enum {ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, aani_e, autokuutio_e}; //muut_a:n järjestys
+enum {tarkasteluaika_e, ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, aani_e, autokuutio_e}; // valikon järjestys
+extern const char* tarkastelu_str[];
+extern int tarkasteluaikatila;
 extern const char* aanivaihtoehdot[];
-enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, aani_pusautus_e, aani_vaihtoehtoja};
+enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, ääni_pysäytys_e, aani_vaihtoehtoja};
 extern enum aanivaihtoehto aanitila;
 extern char* aanitila_str;
 extern const char* tekstialue[];
@@ -42,16 +49,15 @@ extern tekstiolio_s kellool;
 extern tekstiolio_s tulosol;
 extern tekstiolio_s jarjol1;
 extern tekstiolio_s jarjol2;
-extern tekstiolio_s tiedotol;
-extern tekstiolio_s tluvutol;
+extern tekstiolio_s tilastotol;
+extern tekstiolio_s tilastoluvutol;
 extern tekstiolio_s lisaol;
 extern tekstiolio_s sektusol;
-extern tekstiolio_s muutol;
+extern tekstiolio_s valikkool;
 extern tekstiolio_s tkstalol;
-extern vnta_s tarknap;
 extern korostustietue korostusol;
 
-extern SDL_Color kellovarit[];
+extern SDL_Color kellovärit[];
 
 extern slista* muut_a;
 extern slista* tietoalut;
@@ -66,7 +72,7 @@ extern int* jarjes;
 extern float* fjarje;
 
 int asetelma();
-void vakiosijainnit();
+unsigned vakiosijainnit();
 void tuhoa_asetelma();
 
 #endif
