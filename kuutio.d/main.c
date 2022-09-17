@@ -39,6 +39,15 @@ static int get_modstate() {
   return mod;
 }
 
+void lue_tekstinä(FILE* f) {
+  rewind(f);
+  for(int j=0; j<6; j++) {
+    for(int i=0; i<kuutio.N2; i++)
+      kuutio.sivut[j*kuutio.N2 + i] = fgetc(f)-'a';
+    fgetc(f); // rivinvaihto
+  }
+}
+
 void avaa_tallenne(const char* s) {
   char a[256];
   if(!s) {
@@ -56,8 +65,12 @@ void avaa_tallenne(const char* s) {
   /* Alla oleva rivi laskee neliöjuuren neliölukujen avulla. Menetelmä löytyy Wikipediasta. */
   for(int v=-1; N2-v>=2; N2-=v+=2) N++;
   kuutio = luo_kuutio(N);
-  if(fread(kuutio.sivut, 1, N*N*6, f) != N*N*6)
-    perror("tallenteen luenta");
+  if(fgetc(f) >= 'a') lue_tekstinä(f);
+  else {
+    rewind(f);
+    if(fread(kuutio.sivut, 1, N*N*6, f) != N*N*6)
+      perror("tallenteen luenta");
+  }
   fclose(f);
 }
 
