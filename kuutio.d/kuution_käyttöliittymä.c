@@ -138,6 +138,18 @@ while(SDL_PollEvent(&tapaht)) {
 	A = hae_ruutu(kuutio.N, B(0), B(1), B(2)+1);
 	kuva.paivita=1;
 	break;
+      case SDLK_s:
+	if(get_modstate() != KMOD_CTRL) break;
+	/* tallenna */
+	char a[256];
+	sprintf(a, "%s/.cache/kuution_tallenne.bin", getenv("HOME"));
+	FILE *f = fopen(a, "w");
+	if(fwrite(kuutio.sivut, 1, kuutio.N2*6, f) != kuutio.N2*6)
+	    fprintf(stderr, "Tallentaminen epäonnistui %s\n%s\n", a, strerror(errno));
+	else
+	    printf("Tallennettiin %s.\n", a);
+	fclose(f);
+	break;
 #undef A
 #undef B
 #ifndef __EI_SEKUNTIKELLOA__
@@ -232,7 +244,7 @@ while(SDL_PollEvent(&tapaht)) {
       hiiri_painettu = 2;
     break;
   case SDL_MOUSEMOTION:;
-    /*pyöritetään, raahauksesta hiirellä*/
+    /*pyöritetään raahauksesta hiirellä*/
     if(!hiiri_painettu)
       break;
     raahattiin = 1;

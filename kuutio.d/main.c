@@ -3,9 +3,11 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <stdarg.h>
+#include <errno.h>
 #include "../muistin_jako.h"
 
 #include "kuutio.c"
@@ -21,12 +23,55 @@ kuutio_t kuutio;
 #include "python_savel.c"
 #endif
 
+/* funktio kopioitu nctietue2-kirjastosta */
+static int get_modstate() {
+  /* makes modstate side-insensitive and removes other modifiers than [alt,ctrl,gui,shift] */
+  int mod = 0;
+  int mod0 = SDL_GetModState();
+  if(mod0 & KMOD_CTRL)
+    mod |= KMOD_CTRL;
+  if(mod0 & KMOD_SHIFT)
+    mod |= KMOD_SHIFT;
+  if(mod0 & KMOD_ALT)
+    mod |= KMOD_ALT;
+  if(mod0 & KMOD_GUI)
+    mod |= KMOD_GUI;
+  return mod;
+}
+
+void avaa_tallenne(const char* s) {
+  char a[256];
+  if(!s) {
+    sprintf(a, "%s/.cache/kuution_tallenne.bin", getenv("HOME"));
+    s = a;
+  }
+  struct stat buf;
+  if(stat(s, &buf) < 0) {
+    perror("tallenteen avaaminen");
+    kuutio = luo_kuutio(3);
+    return;
+  }
+  FILE *f = fopen(s, "r");
+  int N2 = buf.st_size / 6, N=0;
+  /* Alla oleva rivi laskee neliöjuuren neliölukujen avulla. Menetelmä löytyy Wikipediasta. */
+  for(int v=-1; N2-v>=2; N2-=v+=2) N++;
+  kuutio = luo_kuutio(N);
+  if(fread(kuutio.sivut, 1, N*N*6, f) != N*N*6)
+    perror("tallenteen luenta");
+  fclose(f);
+}
+
 int main(int argc, char** argv) {
   int N;
-  if( argc < 2 || !(sscanf(argv[1], "%i", &N)) )
+  if(argc < 2 || !(sscanf(argv[1], "%i", &N)))
     N = 3;
-  
-  kuutio = luo_kuutio(N);
+  if(argc > 1)
+    if(!strcmp(argv[1], "s"))
+      avaa_tallenne(NULL);
+    else
+      avaa_tallenne(argv[1]);
+  else
+    kuutio = luo_kuutio(N);
   
 #ifndef __EI_SEKUNTIKELLOA__
   ipc = liity_muistiin();
