@@ -30,7 +30,7 @@ install: skello kuutio.d/kuutio kellonajat.so äänireuna libäänen_valinta.so
 	cp -f äänireuna /usr/bin/
 	mkdir -p /usr/share/skello
 	cp -f libäänen_valinta.so /usr/lib/
-	cp -f *.bmp kellonajat.so kuvaaja.py kuutio.d/savel.py /usr/share/skello
+	cp -f kellonajat.so kuvaaja.py kuutio.d/savel.py /usr/share/skello
 	chmod 755 /usr/share/skello/*.py
 
 uninstall:
