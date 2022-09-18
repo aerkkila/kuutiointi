@@ -42,7 +42,6 @@ extern const unsigned korostuslai;
 extern const unsigned kaikki_laitot;
 extern const unsigned jäädytä;
 
-void aseta_vari(SDL_Renderer*, SDL_Color*);
 int xsijainti(tekstiolio_s* ol, int p);
 void saada_kohdistin();
 void piirrä(int päivitä);

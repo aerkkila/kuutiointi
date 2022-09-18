@@ -353,8 +353,6 @@ TOISTOLAUSE:
 	    case SDLK_PLUS:
 	    case SDLK_KP_PLUS:
 		if(modkey & CTRL) {
-		    aseta_vari(rend, &taustavari);
-		    SDL_RenderClear(rend);
 		    skaala *= 1.1;
 		    SDL_RenderSetScale(rend, skaala, skaala);
 		    LAITOT;
@@ -367,8 +365,6 @@ TOISTOLAUSE:
 	    case SDLK_MINUS:
 	    case SDLK_KP_MINUS:
 		if(modkey & CTRL) {
-		    aseta_vari(rend, &taustavari);
-		    SDL_RenderClear(rend);
 		    skaala /= 1.1;
 		    SDL_RenderSetScale(rend, skaala, skaala);
 		    LAITOT;
@@ -619,16 +615,16 @@ TOISTOLAUSE:
 		apuind = LISTARIVI(jarjol1, motion);
 		korostukseksi(&jarjol1, apuind);
 		apuind = jarjes[apuind]; //saman ajan indeksi tuloslistassa
-		goto LAITA_AIKA_NAKUVIIN;
+		goto laita_aika_näkyviin;
 	    case jarjestus2al:;
 		apuind = LISTARIVI(jarjol2, motion);
 		korostukseksi(&jarjol2, apuind);
 		apuind = jarjes[apuind];
-		goto LAITA_AIKA_NAKUVIIN;
+		goto laita_aika_näkyviin;
 	    case tuloksetal:;
 		apuind = LISTARIVI(tulosol, motion);
 		korostukseksi(&tulosol, apuind);
-	    LAITA_AIKA_NAKUVIIN:;
+	    laita_aika_näkyviin:;
 		time_t aika_t = thetki->taul[apuind];
 		struct tm *aika = localtime(&aika_t);
 		strftime(TEKSTI, 150, "%A %d.%m.%Y klo %H.%M.%S", aika);
@@ -658,8 +654,6 @@ TOISTOLAUSE:
 	case SDL_WINDOWEVENT:
 	    switch(tapaht.window.event) {
 	    case SDL_WINDOWEVENT_RESIZED:
-		aseta_vari(rend, &taustavari);
-		SDL_RenderClear(rend);
 		ikkuna_w = tapaht.window.data1;
 		ikkuna_h = tapaht.window.data2;
 		SDL_DestroyTexture(tausta);

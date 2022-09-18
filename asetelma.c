@@ -116,7 +116,7 @@ tekstiolio_s valikkool = {
 };
 
 tekstiolio_s tkstalol = {
-    .ttflaji = 2,
+    .ttflaji = 1,
     .fonttikoko = 16,
     .fonttied = MONOFONTTI,
     .vari = {255, 255, 255, 255},

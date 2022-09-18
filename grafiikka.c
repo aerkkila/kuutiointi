@@ -55,14 +55,14 @@ void säädä_kohdistin() {
 	kohdistinsij.w = 1;
 }
 
-void aseta_vari(SDL_Renderer* rend, SDL_Color* vari) {
+void aseta_väri(SDL_Renderer* rend, SDL_Color* vari) {
     SDL_SetRenderDrawColor(rend, vari->g, vari->b, vari->b, vari->a);
 }
 
 void laita_ehkä_kohdistin() {
     if(kohdistin < 0) return;
     säädä_kohdistin();
-    aseta_vari(rend, &kohdistinvari);
+    aseta_väri(rend, &kohdistinvari);
     kohdistinsij.x = xsijainti(&kellool, strlen(kellool.teksti)-kohdistin);
     SDL_RenderFillRect(rend, &kohdistinsij);
 }
@@ -89,11 +89,13 @@ void piirrä(int päivitä) {
 	SDL_RenderPresent(rend);
 	return;
     }
-    if((laitot & kaikki_laitot) == kaikki_laitot)
-	vakiosijainnit();
     SDL_SetRenderTarget(rend, tausta);
-    aseta_vari(rend, &taustavari);
-    SDL_RenderClear(rend);
+    aseta_väri(rend, &taustavari);
+    if((laitot & kaikki_laitot) == kaikki_laitot) {
+	vakiosijainnit();
+	SDL_SetRenderTarget(rend, tausta);
+	SDL_RenderClear(rend);
+    }
 
     if((laitot & kaikki_laitot) == kaikki_laitot || !päivitä) goto laittaos;
     if(laitot & kellolai)    PYYHI(kellool);
@@ -112,8 +114,6 @@ laittaos:
 	laita_tekstilista(sektus, 1, &sektusol, rend);
     if(laitot & tuloslai)
 	laita_tekstilista(stulos, 1, &tulosol, rend);
-    if(laitot & tkstallai)
-	laita_teksti_ttf_vasemmalle(&tulosol, 10, &tkstalol, rend);
     if(laitot & jarjlai)
 	laita_järjestysolio();
     if(laitot & tilastotlai) {
@@ -125,7 +125,7 @@ laittaos:
     if(laitot & lisatdlai)
 	laita_tekstilista(lisatd, 0, &lisaol, rend);
     if(laitot & tkstallai)
-	laita_teksti_ttf_vasemmalle(&tulosol, 10, &tkstalol, rend);
+	laita_teksti_ttf_vasemmalle(&tulosol, 10, &tkstalol, rend); 
 
     if(!päivitä) return;
 
@@ -307,8 +307,9 @@ void laita_järjestysolio() {
     jarjol1.toteutuma.w = maksw;
 }
 
-void laita_ehkä_korostus() { // jos korostusol.paksuus > 0
-    aseta_vari(rend, &korostusol.vari);
+void laita_ehkä_korostus() {
+    if(korostusol.paksuus <= 0) return;
+    aseta_väri(rend, &korostusol.vari);
     SDL_Rect apu = korostusol.kulmio;
     for(int i=0; i<korostusol.paksuus; i++) {
 	SDL_RenderDrawRect(rend, &apu);
@@ -360,7 +361,7 @@ void laita_teksti_ttf_vasemmalle(tekstiolio_s* ov, short vali, tekstiolio_s* o, 
 	pinta->w - x,
 	pinta->h
     };
-  
+
     SDL_RenderFillRect(r, &o->toteutuma);
     SDL_RenderCopy(r, ttuuri, &osa, &o->toteutuma);
     SDL_FreeSurface(pinta);
