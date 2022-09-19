@@ -37,7 +37,7 @@ enum {raaka, suodate, derivoitu, ohennus, n_raitoja};
 	return virhe_id;						\
     }
 static uint32_t kuluma_ms = 0;
-static struct pollfd poll_0[] = { {-1, POLLIN}, {STDIN_FILENO, POLLIN} };
+static struct pollfd poll_0 = {STDIN_FILENO, POLLIN}; // stdin korvataan tarvittaessa argumentilla
 
 uint32_t opetusviive_ms = -1;
 int p00=-1, p11=-1, apuint;
@@ -89,10 +89,9 @@ uint64_t hetkinyt() {
 }
 
 void _siirra_dataa_ympari_vasen(float* data, int siirto, int pit, float* muisti) {
-    memcpy( muisti, data, siirto*sizeof(float) );
-    for(int i=0; i<pit-siirto; i++) //saisikohan tässäkin käyttää memcpy:a?
-	data[i] = data[i+siirto];
-    memcpy( data+pit-siirto, muisti, siirto*sizeof(float) );
+    memcpy(muisti, data, siirto*sizeof(float));
+    memmove(data, data+siirto, (pit-siirto)*sizeof(float));
+    memcpy(data+pit-siirto, muisti, siirto*sizeof(float));
 }
 
 void siirra_dataa_ympäri_vasen(float* data, int siirto, int pit) {
@@ -112,7 +111,7 @@ void siirra_dataa_ympäri_vasen(float* data, int siirto, int pit) {
 void suodata(float* data, float* kohde, int pit_data) {
     int gausspit = gauss_sigma_kpl*3;
     float gausskertoimet[gausspit*2+1];
-    float* gausskert = gausskertoimet + gausspit; //osoitin keskikohtaan
+    float* gausskert = gausskertoimet + gausspit; // osoitin keskikohtaan
     for(int t=0; t<=gausspit; t++)
 	gausskert[t] = gausskert[-t] = GAUSSPAINO(t,gauss_sigma_kpl);
     for(int i=gausspit; i+gausspit<pit_data; i++) {
@@ -261,33 +260,29 @@ void _valinta() {
 
 void putki0_tapahtumat() {
     int apu;
-    if(!(apu=poll(poll_0, 2, 0)))
+    if(!(apu=poll(&poll_0, 1, 0)))
 	return;
     if(apu < 0) {
 	fprintf(stderr, "Virhe (äänireuna->putki0_tapahtumat->poll): %s\n", strerror(errno));
 	return;
     }
     uint8_t viesti;
-    for(int i=0; i<2; i++) {
-	if(!poll_0[i].revents)
-	    continue;
-	if(poll_0[i].revents & POLLIN) {
-	    if( (apu=read(poll_0[i].fd, &viesti, 1)) == 1 )
-		break;
-	    else if(apu < 0)
-		fprintf(stderr, "Virhe putken luennassa (äänireuna->putki0_tapahtumat): %s\n", strerror(errno));
-	    else
-		fprintf(stderr, "Viestiä ei luettu, vaikka oli muka saatavilla (äänireuna->putki0_tapahtumat)\n");
-	    return;
-	}
-	else if(poll_0[i].revents & POLLHUP) {
-	    nauh_jatka = 0;
-	    return;
-	}
-	else if(poll_0[i].revents & POLLERR)
-	    fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0[i].fd);
-	return;
+    if(!poll_0.revents) return;
+    if(poll_0.revents & POLLIN) {
+	if((apu=read(poll_0.fd, &viesti, 1)) == 1)
+	    goto katso_viesti;
+	else if(apu < 0)
+	    fprintf(stderr, "Virhe putken luennassa (äänireuna->putki0_tapahtumat): %s\n", strerror(errno));
+	else
+	    fprintf(stderr, "Viestiä ei luettu, vaikka oli muka saatavilla (äänireuna->putki0_tapahtumat)\n");
     }
+    else if(poll_0.revents & POLLHUP)
+	nauh_jatka = 0;
+    else if(poll_0.revents & POLLERR)
+	fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0.fd);
+    return;
+
+katso_viesti:
     switch(viesti) {
     
     case aanireuna_valinta:
@@ -346,7 +341,8 @@ void lue_kntoriviargt(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     lue_kntoriviargt(argc, argv);
-    poll_0[0].fd = p00;
+    if(p00>0)
+	poll_0.fd = p00;
     signal(SIGINT, sigint);
     signal(SIGPIPE, sigint);
     signal(SIGCHLD, sigchld);
@@ -372,11 +368,9 @@ int main(int argc, char** argv) {
     käsittele(data);
     pthread_join(saie, NULL);
     snd_pcm_close(kahva_capt);
-    if(p00 >= 0) {
-	close(p00);
-	p00 = -1;
-	poll_0[0].fd = p00;
-    }
+    close(p00);
+    p00 = -1;
+    poll_0.fd = -1;
     if(p11 >= 0) {
 	close(p11);
 	p11 = -1;
