@@ -33,17 +33,13 @@ Ajanottosovelluksessa on seuraavat kirjoitustilat, joissa haluttu syöte kirjoit
 - Keskiarvon karsinnan vaihtaminen. Keskiarvon perässä näkyy luku N (oletuksena 16), jota napauttamalla tämä kirjoitustila aukeaa. Keskiarvoa karsitaan aina jättämällä paras ja huonoin tulos pois. Aina kun tuloksia on N lisää, jätetään yksi paras ja huonoin tulos enemmän pois eli esim 20:tä tuloksesta jätettäisiin oletuksena kaksi parasta ja huonointa pois ennen keskiarvon laskemista. Tämä ei vaikuta 5:n ja 12:n keskiarvoihin.
 - Tallennusnimen vaihtaminen, mikä aukeaa painamalla s-näppäintä tai hiirellä kohdasta "ulosnimi".
 
-Ajanottosovelluksesta voi käynnistää kuution napauttamalla vasemmalta ylhäältä tekstiä kuutio. Kuution koko (NxNxN) on sama kuin mikä on asetettu sekoitukseen.
+Ajanottosovelluksesta voi käynnistää erillisen kuution kuution, jonka koko (NxNxN) on sama kuin mikä on asetettu sekoitukseen.
 Näppäimellä F1 kuutio päätyy siihen sekoitukseen, jonka ajanottosovellus on arponut näytölle ja tarkasteluaika käynnistyy. Ajanotto alkaa automaattisesti, kun kuutiolle tekee siirron ja päättyy, kun kuutio on ratkaistu.
 
-Kuutiota ohjataan näppäimistöltä tiedostossa kuutio.c määritetyin näppäimin. Näppäimet on valittu siten, että käyttäminen olisi helppoa kymmensormijärjestelmällä. Kuutiota voi myös pyöritellä hiirellä. Näppäimellä F2 kuutio avaa Python-sovelluksen, joka kuuntelee säveliä ja näin kuutiota voi ohjata myös viheltämällä, mutta tämä on lähinnä kokeellinen ominaisuus. Käynnistettäessä kuutio komentoriviltä sen koko on oletuksena 3 (3x3x3), mutta argumenttina voi antaa muun koon, esim. "./kuutio 6" käynnistäisi (6x6x6)-kuution.
-
-Kuutiossa on myös jotain hiirellä ja nuolilla toimivia tahkojen tai ruutujen korostustoimintoja, jotka ovat turhia ja tehty lähinnä virheenjäljitystarkoituksessa.
+Kuutiota ohjataan näppäimistöltä tiedostossa kuutio.c määritetyin näppäimin. Näppäimet on valittu siten, että käyttäminen olisi helppoa kymmensormijärjestelmällä. Kuutiota voi myös pyörittää hiirellä. Näppäimellä F2 kuutio avaa Python-sovelluksen, joka kuuntelee säveliä ja näin kuutiota voi ohjata myös viheltämällä, mutta tämä on lähinnä kokeellinen ominaisuus. Käynnistettäessä kuutio komentoriviltä sen koko on oletuksena 3 (3x3x3), mutta argumenttina voi antaa muun koon, esim. "./kuutio 6" käynnistäisi (6x6x6)-kuution.
 
 Tulokset voi tallentaa ctrl+s-komennolla. Tämä tallentaa ajat ja niitten saamisajankohdat, mutta ei sekoituksia. Kirjoitettavan tiedoston nimi lukee kohdassa ulosnimi ja sitä voi vaihtaa yllä kuvatulla tavalla. Jos tiedosto on jo olemassa, kirjoitetaan sen loppuun, mutta jos on samaan aikaan saatuja tuloksia, kirjoitetaan niitten päälle, jottei kaksi peräkkäistä tallennusta tuottaisi samoja tuloksia kahdesti.
 
 Aiemmin tallennettujen tulosten tarkastelu tällä sovellukeslla onnistuu antamalla tiedoston nimi komentoriviargumenttina: ./skello TIEDOSTON_NIMI. Tiedostosta voi myös lukea vain osan antamalla rajausargumentin komentorivillä. Esimerkiksi viimeiset tuhat tulosta rajataan komennolla "./skello tulokset.txt -1000:", tai ensimmäiset tuhat rajataan argumentilla ":1000". Tarkempi selitys on tiedostossa main.c.
 
 Joittenkin alueitten fonttikokoa voi muuttaa ctrl+rullaus toiminnolla.
-
-Ääniohjelma ei ehkä aukea ajettessa tämä pääkäyttäjänä, jos äänipalvelimena on PulseAudio, jonka on käynnistänyt muu kuin pääkäyttäjä. Tämän voi ratkaista vaihtamalla äänireuna.c:ssä "default"-parametrin tilalle jonkin laitteen, esim "plughw:1,0", missä luvut 1 ja 0 riippuvat laitteistosta. Vaihtoehtoisesti voi käynnistää pulseaudion pääkäyttäjänä komennolla pulseaudio -D.
