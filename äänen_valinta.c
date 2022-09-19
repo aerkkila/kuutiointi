@@ -52,7 +52,7 @@ uint64_t hetkinyt();
 float skaalaa(float* data, int pit);
 
 void aja();
-void aanen_valinta(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva, int ulos_fno);
+void äänen_valinta(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva, int ulos_fno);
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
 #define DATAxKOHTA(raita,xkohta) ( (raita)*raidan_pit + (xkohta) )
 #define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
@@ -62,7 +62,7 @@ void aanen_valinta(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva, i
 #endif
 #define ABS(a) ((a)<0? -(a): a)
 
-extern uint64_t aanen_loppuhetki;
+extern uint64_t äänen_loppuhetki;
 static SDL_Window* ikkuna;
 static SDL_Renderer* rend;
 static SDL_Texture* tausta;
@@ -267,7 +267,7 @@ void lisaa_kynnysarvoon(Arg arg) {
 }
 
 void laita_unixaika(Arg arg) {
-  uint64_t aika = aanen_loppuhetki - raidan_pit/TAAJ_mHz + *(int*)arg.v/TAAJ_mHz;
+  uint64_t aika = äänen_loppuhetki - raidan_pit/TAAJ_mHz + *(int*)arg.v/TAAJ_mHz;
   if(ulos_fno < 0) {
     printf("%lu\n", aika);
     return;
@@ -482,7 +482,7 @@ float skaalaa(float* data, int pit) {
 }
 
 static int oli_sdl = 0;
-void aanen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kahva1, int ulos_fno1) {
+void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kahva1, int ulos_fno1) {
   raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1; ulos_fno = ulos_fno1;
   data = malloc(raitoja*raidan_pit*sizeof(float));
   skaalat = malloc(raitoja*sizeof(float));

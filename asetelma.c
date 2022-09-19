@@ -29,8 +29,8 @@ const char* aanivaihtoehdot[] = {"pois", "kuuntelu", "pysäytys"};
 
 const char* tarkastelu_str[] = {"pois", "päällä"};
 int tarkasteluaikatila = 1;
-enum aanivaihtoehto aanitila = aani_pois_e;
-char* aanitila_str;
+enum aanivaihtoehto äänitila = aani_pois_e;
+char* äänitila_str;
 
 const char* tekstialue[] = {
     "Ajan syöttö",
@@ -180,8 +180,8 @@ int asetelma() {
 	if(strlen(aanivaihtoehdot[i]) > pit1)
 	    pit1 = strlen(aanivaihtoehdot[i]);
     muut_a->taul[aani_e] = realloc(muut_a->taul[aani_e], pit0+pit1+1);
-    aanitila_str = muut_a->taul[aani_e] + pit0;
-    strcpy(aanitila_str, aanivaihtoehdot[aanitila]);
+    äänitila_str = muut_a->taul[aani_e] + pit0;
+    strcpy(äänitila_str, aanivaihtoehdot[äänitila]);
   
     if(avaa_fontit(&kellool, &tulosol, &jarjol1, &tilastotol, &lisaol, &sektusol, &valikkool, &tkstalol, NULL))
 	return 1;

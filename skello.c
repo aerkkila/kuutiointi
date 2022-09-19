@@ -97,7 +97,7 @@ void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
 void aani_lue_kohdan_unixaika();
-void aanitila_seuraava();
+void äänitila_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
 double hetkinyt();
@@ -164,7 +164,7 @@ TOISTOLAUSE:
 	    case SDLK_SPACE:
 		if(lopeta_aika())
 		    break; //ei lopetettu
-		if(aanitila) {
+		if(äänitila) {
 		    uint8_t kirj = aanireuna_valinta;
 		    write(aaniputki1[1], &kirj, 1);
 		}
@@ -375,7 +375,7 @@ TOISTOLAUSE:
 		    asm("int $3"); //jäljityspisteansa
 		break;
 	    case SDLK_F2:
-		if(aanitila == aani_pois_e) {
+		if(äänitila == aani_pois_e) {
 		    strcpy(TEKSTI, "Ääniputki ei ole auki");
 		    laitot |= tkstallai;
 		    break;
@@ -491,7 +491,7 @@ TOISTOLAUSE:
 		    laitot |= tkstallai;
 		    break;
 		case aani_e:
-		    aanitila_seuraava();           break;
+		    äänitila_seuraava();           break;
 		}
 		break; //case valikkoal
 	    default:
@@ -713,19 +713,19 @@ TOISTOLAUSE:
 		aani_lue_kohdan_unixaika();
 		break;
 	    case havaittiin_reuna:
-		if(aanitila == ääni_pysäytys_e)
+		if(äänitila == ääni_pysäytys_e)
 		    lopeta_aika();
 		break;
 	    }
 	} else if( poll_aani.revents & POLLHUP ) {
-	    while(aanitila != aani_pois_e)
-		aanitila_seuraava();
+	    while(äänitila != aani_pois_e)
+		äänitila_seuraava();
 	    strcpy(TEKSTI, "Ääniputki sulkeutui");
 	    laitot |= tkstallai;
 	} else if( poll_aani.revents & POLLERR ) {
 	    fprintf(stderr, "Virhetila äänikuuntelijassa (POLLERR)\n");
-	    while(aanitila != aani_pois_e)
-		aanitila_seuraava();
+	    while(äänitila != aani_pois_e)
+		äänitila_seuraava();
 	    strcpy(TEKSTI, "Virhe ääniputkessa");
 	    laitot |= tkstallai;
 	}
@@ -1187,17 +1187,17 @@ void aani_lue_kohdan_unixaika() {
 	    perror("\033[31mVirhe 2 (aani_lue_kohdan_unixaika)\033[0m");
     }
     if( poll_aani.revents & (POLLHUP|POLLERR|POLLNVAL) )
-	while(aanitila != aani_pois_e)
-	    aanitila_seuraava();
+	while(äänitila != aani_pois_e)
+	    äänitila_seuraava();
 }
 
-void aanitila_seuraava() {
-    if(aanitila == aani_pois_e)
+void äänitila_seuraava() {
+    if(äänitila == aani_pois_e)
 	avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
-    aanitila = (aanitila+1) % aani_vaihtoehtoja;
-    if(aanitila == aani_pois_e)
+    äänitila = (äänitila+1) % ääni_vaihtoehtoja;
+    if(äänitila == aani_pois_e)
 	sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
-    strcpy(aanitila_str, aanivaihtoehdot[aanitila]);
+    strcpy(äänitila_str, aanivaihtoehdot[äänitila]);
     laitot |= valikkolai;
 }
 

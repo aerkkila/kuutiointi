@@ -14,7 +14,7 @@
 
 static void putki0_tapahtumat();
 static void _valinta();
-void aanen_valinta(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* kahva_play, int ulos_fno); // ulkoinen
+void äänen_valinta(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* kahva_play, int ulos_fno); // ulkoinen
 
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
@@ -249,7 +249,7 @@ void _valinta() {
 	usleep(2000);
     siirra_dataa_ympäri_vasen(data[raaka], nauh_jakson_id*pit_jakso, pit_data);
     havaitse_ylitykset(data, 0, pit_data);
-    aanen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11);
+    äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11);
     //siirra_dataa_ympäri_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
     for(int i=0; i<pit_data; i++)
 	data[raaka][i] = NAN;
@@ -276,13 +276,13 @@ void katso_viesti(int viesti) {
 	memcpy(_data, data[raaka], pit_data*sizeof(float));
 	memcpy(data[raaka], tallentaminen(tallentaminen_palauta_tallenne), pit_data*sizeof(float));
 	havaitse_ylitykset(data, 0, pit_data);
-	aanen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan alkukohta
+	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan alkukohta
 	äänen_loppuhetki = _hetki;
 	memcpy(data[raaka], _data, pit_data*sizeof(float));
 	free(_data);
 	int32_t viesti = valinnan_erotin;
 	write(p11, &viesti, 4);
-	aanen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan loppukohta
+	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan loppukohta
 	nauh_jakson_id = 0;
 	luet_jakson_id = -1,
 	    nauh_tauko = 0;
@@ -300,7 +300,7 @@ void putki0_tapahtumat() {
     uint8_t viesti;
     if(!poll_0.revents) return;
     if(poll_0.revents & POLLIN) {
-	if((apu=read(poll_0.fd, &viesti, 1)) == 1) katso_viesti();
+	if((apu=read(poll_0.fd, &viesti, 1)) == 1) katso_viesti(viesti);
 	else if(apu < 0)
 	    fprintf(stderr, "Virhe putken luennassa (äänireuna->putki0_tapahtumat): %s\n", strerror(errno));
 	else

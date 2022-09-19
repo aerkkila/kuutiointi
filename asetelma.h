@@ -33,9 +33,9 @@ enum {tarkasteluaika_e, ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, aani_e,
 extern const char* tarkastelu_str[];
 extern int tarkasteluaikatila;
 extern const char* aanivaihtoehdot[];
-enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, ääni_pysäytys_e, aani_vaihtoehtoja};
-extern enum aanivaihtoehto aanitila;
-extern char* aanitila_str;
+enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, ääni_pysäytys_e, ääni_vaihtoehtoja};
+extern enum aanivaihtoehto äänitila;
+extern char* äänitila_str;
 extern const char* tekstialue[];
 extern char* ulosnimi;
 extern SDL_Color kohdistinvari;
