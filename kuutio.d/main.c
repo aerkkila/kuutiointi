@@ -23,19 +23,15 @@ kuutio_t kuutio;
 #include "python_savel.c"
 #endif
 
-/* funktio kopioitu nctietue2-kirjastosta */
 static int get_modstate() {
-  /* makes modstate side-insensitive and removes other modifiers than [alt,ctrl,gui,shift] */
+  /* makes modstate side-insensitive and removes other modifiers than those listed */
+  int modifiers[] = {KMOD_CTRL, KMOD_SHIFT, KMOD_ALT, KMOD_GUI};
+  int pit = sizeof(modifiers)/sizeof(*modifiers);
   int mod = 0;
   int mod0 = SDL_GetModState();
-  if(mod0 & KMOD_CTRL)
-    mod |= KMOD_CTRL;
-  if(mod0 & KMOD_SHIFT)
-    mod |= KMOD_SHIFT;
-  if(mod0 & KMOD_ALT)
-    mod |= KMOD_ALT;
-  if(mod0 & KMOD_GUI)
-    mod |= KMOD_GUI;
+  for(int i=0; i<pit; i++)
+    if(mod0 & modifiers[i])
+      mod |= modifiers[i];
   return mod;
 }
 
@@ -75,15 +71,12 @@ void avaa_tallenne(const char* s) {
 }
 
 int main(int argc, char** argv) {
-  int N;
-  if(argc < 2 || !(sscanf(argv[1], "%i", &N)))
-    N = 3;
-  if(argc > 1)
-    if(!strcmp(argv[1], "s"))
-      avaa_tallenne(NULL);
-    else
-      avaa_tallenne(argv[1]);
-  else
+  int N = 0;
+  if(argc < 2) N = 3;
+  else if(sscanf(argv[1], "%i", &N) == 1);
+  else if(!strcmp(argv[1], "s")) avaa_tallenne(NULL);
+  else                           avaa_tallenne(argv[1]);
+  if(N)
     kuutio = luo_kuutio(N);
   
 #ifndef __EI_SEKUNTIKELLOA__

@@ -37,12 +37,10 @@ kuutio_t luo_kuutio(int N) {
 }
 
 void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
-    if(maara == 0)
-	return;
+    if(maara == 0) return;
     int N = kuutp->N;
-    if(siirtokaista < 0 || siirtokaista > N)
-	return;
-    else if(siirtokaista == N && N > 1) {
+    if(siirtokaista < 0 || siirtokaista > N) return;
+    if(siirtokaista == N && N > 1) {
 	maara = (maara+2) % 4;
 	tahko = (tahko+3) % 6;
 	siirtokaista = 1;
