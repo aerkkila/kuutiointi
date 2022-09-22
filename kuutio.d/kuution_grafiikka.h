@@ -21,7 +21,7 @@ typedef struct {
 
 #define VARI(r,g,b) ((vari){{r,g,b}})
 #define HAE_RUUTUint3(N,A) hae_ruutu(N, (A).a[0], (A).a[1], (A).a[2])
-#define RUUTU(tahko, i, j) (((tahko)*kuutio.N*kuutio.N + (i)*kuutio.N + (j))*4)
+#define RUUTU(tahko, i, j) (((tahko)*kuutio.N2 + (j)*kuutio.N + (i))*4)
 #define RUUTUINT3(A) RUUTU(A.a[0], A.a[1], A.a[2])
 #define VARIINT3(rtu) (kuva.varit[(int)kuutio.sivut[SIVUINT3(kuutio.N,rtu)]])
 #define RISTITULO(v1,v2,tyyppi) ((tyyppi){{v1.a[1]*v2.a[2] - v1.a[2]*v2.a[1], v1.a[2]*v2.a[0] - v1.a[0]*v2.a[2], v1.a[0]*v2.a[1] - v2.a[0]*v1.a[1]}})

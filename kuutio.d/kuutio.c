@@ -2,6 +2,9 @@
 #include <string.h>
 #include "kuutio.h"
 
+/******************************************************************************
+   Nämä on tarkoitus poistaa
+
 /* akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki
    esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
    i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
@@ -24,12 +27,52 @@ const int3 akst_tij[6] = {
     [_f] = {{ 2, 3,-1}},
     [_b] = {{-2,-3,-1}}
 };
+/*******************************************************************************/
 
+int s_sivut[6][4] = {
+    [_r] = {_u,_b},
+    [_l] = {_u,_f},
+    [_u] = {_b,_r},
+    [_d] = {_f,_r},
+    [_f] = {_u,_r},
+    [_b] = {_u,_l},
+};
+int s_sivut_arg[6][6];
+
+void alusta_matriisit() {
+    int ind(int tahko, int tahko2) {
+	for(int i=0; i<4; i++)
+	    if(s_sivut[tahko][i] == tahko2)
+		return i;
+	return -1;
+    }
+    for(int i=0; i<6; i++)
+	for(int j=0; j<2; j++)
+	    s_sivut[i][j+2] = (s_sivut[i][j]+3) % 6;
+    for(int i=0; i<6; i++)
+	for(int j=0; j<6; j++)
+	    s_sivut_arg[i][j] = ind(i,j);
+}
+#if 0
+void luo_kuution_indeksit(int* taul[6], int pit) {
+    for(int tahko=0; tahko<3; tahko++) {
+	taul[tahko] = malloc(pit*4*pit*sizeof(int));
+	for(int kaista=0; kaista<pit; kaista++) {
+	    taul[tahko][];
+	}
+    }
+}
+
+#endif
 kuutio_t luo_kuutio(int N) {
+    alusta_matriisit();
     kuutio_t ktio;
     ktio.N = N;
     ktio.N2 = N*N;
-    ktio.sivut = malloc(6*ktio.N2);
+    //luo_kuution_indeksit(ktio.indeksit, ktio.N);
+    int apupit = ktio.N2 > 4*ktio.N ? ktio.N2 : 4*ktio.N;
+    ktio.sivut = malloc(6*ktio.N2 + apupit);
+    ktio.apu = ktio.sivut + 6*ktio.N2;
     ktio.ratkaistu = 1;
     for(int i=0; i<6; i++)
 	memset(ktio.sivut+i*ktio.N2, i, ktio.N2);
@@ -72,10 +115,10 @@ void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
     memcpy(apu, sivu, N*N);
 
     /* nyt käännetään: */
-#define arvo(taul,j,i) taul[(i)*N+(j)]
+#define arvo(taul,j,i) taul[(j)*N+(i)]
     for(int i=0; i<N; i++)
 	for(int j=0; j<N; j++)
-	    *sivu++ = arvo(apu,N-1-i,j);
+	    *sivu++ = arvo(apu,N-1-j,i);
 #undef arvo
     siirto(kuutp, tahko, siirtokaista, maara-1);
 }
@@ -89,31 +132,6 @@ int onkoRatkaistu(kuutio_t* kuutp) {
 		return 0;
     }
     return 1;
-}
-
-int s_sivut[6][4] = {
-    [_r] = {_u,_b},
-    [_l] = {_u,_f},
-    [_u] = {_b,_r},
-    [_d] = {_f,_r},
-    [_f] = {_u,_r},
-    [_b] = {_u,_l},
-};
-int s_sivut_arg[6][6];
-
-void alusta_matriisit() {
-    int ind(int tahko, int tahko2) {
-	for(int i=0; i<4; i++)
-	    if(s_sivut[tahko][i] == tahko2)
-		return i;
-	return -1;
-    }
-    for(int i=0; i<6; i++)
-	for(int j=0; j<2; j++)
-	    s_sivut[i][j+2] = (s_sivut[i][j]+3) % 6;
-    for(int i=0; i<6; i++)
-	for(int j=0; j<6; j++)
-	    s_sivut_arg[i][j] = ind(i,j);
 }
 
 int _ijmuunnos_negpos(int kuutio_N, int ij) { return ij + kuutio_N; }

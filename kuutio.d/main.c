@@ -78,7 +78,6 @@ int main(int argc, char** argv) {
   else                           avaa_tallenne(argv[1]);
   if(N)
     kuutio = luo_kuutio(N);
-  alusta_matriisit();
   
 #ifndef __EI_SEKUNTIKELLOA__
   ipc = liity_muistiin();

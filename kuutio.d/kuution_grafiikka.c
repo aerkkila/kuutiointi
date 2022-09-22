@@ -188,7 +188,7 @@ static void animoi(int tahko, int kaista, int maara) {
     else
 	kaantoaika = kaantoaika0;
     koordf akseli = kuva.kannat[tahko%3];
-    if(tahko/3)
+    if(tahko>=3)
 	for(int i=0; i<3; i++)
 	    akseli.a[i] *= -1;
     kääntöanimaatio(tahko, kaista, akseli, maara-2, kaantoaika);
@@ -292,9 +292,9 @@ koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
     x = pala * (iRuutu + x) + (x? -1: 1)*musta;
     y = pala * (jRuutu + y) + (y? -1: 1)*musta;
 
-    nurkka0.a[tahko%3]             = tahko/3? -res: res;
-    nurkka0.a[s_sivut[tahko][1]%3] = s_sivut[tahko][1]/3 ? res-x : x-res;
-    nurkka0.a[s_sivut[tahko][2]%3] = s_sivut[tahko][2]/3 ? res-y : y-res;
+    nurkka0.a[tahko%3]             = tahko>=3? -res: res;
+    nurkka0.a[s_sivut[tahko][1]%3] = s_sivut[tahko][1]>=3 ? res-x : x-res;
+    nurkka0.a[s_sivut[tahko][2]%3] = s_sivut[tahko][2]>=3 ? res-y : y-res;
 
     /* muunnos luonnolliseen koordinaatistoon:
        uusi_i = vanha_xyz * xyz:n vaikutus i:hin */

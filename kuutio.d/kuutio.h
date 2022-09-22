@@ -3,10 +3,12 @@
 #include <SDL2/SDL.h>
 
 typedef struct {
-  char* sivut;
-  int N; //NxNxN-kuutio
-  int N2; //N²
-  char ratkaistu;
+    char* sivut;
+    char* apu;
+    int *indeksit[3];
+    int N; //NxNxN-kuutio
+    int N2; //N²
+    char ratkaistu;
 } kuutio_t;
 
 typedef struct{ unsigned char v[3]; } vari;
@@ -16,13 +18,13 @@ typedef struct {int a[3];} int3;
 
 #define SIGN(i) ((i<0)? -1: 1)
 #define ABS(i) ((i<0)? -i: i)
-#define SIVU(N, tahko, i, j) ((tahko)*(N)*(N) + (i)*(N) + (j))
+#define SIVU(N, tahko, i, j) ((tahko)*(N)*(N) + (j)*(N) + (i))
 #define SIVUINT3(N,A) SIVU(N, (A).a[0], (A).a[1], (A).a[2])
 #define VAIHDA(a,b,tyyppi) do {			\
-    tyyppi apu_makro_VAIHDA = a;		\
-    a = b;					\
-    b = apu_makro_VAIHDA;			\
-  } while(0)
+	tyyppi apu_makro_VAIHDA = a;		\
+	a = b;					\
+	b = apu_makro_VAIHDA;			\
+    } while(0)
 
 #define _r 0
 #define _u 1
