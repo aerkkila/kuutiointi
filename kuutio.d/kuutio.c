@@ -80,45 +80,6 @@ void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
     siirto(kuutp, tahko, siirtokaista, maara-1);
 }
 
-/* esim _u, 3, 0 (3x3x3-kuutio) --> _r, 2, 0:
-   palauttaa oikean ruudun koordinaatit, kun yksi indeksi menee alunperin yli tahkolta */
-int3 hae_ruutu(int kuutio_N, int tahko0, int i0, int j0) {
-    int IvaiJ = (i0<0)? -1: (i0>=kuutio_N)? 1: (j0<0)? -2: (j0>=kuutio_N)? 2: 0;
-    if(!IvaiJ)
-	return (int3){{tahko0, i0, j0}};
-  
-    int aksTahko0;
-    int3 ruutu0 = (int3){{tahko0, i0, j0}};
-    aksTahko0 = ABS(tahko0%3);
-    if((i0 < 0 || i0 >= kuutio_N) && (j0 < 0 || j0 >= kuutio_N))
-	return (int3){{-1, -1, -1}};
-    int ylimenoaks;
-    for(ylimenoaks=0; ylimenoaks<3; ylimenoaks++)
-	if(ABS(akst[tahko0].a[ylimenoaks]) == ABS(IvaiJ)) // akseli, jolta kys tahko menee yli
-	    break;
-    int tahko1;
-    int haluttu = 3*SIGN(IvaiJ)*SIGN(akst[tahko0].a[ylimenoaks]); // menosuunta ja lukusuunta
-    for(tahko1=0; tahko1<6; tahko1++)
-	if(akst[tahko1].a[ylimenoaks] == haluttu) break;
-    int ij1[2], ind;
-    /* tullaanko alkuun vai loppuun eli kasvaako uusi indeksi vanhan tahkon sijainnin suuntaan
-       myös, että tullaanko i- vai j-akselin suunnasta */
-    int tulo = akst[tahko1].a[aksTahko0] * SIGN(akst[tahko0].a[aksTahko0]);
-    ind = ABS(tulo)-1; // ±1->0->i, ±2->1->j
-#define A ruutu0.a[ABS(IvaiJ)]
-    int lisa = (A<0)? -A-1: A-kuutio_N;
-    ij1[ind] = (tulo<0)? 0 + lisa : kuutio_N-1 - lisa ; // negat --> tullaan negatiiviselta suunnalta
-#undef A
-    ind = (ind+1)%2;
-    /* toisen indeksin akseli on molempiin tahkoakseleihin kohtisuorassa */
-    int akseli2 = 3-aksTahko0-ABS(ylimenoaks);
-    ij1[ind] = (ABS(akst[tahko0].a[akseli2]) == 1)? i0: j0;
-    /* vaihdetaan, jos ovat vastakkaissuuntaiset */
-    if(akst[tahko0].a[akseli2] * akst[tahko1].a[akseli2] < 0)
-	ij1[ind] = kuutio_N-1 - ij1[ind];
-    return hae_ruutu(kuutio_N, tahko1, ij1[0], ij1[1]);
-}
-
 int onkoRatkaistu(kuutio_t* kuutp) {
     int N2 = kuutp->N*kuutp->N;
     for(int sivu=0; sivu<6; sivu++) {
@@ -128,4 +89,76 @@ int onkoRatkaistu(kuutio_t* kuutp) {
 		return 0;
     }
     return 1;
+}
+
+int s_sivut[6][4] = {
+    [_r] = {_u,_b},
+    [_l] = {_u,_f},
+    [_u] = {_b,_r},
+    [_d] = {_f,_r},
+    [_f] = {_u,_r},
+    [_b] = {_u,_l},
+};
+int s_sivut_arg[6][6];
+
+void alusta_matriisit() {
+    int ind(int tahko, int tahko2) {
+	for(int i=0; i<4; i++)
+	    if(s_sivut[tahko][i] == tahko2)
+		return i;
+	return -1;
+    }
+    for(int i=0; i<6; i++)
+	for(int j=0; j<2; j++)
+	    s_sivut[i][j+2] = (s_sivut[i][j]+3) % 6;
+    for(int i=0; i<6; i++)
+	for(int j=0; j<6; j++)
+	    s_sivut_arg[i][j] = ind(i,j);
+}
+
+int _ijmuunnos_negpos(int kuutio_N, int ij) { return ij + kuutio_N; }
+int _ijmuunnos_pospos(int kuutio_N, int ij) { return kuutio_N*2-1 - ij; }
+int _ijmuunnos_negneg(int kuutio_N, int ij) { return -ij - 1; }
+int _ijmuunnos_posneg(int kuutio_N, int ij) { return ij - kuutio_N; }
+int (*_ijmuunnos_[])(int,int) = {
+    _ijmuunnos_pospos,
+    _ijmuunnos_posneg,
+    _ijmuunnos_negpos,
+    _ijmuunnos_negneg,
+};
+int3 hae_ruutu(int kuutio_N, int tahko0, int i0, int j0) {
+alku:
+    int ji0[]={j0,i0}, ji1[2];
+    int ylitys, ylittävä, neg0, neg1;
+    int (*muunnosfun)(int,int);
+    if(0);
+    else if(j0<0)         { ylitys=0; ylittävä=0; neg0=1; }
+    else if(j0>=kuutio_N) { ylitys=2; ylittävä=0; neg0=0; }
+    else if(i0<0)	  { ylitys=3; ylittävä=1; neg0=1; }
+    else if(i0>=kuutio_N) { ylitys=1; ylittävä=1; neg0=0; }
+    else return (int3){{tahko0, i0, j0}};
+    int tahko1 = s_sivut[tahko0][ylitys];
+
+    int saapuva;
+    switch(s_sivut_arg[tahko1][tahko0]) {
+    case 0: saapuva=0; neg1=1; break;
+    case 2: saapuva=0; neg1=0; break;
+    case 3: saapuva=1; neg1=1; break;
+    case 1: saapuva=1; neg1=0; break;
+    default: exit(1);
+    }
+    muunnosfun = _ijmuunnos_[neg0*2+neg1];
+    ji1[saapuva] = muunnosfun(kuutio_N, ji0[ylittävä]);
+
+    /* toinen indeksi katsotaan, että pysyy saman tahkon vieressä */
+    int sivullinen = s_sivut[tahko0][2-!ylittävä]; // positiivisesta i- tai j-suunnasta
+    if(s_sivut_arg[tahko1][sivullinen] % 3)        // positiivinen uudellakin sivulla
+	ji1[!saapuva] = ji0[!ylittävä];
+    else
+	ji1[!saapuva] = kuutio_N-1 - ji0[!ylittävä];
+
+    i0 = ji1[1];
+    j0 = ji1[0];
+    tahko0 = tahko1;
+    goto alku;
 }
