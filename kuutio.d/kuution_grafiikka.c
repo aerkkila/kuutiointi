@@ -74,6 +74,7 @@ int luo_kuva() {
     kuva.mustaOsuus = 0.05;
     kuva.paivita = 1;
     kuva.korostus = -1;
+    //kuva.siivukorostus = (int3){{-1, 
     kuva.ruutuKorostus = (int3){{-1, kuutio.N/2, kuutio.N/2}};
     kuva.varit[_u] = VARI(255,255,255); //valkoinen
     kuva.varit[_f] = VARI(0,  220,  0); //vihreä
@@ -274,33 +275,29 @@ void _piirrä_kaistoja(int tahko, int kaistaraja) {
 koordf ruudun_nurkka(int tahko, int iRuutu, int jRuutu, int nurkkaInd) {
     koordf nurkka, nurkka0; // nurkka0 on nurkan sijainti kuution omassa koordinaatistossa
     float res = kuva.resKuut/2;
-    float i,j;
+    float x,y;
     /* haetaan oikea nurkka ruudusta (vasen ylä, vasen ala yms) */
     switch(nurkkaInd) {
-    case 0: i = 0; j = 0; break;
-    case 1: i = 1; j = 0; break;
-    case 2: i = 1; j = 1; break;
-    case 3: i = 0; j = 1; break;
+    case 0: x = 0; y = 0; break;
+    case 1: x = 1; y = 0; break;
+    case 2: x = 1; y = 1; break;
+    case 3: x = 0; y = 1; break;
     default:
-	fprintf(stderr, "Virhe (tee_nurkan_koordtit): nurkkaInd = %i", nurkkaInd);
+	fprintf(stderr, "Virhe (tee_nurkan_koordtit): nurkkaInd = %x", nurkkaInd);
 	return (koordf){{NAN, NAN, NAN}};
     }
     /* siirretään oikeaan ruutuun */
-    float resPala = kuva.resKuut/kuutio.N;
-    float resMusta = resPala*kuva.mustaOsuus/2; // x/2, koska jakautuu kahteen palaan
-    i = resPala * (iRuutu + i) + pow(-1,i)*resMusta;
-    j = resPala * (jRuutu + j) + pow(-1,j)*resMusta;
-  
-    /* i ja j ovat siirrot tahkon vasemmasta ylänurkasta, nyt huomioidaan tahko */
-    int id = akst_tij[tahko].a[0];
-    nurkka0.a[ABS(id%3)] = res * SIGN(id);
-    id = akst_tij[tahko].a[1]; //i-suunta tahkolla
-    nurkka0.a[ABS(id%3)] = (-res + i) * SIGN(id);
-    id = akst_tij[tahko].a[2]; //j-suunta tahkolla
-    nurkka0.a[ABS(id%3)] = (-res + j) * SIGN(id);
+    float pala = kuva.resKuut/kuutio.N;
+    float musta = pala*kuva.mustaOsuus/2;
+    x = pala * (iRuutu + x) + (x? -1: 1)*musta;
+    y = pala * (jRuutu + y) + (y? -1: 1)*musta;
 
-    /*muunnos luonnolliseen koordinaatistoon:
-      uusi_i = vanha_xyz * xyz:n vaikutus i:hin*/
+    nurkka0.a[tahko%3]             = tahko/3? -res: res;
+    nurkka0.a[s_sivut[tahko][1]%3] = s_sivut[tahko][1]/3 ? res-x : x-res;
+    nurkka0.a[s_sivut[tahko][2]%3] = s_sivut[tahko][2]/3 ? res-y : y-res;
+
+    /* muunnos luonnolliseen koordinaatistoon:
+       uusi_i = vanha_xyz * xyz:n vaikutus i:hin */
     for(int i=0; i<3; i++)
 	nurkka.a[i] = (nurkka0.a[0] * kuva.kannat[0].a[i] +
 		       nurkka0.a[1] * kuva.kannat[1].a[i] +
@@ -435,12 +432,12 @@ void korosta_ruutu(void* ktit, int onko2vai3) {
     }
 }
 
-int nurkan_haku(int3 siivu, int3 ruutu, int mika) {
+/* tätä kutsutaan aina kolmesti peräkkäin antamalla
+   mikä==1, mikä==2, ja mikä==3 */
+int nurkan_haku(int3 siivu, int3 ruutu, int mikä) {
     static int nurkka1=-1, nurkka2=-1, IvaiJ=-1;
-    if(mika == 2)
-	return nurkka2;
-    else if(mika == 3)
-	return IvaiJ;
+    if(mikä == 2)	return nurkka2;
+    else if(mikä == 3)	return IvaiJ;
     /* suunta, johon viiva piirretään; a:n ja b:n normaali tahkolla */
     IvaiJ = (ABS(akst[ruutu.a[0]].a[siivu.a[0]]) == 1)? 2: 1;
     if(ruutu.a[IvaiJ] == 0) {
