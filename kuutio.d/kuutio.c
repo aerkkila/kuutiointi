@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "kuutio.h"
 
 /******************************************************************************
@@ -53,33 +54,107 @@ void alusta_matriisit() {
 	for(int j=0; j<6; j++)
 	    s_sivut_arg[i][j] = ind(i,j);
 }
-#if 0
-void luo_kuution_indeksit(int* taul[6], int pit) {
+
+void luo_kuution_indeksit(int* taul[3], int pit) {
+    int pit1 = pit*pit*4;
+    assert((*taul = malloc(pit1*3*sizeof(int))));
     for(int tahko=0; tahko<3; tahko++) {
-	taul[tahko] = malloc(pit*4*pit*sizeof(int));
+	taul[tahko] = taul[0] + tahko*pit1;
+	int ind=0;
 	for(int kaista=0; kaista<pit; kaista++) {
-	    taul[tahko][];
+	    for(int i=0; i<pit; i++) {
+		int3 r0 = hae_ruutu(pit, tahko, i, -1-kaista);
+		taul[tahko][ind++] = SIVUINT3(pit,r0);
+	    }
+	    for(int j=0; j<pit; j++) {
+		int3 r0 = hae_ruutu(pit, tahko, pit+kaista, j);
+		taul[tahko][ind++] = SIVUINT3(pit,r0);
+	    }
+	    for(int i=pit-1; i>=0; i--) {
+		int3 r0 = hae_ruutu(pit, tahko, i, pit+kaista);
+		taul[tahko][ind++] = SIVUINT3(pit,r0);
+	    }
+	    for(int j=pit-1; j>=0; j--) {
+		int3 r0 = hae_ruutu(pit, tahko, -1-kaista, j);
+		taul[tahko][ind++] = SIVUINT3(pit,r0);
+	    }
 	}
     }
 }
 
-#endif
-kuutio_t luo_kuutio(int N) {
+void luo_kuutio(kuutio_t *ktio, int N) {
     alusta_matriisit();
-    kuutio_t ktio;
-    ktio.N = N;
-    ktio.N2 = N*N;
-    //luo_kuution_indeksit(ktio.indeksit, ktio.N);
-    int apupit = ktio.N2 > 4*ktio.N ? ktio.N2 : 4*ktio.N;
-    ktio.sivut = malloc(6*ktio.N2 + apupit);
-    ktio.apu = ktio.sivut + 6*ktio.N2;
-    ktio.ratkaistu = 1;
+    ktio->N = N;
+    ktio->N2 = N*N;
+    luo_kuution_indeksit(ktio->indeksit, ktio->N);
+    int apupit = ktio->N2 > 4*ktio->N ? ktio->N2 : 4*ktio->N;
+    ktio->sivut = malloc(6*ktio->N2 + apupit);
+    ktio->apu = ktio->sivut + 6*ktio->N2;
+    ktio->ratkaistu = 1;
     for(int i=0; i<6; i++)
-	memset(ktio.sivut+i*ktio.N2, i, ktio.N2);
-    return ktio;
+	memset(ktio->sivut+i*ktio->N2, i, ktio->N2);
 }
 
-void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
+void _tahkon_pyöritys1(char* sivu, char* apu, int N) {
+    for(int j=0; j<N; j++)
+	for(int i=0; i<N; i++)
+	    *sivu++ = apu[SIVU2(0, N, 0, N-1-i, j)];
+}
+
+void _tahkon_pyöritys2(char* sivu, char* apu, int N) {
+    for(int j=0; j<N; j++)
+	for(int i=0; i<N; i++)
+	    *sivu++ = apu[SIVU2(0, N, 0, N-1-j, N-1-i)];
+}
+
+void _tahkon_pyöritys3(char* sivu, char* apu, int N) {
+    for(int j=0; j<N; j++)
+	for(int i=0; i<N; i++)
+	    *sivu++ = apu[SIVU2(0, N, 0, i, N-1-j)];
+}
+
+void (*_tahkon_pyöritys[])(char*, char*, int) = {
+    _tahkon_pyöritys1, _tahkon_pyöritys2, _tahkon_pyöritys3
+};
+
+void siirto(kuutio_t* ku, int tahko, int siirtokaista, int määrä) {
+    int N = ku->N;
+    int tahko0 = tahko;
+    if(siirtokaista < 0 || siirtokaista >= N) return;
+    if(tahko >= 3) {
+	tahko -= 3;
+	siirtokaista = N - siirtokaista - 1;
+	määrä = 4 - määrä;
+    }
+    /* Siivun pyöritys */
+    int Nn = N*4;
+    int *indptr = ku->indeksit[tahko] + Nn*siirtokaista;
+    for(int i=0; i<Nn; i++)
+	ku->apu[i] = ku->sivut[indptr[i]];
+    Nn = N*määrä;
+    int seisake = N*4 - Nn;
+    for(int i=0; i<seisake; i++)
+	ku->sivut[indptr[i+Nn]] = ku->apu[i];
+    for(int i=0; i<Nn; i++)
+	ku->sivut[indptr[i]] = ku->apu[i+seisake];
+
+    /* Tahkon pyöritys */
+    if(tahko0 >= 3) {
+	siirtokaista = N - siirtokaista - 1;
+	määrä = 4 - määrä;
+    }
+    if(siirtokaista == N-1) {
+	tahko0 = (tahko0+3) % 6;
+	määrä = 4 - määrä;
+    }
+    else if(siirtokaista != 0) return;
+    char* sivu = ku->sivut + SIVU2(ku->N2, N, tahko0, 0, 0);
+    memcpy(ku->apu, sivu, ku->N2);
+    _tahkon_pyöritys[määrä-1](sivu, ku->apu, N);
+}
+
+#if 0
+void vanha_siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
     if(maara == 0) return;
     int N = kuutp->N;
     if(siirtokaista < 0 || siirtokaista > N) return;
@@ -122,6 +197,7 @@ void siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
 #undef arvo
     siirto(kuutp, tahko, siirtokaista, maara-1);
 }
+#endif
 
 int onkoRatkaistu(kuutio_t* kuutp) {
     int N2 = kuutp->N*kuutp->N;

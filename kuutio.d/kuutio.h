@@ -2,6 +2,7 @@
 #define __kuutio__
 #include <SDL2/SDL.h>
 
+/* vain sivut ja indeksit[0] ovat vapautettavia */
 typedef struct {
     char* sivut;
     char* apu;
@@ -19,6 +20,7 @@ typedef struct {int a[3];} int3;
 #define SIGN(i) ((i<0)? -1: 1)
 #define ABS(i) ((i<0)? -i: i)
 #define SIVU(N, tahko, i, j) ((tahko)*(N)*(N) + (j)*(N) + (i))
+#define SIVU2(N2, N, tahko, j, i) ((tahko)*(N2) + (j)*(N) + (i))
 #define SIVUINT3(N,A) SIVU(N, (A).a[0], (A).a[1], (A).a[2])
 #define VAIHDA(a,b,tyyppi) do {			\
 	tyyppi apu_makro_VAIHDA = a;		\
@@ -38,7 +40,7 @@ extern kuutio_t kuutio;
 extern const int3 akst[6];
 extern const int3 akst_tij[6];
 
-kuutio_t luo_kuutio(int);
+void luo_kuutio(kuutio_t*, int);
 int onkoRatkaistu(kuutio_t*);
 void siirto(kuutio_t* kuutio, int tahko, int kaista, int maara);
 void paivita();

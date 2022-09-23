@@ -4,7 +4,7 @@
 SDL_Event tapaht; 
 int xVanha=0, yVanha=0; //alustetaan ettei kääntäjä varoittele turhaan
 char hiiri_painettu = 0;
-int siirtokaista = 1;
+int siirtokaista = 0;
 int raahattiin = 0;
 int vaihto = 0;
 int numero1_pohjassa = 0;
@@ -78,32 +78,19 @@ while(SDL_PollEvent(&tapaht)) {
       siirtoInl1(_b, 1);
       break;
     case SDL_SCANCODE_U:
-      for(int kaista=2; kaista<N; kaista++)
+      for(int kaista=1; kaista<N-1; kaista++)
 	siirto_(_r, kaista, 1);
       break;
     case SDL_SCANCODE_R:
-      for(int kaista=2; kaista<N; kaista++)
+      for(int kaista=1; kaista<N-1; kaista++)
 	siirto_(_l, kaista, 1);
       break;
-      /*käytetään kääntämisten määrässä siirtokaistaa*/
-    case SDL_SCANCODE_H:
-      kääntö_('y', (3*(siirtokaista)) % 4);
-      break;
-    case SDL_SCANCODE_G:
-      kääntö_('y', (1*(siirtokaista)) % 4);
-      break;
-    case SDL_SCANCODE_N:
-      kääntö_('x', (1*(siirtokaista)) % 4);
-      break;
-    case SDL_SCANCODE_V:
-      kääntö_('x', (3*(siirtokaista)) % 4);
-      break;
-    case SDL_SCANCODE_COMMA:
-      kääntö_('z', (1*(siirtokaista)) % 4);
-      break;
-    case SDL_SCANCODE_C:
-      kääntö_('z', (3*(siirtokaista)) % 4);
-      break;
+    case SDL_SCANCODE_H:     kääntö_(_d); break;
+    case SDL_SCANCODE_G:     kääntö_(_u); break;
+    case SDL_SCANCODE_N:     kääntö_(_r); break;
+    case SDL_SCANCODE_V:     kääntö_(_l); break;
+    case SDL_SCANCODE_COMMA: kääntö_(_f); break;
+    case SDL_SCANCODE_C:     kääntö_(_b); break;
     default:
       switch(tapaht.key.keysym.sym) {
       case SDLK_RSHIFT:
@@ -205,10 +192,11 @@ while(SDL_PollEvent(&tapaht)) {
       default:
 	if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9' && !numero1_pohjassa) {
 	  numero1_pohjassa = 1;
-	  siirtokaista += tapaht.key.keysym.sym - '1';
-	} else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9 && !numero10_pohjassa) {
+	  siirtokaista += tapaht.key.keysym.sym - '0';
+	}
+	else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9 && !numero10_pohjassa) {
 	  numero10_pohjassa = 1;
-	  siirtokaista += (tapaht.key.keysym.sym - SDLK_KP_1 + 1) * 10;
+	  siirtokaista += (tapaht.key.keysym.sym - SDLK_KP_0 + 1) * 10;
 	}
 	break;
       }
@@ -220,17 +208,17 @@ while(SDL_PollEvent(&tapaht)) {
     case SDLK_RSHIFT:
     case SDLK_LSHIFT:
       vaihto = 0;
-      siirtokaista = 1;
+      siirtokaista = 0;
       break;
     default:
       if('1' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9') {
 	numero1_pohjassa = 0;
 	if(!vaihto)
-	  siirtokaista = 1;
+	  siirtokaista = 0;
       } else if(SDLK_KP_1 <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= SDLK_KP_9) {
 	numero10_pohjassa = 0;
 	if(!vaihto)
-	  siirtokaista = 1;
+	  siirtokaista = 0;
       }
       break;
     }

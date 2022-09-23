@@ -198,21 +198,10 @@ static void animoi(int tahko, int kaista, int maara) {
     viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1e-6;
 }
 
-static void kääntö_(char akseli, int maara) {
-    if(!maara) return;
-    if(maara < 0)
-	maara += 4;
-    int tahko;
-    switch(akseli) {
-    case 'x': tahko = _r; break;
-    case 'y': tahko = _u; break;
-    case 'z': tahko = _f; break;
-    default: return;
-    }
-    animoi(tahko, -kuutio.N, maara);
-    for(int m=0; m<maara; m++)
-	for(int i=1; i<=kuutio.N; i++)
-	    siirto(&kuutio, tahko, i, 1);
+static void kääntö_(int tahko) {
+    animoi(tahko, -kuutio.N, 1);
+    for(int i=0; i<kuutio.N; i++)
+	siirto(&kuutio, tahko, i, 1);
     kuva.paivita = 1;
 }
 
@@ -678,7 +667,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 
     /*siivun pyörittäminen, joka on muuten sama kuin edellä tuleva tavallinen kääntö,
       mutta for-silmukoitten rajat ovat erilaiset*/
-    if(kaista>1) {
+    if(kaista>0) {
 	/*Paikallaan pysyvä osa piirretään alussa toiseen tekstuuriin.
 	  Alle tuleva osa piirretään alustaan, jossa alfa-kanava on 255, jolloin ei tarvitse pyyhkiä ikkunaa
 	  Vain liikkuva osa piirretään aina uudestaan*/
@@ -691,11 +680,11 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 	SDL_SetRenderDrawColor(kuva.rend,0,0,0,0); //0. tulee päälle
 	SDL_RenderClear(kuva.rend);
 	SDL_SetRenderTarget(kuva.rend, alusta[vastap_alla]); //piirretään vastapäinen, 1. jos vastap on alla
-	_piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista);
+	_piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista-1);
 	SDL_SetRenderTarget(kuva.rend, alusta[!vastap_alla]); //piirretään samanpuoleinen, 1. jos vastap on päällä
-	_piirrä_kaistoja(tahko, kaista-1);
+	_piirrä_kaistoja(tahko, kaista);
 	SDL_SetRenderTarget(kuva.rend, NULL);
-    
+
 	while(alku+kului/2 < loppu) {
 	    float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
 	    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
@@ -705,7 +694,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 	    SDL_RenderCopy(kuva.rend, alusta[1], NULL, NULL);
     
 #define A (rtu[n])
-	    for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
+	    for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
 		for(int j=0; j<kuutio.N; j++) {
 		    paikka = hae_ruutu(kuutio.N, tahko,i,j);
 		    if(paikka.a[0] < 0)
@@ -721,7 +710,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 		    if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 			piirrä_suunnikas(rtu);
 		}
-	    for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
+	    for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
 		for(int i=0; i<kuutio.N; i++) {
 		    paikka = hae_ruutu(kuutio.N, tahko,i,j);
 		    if(paikka.a[0] < 0)
@@ -754,7 +743,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 	/*viimeinen askel menee loppuun*/
 	SDL_RenderCopy(kuva.rend, alusta[1], NULL, NULL);
 	float askel = kokoKulma-kulmaNyt;
-	for(int i=-kaista, ii=0; ii<2; i=kuutio.N+kaista-1, ii++) //molemmat i-päät
+	for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
 	    for(int j=0; j<kuutio.N; j++) {
 		paikka = hae_ruutu(kuutio.N, tahko,i,j);
 		if(paikka.a[0] < 0)
@@ -770,7 +759,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 		if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
 		    piirrä_suunnikas(rtu);
 	    }
-	for(int j=-kaista, jj=0; jj<2; j=kuutio.N+kaista-1, jj++)
+	for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
 	    for(int i=0; i<kuutio.N; i++) {
 		paikka = hae_ruutu(kuutio.N, tahko,i,j);
 		if(paikka.a[0] < 0)
@@ -799,9 +788,9 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
     SDL_SetRenderTarget(kuva.rend, *alusta);
     SDL_SetRenderDrawColor(kuva.rend,0,0,0,0);
     SDL_RenderClear(kuva.rend);
-    _piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista);
-    if(kaista>1)
-	_piirrä_kaistoja(tahko, kaista-1);
+    _piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista-1);
+    //if(kaista>1)
+    //_piirrä_kaistoja(tahko, kaista-1);
     SDL_SetRenderTarget(kuva.rend, NULL);
   
     koordf* rtu;
@@ -823,6 +812,8 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
 	// A = (rtu[n])
 	for(int i=-1; i<kuutio.N+1; i++)
 	    for(int j=-1; j<kuutio.N+1; j++) {
+		if((i==-1) + (i==kuutio.N) + (j==-1) + (j==kuutio.N) == 2)
+		    continue;
 		paikka = hae_ruutu(kuutio.N, tahko,i,j);
 		if(paikka.a[0] < 0)
 		    continue;

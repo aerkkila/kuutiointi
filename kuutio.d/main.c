@@ -53,14 +53,14 @@ void avaa_tallenne(const char* s) {
   struct stat buf;
   if(stat(s, &buf) < 0) {
     perror("tallenteen avaaminen");
-    kuutio = luo_kuutio(3);
+    luo_kuutio(&kuutio, 3);
     return;
   }
   FILE *f = fopen(s, "r");
   int N2 = buf.st_size / 6, N=0;
-  /* Alla oleva rivi laskee neliöjuuren neliölukujen avulla. Menetelmä löytyy Wikipediasta. */
+  /* Alla oleva rivi laskee kokonaislukuneliöjuuren neliölukujen avulla. Menetelmä löytyy Wikipediasta. */
   for(int v=-1; N2-v>=2; N2-=v+=2) N++;
-  kuutio = luo_kuutio(N);
+  luo_kuutio(&kuutio, N);
   if(fgetc(f) >= 'a') lue_tekstinä(f);
   else {
     rewind(f);
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
   else if(!strcmp(argv[1], "s")) avaa_tallenne(NULL);
   else                           avaa_tallenne(argv[1]);
   if(N)
-    kuutio = luo_kuutio(N);
+    luo_kuutio(&kuutio, N);
   
 #ifndef __EI_SEKUNTIKELLOA__
   ipc = liity_muistiin();
@@ -124,5 +124,6 @@ int main(int argc, char** argv) {
   if(!oli_sdl)
     SDL_Quit();
   free(kuutio.sivut);
+  free(*kuutio.indeksit);
   return 0;
 }
