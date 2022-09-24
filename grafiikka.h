@@ -13,6 +13,7 @@ typedef struct {
     SDL_Rect sij; //tälle varattu maksimitila
     SDL_Rect toteutuma; //mikä tila oikeasti käytetään
     int x, y; // jätetäänkö ylimääräistä tilaa vasemmalle tai ylös
+    int monirivinen; // jaetaanko tarvittaessa teksti useammalle riville
     SDL_Color vari;
     short alku; //koskee vain listoja, ensimmäisen näytetyn indeksi, 'r'
     short rullaus; //koskee vain listoja, 'w'

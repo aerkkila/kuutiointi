@@ -176,6 +176,8 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
 	if((ttuuri = SDL_CreateTextureFromSurface(rend, pinta)))
 	    goto tekstuuri_luotu;
 
+	/* Ellei tekstuurin luominen onnistunut, teksti on luultavasti liian pitkä.
+	   Puolitettakoon tekstin pituutta kunnes onnistuu tai teksti loppuu. */
 	SDL_FreeSurface(pinta);
 	pinta = NULL;
 	int seuraava_rajaus = strlen(o->teksti) / 2;
@@ -202,6 +204,8 @@ tekstuuri_luotu:
 	wh0 |= 1<<1;
     }
 
+    if(o->monirivinen) goto monirivinen;
+
     /* Tulostetaan vain se osa lopusta, joka mahtuu kuvaan. */
     o->toteutuma = (SDL_Rect){
 	o->sij.x*skaala,
@@ -224,6 +228,39 @@ tekstuuri_luotu:
     SDL_FreeSurface(pinta);
     SDL_DestroyTexture(ttuuri);
     return;
+
+monirivinen:
+    /* Tulostetaan alusta niin pitkästi kuin mahtuu kuvaan,
+       minkä jälkeen jatketaan seuraavalle riville. */
+    int x = 0, jatka = 0;
+    o->toteutuma = (SDL_Rect){
+	.x = o->sij.x*skaala,
+	.y = o->sij.y*skaala,
+	.h = (pinta->h < o->sij.h)? pinta->h : o->sij.h
+    };
+    do {
+	SDL_Rect osa = {
+	    .x = x,
+	    .y = pinta->h < o->sij.h ? 0 : pinta->h - o->toteutuma.h,
+	    .h = pinta->h,
+	};
+	if(pinta->w-x > o->sij.w) {
+	    osa.w = o->toteutuma.w = o->sij.w;
+	    jatka = 1;
+	}
+	else {
+	    osa.w = o->toteutuma.w = pinta->w - x;
+	    jatka = 0;
+	}
+	SDL_RenderCopy(rend, ttuuri, &osa, &o->toteutuma);
+	o->toteutuma.y += o->toteutuma.h;
+	x += o->sij.w;
+    } while(jatka);
+    o->toteutuma.h = o->toteutuma.y - o->sij.y;
+    o->toteutuma.y = o->toteutuma.y;
+    o->toteutuma.w = pinta->w > o->sij.w ? o->sij.w : pinta->w;
+    SDL_FreeSurface(pinta);
+    SDL_DestroyTexture(ttuuri);
 }
 
 /*antamalla aluksi (alku) 0:n lista tulostetaan alkupäästä, muuten loppupäästä
@@ -249,14 +286,15 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
     int yht = sl->pit;
     int maksw = 0;
 
-    /*laitetaan niin monta jäsentä kuin mahtuu*/
-    if(alku) //laitetaan lopusta
-	o->alku = (mahtuu < yht)*(yht - mahtuu - o->rullaus); //0, jos mahtuu >= yht
-    else //laitetaan alusta
+    /* laitetaan niin monta jäsentä kuin mahtuu */
+    if(alku) // laitetaan lopusta
+	o->alku = (mahtuu < yht)*(yht - mahtuu - o->rullaus); // 0, jos mahtuu >= yht
+    else // laitetaan alusta
 	o->alku = -o->rullaus;
     int o_sij_y0 = o->sij.y;
     int raja = (mahtuu < yht-o->alku)? mahtuu : yht-o->alku;
-    for(int i=0; i<raja; i++) {
+    int yraja = o->sij.y + o->sij.h;
+    for(int i=0; i<raja && o->sij.y < yraja; i++) {
 	if(o->numerointi) {
 	    o->teksti = malloc(strlen( sl->taul[o->alku+i] )+10);
 	    sprintf(o->teksti, "%i. %s", o->alku+1+i, sl->taul[o->alku+i]);
@@ -266,7 +304,7 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
 	laita_teksti_ttf(o, rend);
 	if(o->toteutuma.w > maksw)
 	    maksw = o->toteutuma.w;
-	o->sij.y += rvali;
+	o->sij.y += o->toteutuma.h;
 	if(o->numerointi)
 	    free(o->teksti);
     }

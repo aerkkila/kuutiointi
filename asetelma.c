@@ -102,6 +102,7 @@ tekstiolio_s sektusol = {
     .ttflaji = 1,
     .fonttikoko = 20,
     .fonttied = MONOFONTTI,
+    .monirivinen = 1,
     .vari = {255, 255, 255, 255},
     .numerointi = 1
 };
