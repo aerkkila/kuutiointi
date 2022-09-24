@@ -40,6 +40,11 @@ void slistalle_kopioiden(slista* restrict sl, const char* restrict str) {
   *VIIMEINEN(sl) = strdup(str);
 }
 
+void slistalle(slista* restrict sl, char* str) {
+  jatka_listaa(sl, 1);
+  *VIIMEINEN(sl) = str;
+}
+
 void flistalle(flista* restrict fl, float lisattava) {
   jatka_listaa(fl, 1);
   *VIIMEINEN(fl) = lisattava;

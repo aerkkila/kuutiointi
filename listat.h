@@ -50,6 +50,7 @@ void tuhoa_slista(slista**);
 void tuhoa_lista(void*);
 
 void slistalle_kopioiden(slista* restrict, const char* restrict);
+void slistalle(slista* restrict, char*);
 void flistalle(flista* restrict, float);
 void ilistalle(ilista* restrict, int);
 void poista_slistalta_viimeinen(slista* restrict);

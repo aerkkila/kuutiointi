@@ -70,7 +70,7 @@ enum {
     tarkastelu,
 } nostotoimi;
 
-int kaunnista();
+int käynnistä();
 void tarkastele();
 void aloita_aika();
 int lopeta_aika();
@@ -81,7 +81,7 @@ int seuraava_kohta(const char* suote, int* kohta);
 void pyyhi(char* suote, int kohta);
 int piste_alueella(int x, int y, SDL_Rect* alue);
 enum alue_e hae_alue(int x, int y);
-char* sekoitus(char* s);
+char* sekoitus();
 void laita_eri_sekunnit(char* tmp);
 void tee_kuvaaja();
 void vaihda_fonttikoko(tekstiolio_s* olio, int y);
@@ -96,8 +96,9 @@ void hiireksi(enum hiirilaji);
 void taustaprosessina(const char* restrict);
 int viimeinen_sij(char* s, char c);
 void avaa_kuutio();
-void aani_lue_kohdan_unixaika();
-void äänitila_seuraava();
+void ääni_lue_lopun_unixaika();
+void ääni_lue_alun_unixaika();
+int äänitila_seuraava();
 void avaa_aanireuna();
 void sulje_aanireuna();
 double hetkinyt();
@@ -135,7 +136,7 @@ static int avgind[6];
 static char apuc[1500];
 static unsigned modkey;
 
-int kaunnista() {
+int käynnistä() {
     SDL_Event tapaht;
     short min, sek, csek;
     double dnyt;
@@ -149,8 +150,8 @@ int kaunnista() {
     vakiosijainnit();
     LAITOT;
     SDL_StopTextInput();
-    slistalle_kopioiden(sektus, sekoitus(apuc));
-TOISTOLAUSE:
+    slistalle(sektus, sekoitus());
+toistolause:
     while(SDL_PollEvent(&tapaht)) {
 	switch(tapaht.type) {
 	case SDL_QUIT:
@@ -165,7 +166,7 @@ TOISTOLAUSE:
 		if(lopeta_aika())
 		    break; //ei lopetettu
 		if(äänitila) {
-		    uint8_t kirj = aanireuna_valinta;
+		    uint8_t kirj = aanireuna_valitse_molemmat;
 		    write(aaniputki1[1], &kirj, 1);
 		}
 		break;
@@ -247,7 +248,7 @@ TOISTOLAUSE:
 		    float_kelloksi(KELLO, lue_kellosta(KELLO)); //tämä muotoilee syötteen
 		    lisaa_listoille(KELLO, time(NULL));
 		    TEE_TIEDOT;
-		    slistalle_kopioiden(sektus, sekoitus(apuc));
+		    slistalle(sektus, sekoitus());
 		    KIRJOITUSLAJIKSI(aikaKirj); //usein halutaan syöttää monta peräkkäin
 		    KELLO[0] = '\0';
 		    continue;
@@ -267,9 +268,9 @@ TOISTOLAUSE:
 		    break;
 		case kuutionKokoKirj:
 		    sscanf(KELLO, "%u", &NxN);
-		    strcpy(TEKSTI, "");
+		    *TEKSTI = '\0';
 		    poista_slistalta_viimeinen(sektus);
-		    slistalle_kopioiden(sektus, sekoitus(apuc));
+		    slistalle(sektus, sekoitus());
 		    break;
 		case avaa_tiedostoKirj:
 		    lue_tiedosto(KELLO, "");
@@ -282,7 +283,7 @@ TOISTOLAUSE:
 		    break;
 		}
 		/*koskee kaikkia kirjoituslajeja*/
-		if(ftulos)
+		if(ftulos && ftulos->pit)
 		    float_kelloksi(KELLO, *VIIMEINEN(ftulos));
 		break;
 	    case SDLK_END:
@@ -695,68 +696,73 @@ TOISTOLAUSE:
     } while(0);
   
     /*Äänikuuntelijan tapahtumat*/
-    while(( apuind = poll(&poll_aani, 1, 0) )) {
+    while((apuind = poll(&poll_aani, 1, 0))) {
 	if(apuind < 0) {
 	    fprintf(stderr, "Virhe poll-funktiossa: %s\n", strerror(errno));
 	    break;
 	}
 	if(poll_aani.revents & POLLIN) {
 	    uint32_t luenta;
-	    if( (apuind = read(aaniputki0[0], &luenta, 4)) <= 0 ) {
+	    if((apuind = read(aaniputki0[0], &luenta, 4)) <= 0) {
 		if(apuind < 0)
 		    fprintf(stderr, "Virhe äänikuuntelijasta lukemisessa %s\n", strerror(errno));
 		sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
 		break;
 	    }
 	    switch(luenta) {
-	    case seuraavaksi_kohdan_unixaika:
-		aani_lue_kohdan_unixaika();
+	    case seuraavaksi_lopun_unixaika:
+		ääni_lue_lopun_unixaika();
+		break;
+	    case seuraavaksi_alun_unixaika:
+		ääni_lue_alun_unixaika();
 		break;
 	    case havaittiin_reuna:
-		if(äänitila == ääni_pysäytys_e)
-		    lopeta_aika();
+		if(äänitila == ääni_pysäytys_e) lopeta_aika();
 		break;
 	    }
-	} else if( poll_aani.revents & POLLHUP ) {
-	    while(äänitila != aani_pois_e)
-		äänitila_seuraava();
+	}
+	else if(poll_aani.revents & POLLHUP) {
+	    while(äänitila_seuraava() != aani_pois_e);
 	    strcpy(TEKSTI, "Ääniputki sulkeutui");
 	    laitot |= tkstallai;
-	} else if( poll_aani.revents & POLLERR ) {
+	}
+	else if(poll_aani.revents & POLLERR) {
 	    fprintf(stderr, "Virhetila äänikuuntelijassa (POLLERR)\n");
-	    while(äänitila != aani_pois_e)
-		äänitila_seuraava();
+	    while(äänitila_seuraava() != aani_pois_e);
 	    strcpy(TEKSTI, "Virhe ääniputkessa");
 	    laitot |= tkstallai;
 	}
     }
-  
+
     if(tila == juoksee) {
 	gettimeofday(&nyt, NULL);
-	sek = (int)( (nyt.tv_sec + nyt.tv_usec/1.0e6) - (alku.tv_sec + alku.tv_usec/1.0e6) );
+	sek = (int)((nyt.tv_sec + nyt.tv_usec/1.0e6) - (alku.tv_sec + alku.tv_usec/1.0e6));
 	min = sek / 60;
 	sek %= 60;
 	csek = (nyt.tv_usec - alku.tv_usec + 1000000)/10000 % 100;
 	if(!min)
-	    sprintf(KELLO, "%s%hi,%hi%hi%s",				\
-		    (sakko==dnf)? "Ø(" : "", sek, csek/10, csek%10,	\
+	    sprintf(KELLO, "%s%hi,%hi%hi%s",
+		    (sakko==dnf)? "Ø(" : "", sek, csek/10, csek%10,
 		    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
 	else
-	    sprintf(KELLO, "%s%hi:%hi%hi,%hi%hi%s",				\
-		    (sakko==dnf)? "Ø(" : "",					\
-		    min, sek/10, sek%10, csek/10, csek%10,			\
+	    sprintf(KELLO, "%s%hi:%hi%hi,%hi%hi%s",
+		    (sakko==dnf)? "Ø(" : "",
+		    min, sek/10, sek%10, csek/10, csek%10,
 		    (sakko==ei)? "" : ( (sakko==plus)? "+" : ")" ));
-    } else if (tila == tarkastelee) {
+    }
+    else if (tila == tarkastelee) {
 	gettimeofday(&nyt, NULL);
 	dnyt = nyt.tv_sec + nyt.tv_usec/1.0e6;
 	char aika = 15 - (char)(dnyt - dalku);
 	if(aika > 0) {
 	    sprintf(KELLO, "%3hhi", aika);
-	} else if(aika > -2) {
+	}
+	else if(aika > -2) {
 	    sprintf(KELLO, " +2");
 	    sakko = plus;
 	    kellool.vari = kellovärit[2];
-	} else {
+	}
+	else {
 	    sprintf(KELLO, "DNF");
 	    sakko = dnf;
 	    kellool.vari = kellovärit[3];
@@ -766,7 +772,7 @@ TOISTOLAUSE:
     piirrä(1);
     laitot = kellolai * (tila != seis);
     SDL_Delay(viive);
-    goto TOISTOLAUSE;
+    goto toistolause;
 }
 
 double hetkinyt() {
@@ -803,7 +809,7 @@ int lopeta_aika() {
 	return 1;
     tila = seis;
     lisaa_listoille(KELLO, nyt.tv_sec);
-    slistalle_kopioiden(sektus, sekoitus(apuc));
+    slistalle(sektus, sekoitus());
     TEE_TIEDOT;
     laitot = jäädytä;
     return 0;
@@ -900,19 +906,34 @@ enum alue_e hae_alue(int x, int y) {
     return muual;
 }
 
-char* sekoitus(char* s) {
-    short pit = (NxN==2)? 9 : (NxN-2)*20;
+int logi_10(int n) {
+    int r = 0;
+    while(n /= 10) r++;
+    return r;
+}
+
+char* sekoitus() {
+    static const char pinnat[] = "RLUDFBrludfb";
+    static const char suunnat[] = " '2";
     unsigned paksuus = NxN/2;
-    const char pinnat[] = "RLUDFBrludfb";
-    const char suunnat[] = " '2";
     char akseli, viimeakseli=10, paks;
     int pinta, puolisko;
-    char akselikielto=0, kieltoakseli=0;
-    char puoliskokielto=0, sallittuPuolisko=0;
-    int paksKieltoja[2];
-    paksKieltoja[0] = 0;
-    paksKieltoja[1] = 0;
-    char paksKiellot[2][paksuus];
+    char akselikielto=0, kieltoakseli=0, puoliskokielto=0, sallittu_puolisko=0;
+    int pakskieltoja[2] = {0};
+    int pit = (NxN==2)? 9 : (NxN-2)*20;
+    char pakskiellot[2][paksuus];
+    int maxpit;
+
+    if(paksuus < 10)
+	maxpit = pit * (3+(NxN>5)); // esim. "R2 " (alle 6-kuutio) tai "2R' " (väh 6-kuutio)
+    else
+	maxpit = pit * (4+logi_10(paksuus)); // logi_10: montako numeroa paksuus voi vaatia, esim. "12R' "
+    char* s = malloc(maxpit + 1);
+    if(!s) {
+	sprintf(TEKSTI, "Sekoitukselle ei ole muistia: %s", strerror(errno));
+	laitot |= tkstallai;
+	return NULL;
+    }
     *s = '\0';
 
     for (int i=0; i<pit; i++) {
@@ -923,25 +944,25 @@ char* sekoitus(char* s) {
 	    puoliskokielto = 0;
 	    akselikielto = 0;
 	    for(int i1=0; i1<2; i1++)
-		paksKieltoja[i1] = 0;
+		pakskieltoja[i1] = 0;
 	}
 	viimeakseli = akseli;
     
 	/*puolisko*/
-	puolisko = (puoliskokielto)? sallittuPuolisko : rand() % 2;
+	puolisko = (puoliskokielto)? sallittu_puolisko : rand() % 2;
 	pinta = akseli*2 + puolisko;
     
 	/*paksuus*/
 	// esim N=3 --> % N/2=1 --> aina 0
-	char paksind = rand() % (paksuus - paksKieltoja[puolisko]);
+	char paksind = rand() % (paksuus - pakskieltoja[puolisko]);
 	/*haetaan oikea paksuus
 	  paksind on indeksi sallittujen paksuuksien joukossa*/
 	char loutuneet = -1;
 	paks = 1;
 	while(1) {
 	    char loutui = 1;
-	    for(int j=0; j<paksKieltoja[puolisko]; j++)
-		if(paksKiellot[puolisko][j] == paks) {
+	    for(int j=0; j<pakskieltoja[puolisko]; j++)
+		if(pakskiellot[puolisko][j] == paks) {
 		    loutui = 0;
 		    break;
 		}
@@ -953,22 +974,22 @@ char* sekoitus(char* s) {
 	if(paks > 1) pinta += 6; // esim R --> r jne.
 
 	/*lisätään uudet kiellot*/
-	paksKiellot[puolisko][paksKieltoja[puolisko]] = paks;
-	paksKieltoja[puolisko]++;
+	pakskiellot[puolisko][pakskieltoja[puolisko]] = paks;
+	pakskieltoja[puolisko]++;
 	/*Parillisilla kuutioilla ei sallita esim N/2u ja N/2d peräkkäin*/
 	if(NxN % 2 == 0 && paks == paksuus) {
 	    int toinen = !puolisko;
-	    paksKiellot[toinen][paksKieltoja[toinen]] = paksuus;
-	    paksKieltoja[toinen]++;
+	    pakskiellot[toinen][pakskieltoja[toinen]] = paksuus;
+	    pakskieltoja[toinen]++;
 	}
 	for(int j=0; j<2; j++)
-	    if(paksKieltoja[j] >= paksuus) {
+	    if(pakskieltoja[j] >= paksuus) {
 		if(puoliskokielto) {
 		    akselikielto = 1;
 		    kieltoakseli = akseli;
 		} else {
 		    puoliskokielto = 1;
-		    sallittuPuolisko = !j;
+		    sallittu_puolisko = !j;
 		}
 	    }
 	/*tulostus*/
@@ -1164,34 +1185,64 @@ void avaa_kuutio() {
     ulosnimeksi(apuc);
 }
 
-void aani_lue_kohdan_unixaika() {
+void ääni_lue_lopun_unixaika() {
     int apuind = poll(&poll_aani, 1, 500);
-    if(apuind < 0 ) {
-	perror("\033[31mVirhe (aani_lue_kohdan_unixaika)\033[0m");
-	return;
-    } else if (apuind == 0) {
-	fprintf(stderr, "\033[31mVirhe (aani_lue_kohdan_unixaika)\033[0m: aikaa ei ollut saatavilla\n");
+    if(apuind <= 0) {
+	if(apuind<0) perror("\033[31mVirhe (ääni_lue_lopun_unixaika)\033[0m");
+	else fprintf(stderr, "\033[31mVirhe (ääni_lue_lopun_unixaika)\033[0m: aikaa ei ollut saatavilla\n");
 	return;
     }
     uint64_t luenta;
     if(poll_aani.revents & POLLIN) {
-	if( (apuind = read(aaniputki0[0], &luenta, 8)) == 8 ) {
-	    float tulos = (double)luenta/1000 - ( (double)alku.tv_sec+alku.tv_usec/1.0e6 );
-	    float_kelloksi( KELLO, tulos );
+	if((apuind = read(aaniputki0[0], &luenta, 8)) == 8) {
+	    float tulos = (double)luenta/1000 - ((double)alku.tv_sec+alku.tv_usec/1.0e6);
+	    float_kelloksi(KELLO, tulos);
 	    *VIIMEINEN(ftulos) = tulos;
 	    free(*VIIMEINEN(stulos));
 	    *VIIMEINEN(stulos) = strdup(KELLO);
 	    TEE_TIEDOT;
 	    laitot = jäädytä;
-	} else if( apuind < 0 )
-	    perror("\033[31mVirhe 2 (aani_lue_kohdan_unixaika)\033[0m");
+	}
+	else if(apuind < 0) perror("\033[31mVirhe 2 (ääni_lue_lopun_unixaika)\033[0m");
+	else {
+	    sprintf(TEKSTI, "Luettiin %i eikä 8 tavua.", apuind);
+	    laitot |= tkstallai;
+	}
     }
-    if( poll_aani.revents & (POLLHUP|POLLERR|POLLNVAL) )
-	while(äänitila != aani_pois_e)
-	    äänitila_seuraava();
+    if(poll_aani.revents & (POLLHUP|POLLERR|POLLNVAL))
+	while(äänitila_seuraava() != aani_pois_e);
 }
 
-void äänitila_seuraava() {
+void ääni_lue_alun_unixaika() {
+    int apuind = poll(&poll_aani, 1, 500);
+    if(apuind <= 0) {
+	if(apuind<0) perror("\033[31mVirhe (ääni_lue_alun_unixaika)\033[0m");
+	else fprintf(stderr, "\033[31mVirhe (ääni_lue_alun_unixaika)\033[0m: aikaa ei ollut saatavilla\n");
+	return;
+    }
+    uint64_t luenta;
+    if(poll_aani.revents & POLLIN) {
+	if((apuind = read(aaniputki0[0], &luenta, 8)) == 8) {
+	    alku = (struct timeval){.tv_sec=luenta/1000, .tv_usec=(double)luenta/1000000};
+	    float tulos = (double)nyt.tv_sec+nyt.tv_usec/1.0e6 - (double)luenta/1000;
+	    float_kelloksi(KELLO, tulos);
+	    *VIIMEINEN(ftulos) = tulos;
+	    free(*VIIMEINEN(stulos));
+	    *VIIMEINEN(stulos) = strdup(KELLO);
+	    TEE_TIEDOT;
+	    laitot = jäädytä;
+	}
+	else if(apuind < 0) perror("\033[31mVirhe 2 (ääni_lue_alun_unixaika)\033[0m");
+	else {
+	    sprintf(TEKSTI, "Luettiin %i eikä 8 tavua.", apuind);
+	    laitot |= tkstallai;
+	}
+    }
+    if(poll_aani.revents & (POLLHUP|POLLERR|POLLNVAL))
+	while(äänitila_seuraava() != aani_pois_e);
+}
+
+int äänitila_seuraava() {
     if(äänitila == aani_pois_e)
 	avaa_aanireuna(aaniputki0, aaniputki1, &poll_aani);
     äänitila = (äänitila+1) % ääni_vaihtoehtoja;
@@ -1199,6 +1250,7 @@ void äänitila_seuraava() {
 	sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
     strcpy(äänitila_str, aanivaihtoehdot[äänitila]);
     laitot |= valikkolai;
+    return äänitila;
 }
 
 void avaa_aanireuna(int *putki0, int *putki1, struct pollfd* poll_aani) {
@@ -1268,7 +1320,7 @@ int main(int argc, char** argv) {
 		return 1;
     }
   
-    r = kaunnista();
+    r = käynnistä();
 
     sulje_aanireuna(aaniputki0, aaniputki1, &poll_aani);
     tuhoa_asetelma();
