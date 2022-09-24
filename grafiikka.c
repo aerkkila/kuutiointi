@@ -151,31 +151,47 @@ valmis:
     SDL_RenderPresent(rend);
 }
 
-void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
-    SDL_Surface *pinta;
-    switch(o->ttflaji) {
-    case 0:
-    OLETUSLAJI:
-	pinta = TTF_RenderUTF8_Solid(o->font, o->teksti, o->vari);
-	break;
-    case 1:
-	pinta = TTF_RenderUTF8_Shaded(o->font, o->teksti, o->vari, (SDL_Color){0,0,0,0});
-	break;
-    case 2:
-	pinta = TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari);
-	break;
-    default:
-	printf("Varoitus: tekstin laittamisen laji on tuntematon, käytetään oletusta\n");
-	goto OLETUSLAJI;
-    }
-    if(!pinta) {
-	fprintf(stderr, "Virhe tekstin luomisessa: %s\n", TTF_GetError());
-	return;
-    }
-    SDL_Texture *ttuuri = SDL_CreateTextureFromSurface(rend, pinta);
-    if(!ttuuri)
-	fprintf(stderr, "Virhe tekstuurin luomisessa: %s\n", SDL_GetError());
+SDL_Surface* luo_tekstipinta0(tekstiolio_s *o) {
+    return TTF_RenderUTF8_Solid(o->font, o->teksti, o->vari); }
+SDL_Surface* luo_tekstipinta1(tekstiolio_s *o) {
+    return TTF_RenderUTF8_Shaded(o->font, o->teksti, o->vari, (SDL_Color){0,0,0,0}); }
+SDL_Surface* luo_tekstipinta2(tekstiolio_s *o) {
+    return TTF_RenderUTF8_Blended(o->font, o->teksti, o->vari); }
 
+SDL_Surface* (*luo_tekstipinta[])(tekstiolio_s*) = {
+    luo_tekstipinta0, luo_tekstipinta1, luo_tekstipinta2
+};
+
+void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
+    SDL_Texture *ttuuri;
+    SDL_Surface *pinta;
+    int rajaus = -1;
+    char kirjain = '\0';
+    do {
+	pinta = luo_tekstipinta[o->ttflaji](o);
+	if(!pinta) {
+	    fprintf(stderr, "Virhe tekstin luomisessa: %s\n", TTF_GetError());
+	    return;
+	}
+	if((ttuuri = SDL_CreateTextureFromSurface(rend, pinta)))
+	    goto tekstuuri_luotu;
+
+	SDL_FreeSurface(pinta);
+	pinta = NULL;
+	int seuraava_rajaus = strlen(o->teksti) / 2;
+	if(rajaus >= 0)
+	    o->teksti[rajaus] = kirjain;
+	if(!seuraava_rajaus) break;
+	rajaus = seuraava_rajaus;
+	kirjain = o->teksti[rajaus];
+	o->teksti[rajaus] = '\0';
+    } while(1);
+    fprintf(stderr, "Virhe tekstuurin luomisessa: %s\n", SDL_GetError());
+    return;
+
+tekstuuri_luotu:
+    if(rajaus >= 0)
+	o->teksti[rajaus] = kirjain;
     unsigned wh0 = 0;
     if(!o->sij.w) {
 	o->sij.w = ikkuna_w - o->sij.x;

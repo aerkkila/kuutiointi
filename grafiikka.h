@@ -6,7 +6,7 @@
 
 typedef struct {
     char* teksti;
-    char ttflaji; //mitä ttf-kirjaston funktiota käytetään (katso laita_teksti_ttf())
+    int ttflaji; //mitä ttf-kirjaston funktiota käytetään (katso laita_teksti_ttf())
     TTF_Font* font;
     int fonttikoko;
     char* fonttied;
