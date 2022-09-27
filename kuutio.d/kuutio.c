@@ -6,7 +6,7 @@
 /******************************************************************************
    Nämä on tarkoitus poistaa
 
-/* akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki
+   akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki
    esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
    i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
    sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti) */
@@ -118,6 +118,10 @@ void (*_tahkon_pyöritys[])(char*, char*, int) = {
 };
 
 void siirto(kuutio_t* ku, int tahko, int siirtokaista, int määrä) {
+    if(!määrä%4) return;
+    määrä %= 4;
+    if(määrä < 0)
+	määrä += 4;
     int N = ku->N;
     int tahko0 = tahko;
     if(siirtokaista < 0 || siirtokaista >= N) return;
