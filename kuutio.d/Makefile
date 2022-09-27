@@ -1,6 +1,6 @@
 kaikki: kuutio
 
-kuutiotied=main.c kuutio.c kuution_käyttöliittymä.c kuution_grafiikka.c python_savel.c
+kuutiotied=main.c kuutio.c kuution_käyttöliittymä.c kuution_grafiikka.c python_savel.c lue_siirrot.c
 kuut_ots=kuutio.h kuution_grafiikka.h ../muistin_jako.h
 kuut_libs=-lSDL2 -lm
 
