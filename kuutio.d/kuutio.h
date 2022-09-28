@@ -27,6 +27,7 @@ typedef struct {int a[3];} int3;
 	a = b;					\
 	b = apu_makro_VAIHDA;			\
     } while(0)
+#define VAIHDA_XOR(a,b) do {a^=b; b^=a; a^=b;} while(0)
 
 #define _r 0
 #define _u 1

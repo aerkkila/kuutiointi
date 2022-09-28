@@ -66,20 +66,25 @@ alku:
 int main(int argc, char** argv) {
     /*komentoriviargumentit*/
     int maxpit_l = 4;
+    int minpit_l = 2;
     int töitä = 1;
+    int apu;
     for(int i=0; i<argc-1; i++)
-	if(!strcmp(argv[i], "--maxpit")) {
-	    if(!(sscanf(argv[i+1], "%i", &maxpit_l)))
-		puts("Ei luettu maksimipituutta");
+	if(!strcmp(argv[i], "--pit") || !strcmp(argv[i], "-n")) {
+	    apu = sscanf(argv[i+1], "%i-%i", &maxpit_l, &minpit_l);
+	    switch(apu) {
+	    case 0: puts("Ei luettu pituuksia"); break;
+	    case 2: VAIHDA_XOR(minpit_l, maxpit_l); break;
+	    }
 	}
-	else if(!strcmp(argv[i], "--töitä")) {
+	else if(!strcmp(argv[i], "--töitä") || !strcmp(argv[i], "-j")) {
 	    if(!(sscanf(argv[i+1], "%i", &töitä)))
 		puts("Ei luettu töitten määrää");
 	}
     pthread_t säikeet[töitä];
 
 #ifndef DEBUG
-    for(int pit=1; pit<=maxpit_l; pit++) {
+    for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 #else
 	int pit = maxpit_l;
 #endif
@@ -99,7 +104,6 @@ int main(int argc, char** argv) {
 	char snimi[22];
 	sprintf(apu, "sarjat%i.csv", pit);
 	FILE *ulos = fopen(apu, "w");
-	fprintf(ulos, "sarja\tsiirtoja\n");
 	/*Liitetään siihen säikeitten tekemät tiedostot*/
 	char c;
 	for(int i=0; i<töitä; i++) {
@@ -194,6 +198,7 @@ int sexa_ei_kelpaa(long sexa, int pit) {
 	n0 = n1;
 	n1 = n2;
     }
+    if(n0 != _u && n0 != _l) return 1; // n0 on nyt toinen siirto, joka on aina U tai L
     return (n0 == n1);
 }
 
