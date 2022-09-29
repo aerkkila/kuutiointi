@@ -194,14 +194,17 @@ void laita_teksti_ttf(tekstiolio_s *o, SDL_Renderer *rend) {
 tekstuuri_luotu:
     if(rajaus >= 0)
 	o->teksti[rajaus] = kirjain;
-    unsigned wh0 = 0;
+
+    /* Jos o->sij.[wh] on 0, alueen koko saa olla vapaasti koko ikkunan suuruinen.
+       Asetettakoon niihin siksi ikkunan koko, mutta tallennetaan mitä muutettiin muuttujaan hw0. */
+    unsigned hw0 = 0;
     if(!o->sij.w) {
 	o->sij.w = ikkuna_w - o->sij.x;
-	wh0 |= 1<<0;
+	hw0 |= 1<<0;
     }
     if(!o->sij.h) {
 	o->sij.h = ikkuna_h - o->sij.y;
-	wh0 |= 1<<1;
+	hw0 |= 1<<1;
     }
 
     if(o->monirivinen) goto monirivinen;
@@ -221,8 +224,10 @@ tekstuuri_luotu:
 	pinta->w,
 	pinta->h
     };
-    o->sij.w *= !(wh0 & 1<<0);
-    o->sij.h *= !(wh0 & 1<<1);
+
+    /* Jos o->sij.[wh] oli nolla, palautetaan siksi, jotta myöhemmilläkään piirtokerroilla kokoa ei rajoiteta. */
+    o->sij.w *= !(hw0 & 1<<0);
+    o->sij.h *= !(hw0 & 1<<1);
 
     SDL_RenderCopy(rend, ttuuri, &osa, &o->toteutuma);
     SDL_FreeSurface(pinta);
@@ -259,6 +264,8 @@ monirivinen:
     o->toteutuma.h = o->toteutuma.y - o->sij.y;
     o->toteutuma.y = o->toteutuma.y;
     o->toteutuma.w = pinta->w > o->sij.w ? o->sij.w : pinta->w;
+    o->sij.w *= !(hw0 & 1<<0);
+    o->sij.h *= !(hw0 & 1<<1);
     SDL_FreeSurface(pinta);
     SDL_DestroyTexture(ttuuri);
 }
@@ -271,14 +278,14 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
 	o->toteutuma.h = 0;
 	return 0;
     }
-    unsigned wh0 = 0;
+    unsigned hw0 = 0; // Sijainniksi tarvittaessa ikkunan koko ja muistetaan, muutettiinko näitä.
     if(!o->sij.w) {
 	o->sij.w = ikkuna_w - o->sij.x;
-	wh0 |= 1<<0;
+	hw0 |= 1<<0;
     }
     if(!o->sij.h) {
 	o->sij.h = ikkuna_h - o->sij.y;
-	wh0 |= 1<<1;
+	hw0 |= 1<<1;
     }
 
     int rvali = TTF_FontLineSkip(o->font);
@@ -304,7 +311,7 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
 	laita_teksti_ttf(o, rend);
 	if(o->toteutuma.w > maksw)
 	    maksw = o->toteutuma.w;
-	o->sij.y += o->toteutuma.h;
+	o->sij.y += o->toteutuma.h > rvali? o->toteutuma.h: rvali;
 	if(o->numerointi)
 	    free(o->teksti);
     }
@@ -313,8 +320,8 @@ int laita_tekstilista(slista* sl, int alku, tekstiolio_s *o, SDL_Renderer *rend)
     o->toteutuma.w = maksw;
     o->toteutuma.h = o->sij.y - o_sij_y0;
     o->sij.y = o_sij_y0;
-    o->sij.w *= !(wh0 & 1<<0);
-    o->sij.h *= !(wh0 & 1<<1);
+    o->sij.w *= !(hw0 & 1<<0);
+    o->sij.h *= !(hw0 & 1<<1);
     return raja;
 }
 
