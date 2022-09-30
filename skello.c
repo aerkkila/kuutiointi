@@ -794,6 +794,11 @@ void tarkastele() {
 void aloita_aika() {
     if(tila != tarkastelee)
 	sakko = ei;
+    if(äänitila) {
+	uint8_t kirj = äänireuna_tallenna;
+	write(aaniputki1[1], &kirj, 1);
+    }
+
     gettimeofday(&alku, NULL);
     nostotoimi = ei_mitaan;
     tila = juoksee;

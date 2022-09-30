@@ -47,10 +47,11 @@ int nauh_jaksoja;
 int nauh_jatka = 1;
 int nauh_tauko = 0;
 int nauh_tauolla = 0;
-uint64_t äänen_loppuhetki = 0;
+int tallenna_kun = 0;
+uint64_t nauhoitteen_loppuhetki = 0;
 
 void sulje_putki(void** putki) {
-    close( *( (int*)putki ) );
+    close(*((int*)putki));
 }
 
 /* komentoriviargumentit */
@@ -148,32 +149,49 @@ void havaitse_ylitykset(float** data, int alkukohta, int pit) {
 		 pit -= 1 );
 }
 
-enum tallenn_arg {tallentaminen_tallenna, tallentaminen_palauta_tallenne, tallentaminen_palauta_hetki, tallentaminen_vapauta};
+enum tallenn_arg {tallentaminen_tallenna, tallentaminen_jälkipuoli,
+		  tallentaminen_palauta_tallenne, tallentaminen_palauta_hetki, tallentaminen_vapauta};
 void* tallentaminen(int tallenn_arg_enum) {
     static float* tallenne;
-    static uint64_t loppuhetki;
+    static uint64_t tallenteen_loppuhetki;
+    static int viimeinen_yksikkö, tallennettua;
     switch(tallenn_arg_enum) {
-    
+
     case tallentaminen_tallenna:
-	nauh_tauko = 1;
-	if(!tallenne)
-	    tallenne = malloc(pit_data*sizeof(float));
-	while(!nauh_tauolla)
-	    usleep(1500);
-	loppuhetki = äänen_loppuhetki;
-	int kohta = nauh_jakson_id*pit_jakso;
-	memcpy( tallenne, data[raaka]+kohta, (pit_data-kohta)*sizeof(float) );
-	memcpy( tallenne+pit_data-kohta, data[raaka], kohta*sizeof(float) );
-	nauh_jakson_id = 0;
-	luet_jakson_id = -1;
-	nauh_tauko = 0;
-	return tallenne;
+	if(!tallenne) tallenne = malloc(pit_data*sizeof(float));
+	tallenna_kun = hetkinyt() + tallennusaika_ms/2;
+	int otto_id = (nauh_jakson_id - 1 + nauh_jaksoja) % nauh_jaksoja;
+	int lopusta = nauh_jaksoja/2.0 - otto_id;
+	tallennettua = 0;
+	if(lopusta > 0) {
+	    tallennettua = (int)(lopusta*pit_jakso);
+	    memcpy(tallenne, data[raaka]+(int)((nauh_jaksoja-lopusta)*pit_jakso), tallennettua*sizeof(float));
+	}
+	int alusta = nauh_jaksoja/2.0 - lopusta;
+	int alku = alusta > nauh_jaksoja/2.0 ? alusta-nauh_jaksoja/2.0 : 0;
+	memcpy(tallenne+tallennettua, data[raaka]+(int)(alku*pit_jakso), (int)(alusta*pit_jakso)*sizeof(float));
+	viimeinen_yksikkö = (int)(alku*pit_jakso) + (int)(alusta*pit_jakso);
+	break;
+
+    case tallentaminen_jälkipuoli:
+	tallenna_kun = 0;
+	int loppua = pit_data - viimeinen_yksikkö;
+	tallennettua = pit_data/2;
+	if(loppua >= pit_data/2)
+	    memcpy(tallenne+tallennettua, data[raaka]+viimeinen_yksikkö, pit_data/2*sizeof(float));
+	else {
+	    memcpy(tallenne+tallennettua, data[raaka]+viimeinen_yksikkö, loppua*sizeof(float));
+	    memcpy(tallenne+tallennettua+loppua, data[raaka], (pit_data/2-loppua)*sizeof(float));
+	}
+	int erotus = ((nauh_jakson_id+nauh_jaksoja)*pit_jakso - viimeinen_yksikkö) % pit_data;
+	tallenteen_loppuhetki = nauhoitteen_loppuhetki - (double)erotus/TAAJ_kHz;
+	break;
 
     case tallentaminen_palauta_tallenne:
 	return tallenne;
 
     case tallentaminen_palauta_hetki:
-	return &loppuhetki;
+	return &tallenteen_loppuhetki;
 
     case tallentaminen_vapauta:
 	free(tallenne);
@@ -196,9 +214,9 @@ void* nauhoita(void* datav) {
     nauh_jakson_id = 0;
     snd_pcm_prepare(kahva_capt);
     while(nauh_jatka) {
-	if( luet_jakson_id == nauh_jakson_id ) {
-	    fprintf(stderr, "\033[31mVaroitus: kaikkea dataa ei ehditty käsitellä\033[0m\n");
-	    while( luet_jakson_id == nauh_jakson_id )
+	if(luet_jakson_id == nauh_jakson_id) {
+	    fprintf(stderr, "\033[31mVaroitus:\033[0m kaikkea dataa ei ehditty käsitellä\n");
+	    while(luet_jakson_id == nauh_jakson_id)
 		usleep(1000);
 	}
 	if(nauh_tauko) {
@@ -209,11 +227,11 @@ void* nauhoita(void* datav) {
 	    snd_pcm_prepare(kahva_capt); // jatkaa nauhoitusta äänikortille
 	    nauh_tauolla = 0;
 	}
-	while(snd_pcm_readi( kahva_capt, data+pit_jakso*nauh_jakson_id, pit_jakso ) < 0) {
+	while(snd_pcm_readi(kahva_capt, data+pit_jakso*nauh_jakson_id, pit_jakso) < 0) { // lukee äänikortilta
 	    snd_pcm_prepare(kahva_capt);
 	    fprintf(stderr, "Puskurin ylitäyttö\n");
 	}
-	äänen_loppuhetki = hetkinyt();
+	nauhoitteen_loppuhetki = hetkinyt();
 	nauh_jakson_id = (nauh_jakson_id+1) % nauh_jaksoja;
     }
     snd_pcm_drop(kahva_capt);
@@ -240,6 +258,8 @@ void käsittele(void* datav) {
 	    kuluma_ms = 0;
 	}
 	putki0_tapahtumat();
+	if(tallenna_kun && hetkinyt() > tallenna_kun)
+	    tallentaminen(tallentaminen_jälkipuoli);
     }
 }
 
@@ -263,24 +283,25 @@ void katso_viesti(int viesti) {
     case aanireuna_valinta:
 	_valinta();
 	return;
-    case aanireuna_tallenna:
+    case äänireuna_tallenna:
 	tallentaminen(tallentaminen_tallenna);
 	return;
     case aanireuna_valitse_molemmat:
 	nauh_tauko = 1;
-	float* _data = malloc( pit_data*sizeof(float) );
+	float* _data = malloc(pit_data*sizeof(float));
 	while(!nauh_tauolla)
 	    usleep(1500);
-	uint64_t _hetki = äänen_loppuhetki;
-	äänen_loppuhetki = *(uint64_t*)tallentaminen(tallentaminen_palauta_hetki);
+	uint64_t _hetki = nauhoitteen_loppuhetki;
+	nauhoitteen_loppuhetki = *(uint64_t*)tallentaminen(tallentaminen_palauta_hetki);
 	memcpy(_data, data[raaka], pit_data*sizeof(float));
-	memcpy(data[raaka], tallentaminen(tallentaminen_palauta_tallenne), pit_data*sizeof(float));
+	float* a = tallentaminen(tallentaminen_palauta_tallenne);
+	if(!a) puts("äänen tallenne puuttuu");
+	memcpy(data[raaka], a, pit_data*sizeof(float));
 	havaitse_ylitykset(data, 0, pit_data);
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan alkukohta
-	äänen_loppuhetki = _hetki;
+	nauhoitteen_loppuhetki = _hetki;
 	memcpy(data[raaka], _data, pit_data*sizeof(float));
 	free(_data);
-	int32_t viesti = valinnan_erotin;
 	write(p11, &viesti, 4);
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan loppukohta
 	nauh_jakson_id = 0;
@@ -316,10 +337,10 @@ void lue_kntoriviargt(int argc, char** argv) {
     int pit = sizeof(kntoarg) / sizeof(kntoarg[0]);
     for(int i=1; i<argc; i++) {
 	for(int j=0; j<pit; j++) {
-	    if( strcmp( argv[i], kntoarg[j].nimi ) )
+	    if(strcmp(argv[i], kntoarg[j].nimi))
 		continue;
 	    for(int k=0; kntoarg[j].muuttujat[k]; k++)
-		if( sscanf(argv[++i], kntoarg[j].muoto, kntoarg[j].muuttujat[k]) != 1 ) {
+		if(sscanf(argv[++i], kntoarg[j].muoto, kntoarg[j].muuttujat[k]) != 1) {
 		    fprintf(stderr, "\033[31mVirhe\033[0m argumentin \"%s\" jälkeen\n", kntoarg[j].nimi);
 		    exit(1);
 		}
@@ -348,10 +369,10 @@ int main(int argc, char** argv) {
 	printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
 	nauh_jaksoja = 2;
     }
-    pit_data = nauh_jaksoja * pit_jakso; //tehdään tästä jakson pituuden monikerta
+    pit_data = nauh_jaksoja * pit_jakso; // tehtäköön tästä jakson pituuden monikerta
     alusta_ääni(&kahva_capt, SND_PCM_STREAM_CAPTURE);
     alusta_ääni(&kahva_play, SND_PCM_STREAM_PLAYBACK);
-    kokodata = calloc( pit_data * n_raitoja, sizeof(float) );
+    kokodata = calloc(pit_data * n_raitoja, sizeof(float));
     for(int i=0; i<n_raitoja; i++)
 	data[i] = kokodata + i*pit_data;
 
@@ -370,6 +391,7 @@ int main(int argc, char** argv) {
 	p11 = -1;
     }
     free(kokodata);
+    tallentaminen(tallentaminen_vapauta);
     puts("\nÄäniohjelma lopetti");
     return 0;
 }
