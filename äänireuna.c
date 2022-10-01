@@ -47,6 +47,7 @@ int nauh_jaksoja;
 int nauh_jatka = 1;
 int nauh_tauko = 0;
 int nauh_tauolla = 0;
+long tallenna_kun = 0;
 uint64_t nauhoitteen_loppuhetki = 0;
 
 void sulje_putki(void** putki) {
@@ -88,20 +89,20 @@ uint64_t hetkinyt() {
     return t.tv_sec*1000 + t.tv_usec/1000;
 }
 
-void _siirra_dataa_ympari_vasen(float* data, int siirto, int pit, float* muisti) {
+void _siirrä_dataa_ympäri_vasen(float* data, int siirto, int pit, float* muisti) {
     memcpy(muisti, data, siirto*sizeof(float));
     memmove(data, data+siirto, (pit-siirto)*sizeof(float));
     memcpy(data+pit-siirto, muisti, siirto*sizeof(float));
 }
 
-void siirra_dataa_ympäri_vasen(float* data, int siirto, int pit) {
+void siirrä_dataa_ympäri_vasen(float* data, int siirto, int pit) {
     if(siirto < 80000) {
 	float muisti[siirto];
-	_siirra_dataa_ympari_vasen(data, siirto, pit, muisti);
+	_siirrä_dataa_ympäri_vasen(data, siirto, pit, muisti);
 	return;
     }
     float* muisti = malloc(siirto*sizeof(float));
-    _siirra_dataa_ympari_vasen(data, siirto, pit, muisti);
+    _siirrä_dataa_ympäri_vasen(data, siirto, pit, muisti);
     free(muisti);
 }
 
@@ -148,23 +149,24 @@ void havaitse_ylitykset(float** data, int alkukohta, int pit) {
 		 pit -= 1 );
 }
 
-enum tallenn_arg {tallentaminen_tallenna, tallentaminen_jälkipuoli,
+enum tallenn_arg {tallentaminen_tallenna_takaa, tallentaminen_tallenna_tästä, tallentaminen_jälkipuoli,
 		  tallentaminen_palauta_tallenne, tallentaminen_palauta_hetki, tallentaminen_vapauta};
 void* tallentaminen(int tallenn_arg_enum) {
     static float* tallenne;
     static uint64_t tallenteen_loppuhetki;
-    static int tallennettua;
     switch(tallenn_arg_enum) {
 
-    case tallentaminen_tallenna:
+    case tallentaminen_tallenna_takaa:
+	tallenna_kun = 0;
 	if(!tallenne) tallenne = malloc(pit_data*sizeof(float));
-	int otto_id = (nauh_jakson_id - 1 + nauh_jaksoja) % nauh_jaksoja;
+	int alku = (nauh_jakson_id + 1) % nauh_jaksoja * pit_jakso; // pitäisi vähän siirtää, ettei ehditä kirjoittaa päälle
 	tallenteen_loppuhetki = nauhoitteen_loppuhetki;
-	tallennettua = (nauh_jaksoja-otto_id) * pit_jakso; // pitäisi vähän siirtää, ettei ehditä kirjoittaa päälle
-	memcpy(tallenne, data[raaka]+pit_data-tallennettua, tallennettua*sizeof(float));
-	int alusta = nauh_jaksoja - tallennettua;
-	memcpy(tallenne+tallennettua, data[raaka], alusta*sizeof(float));
+	memcpy(tallenne, data[raaka]+alku, (pit_data-alku)*sizeof(float));
+	memcpy(tallenne+(pit_data-alku), data[raaka], alku*sizeof(float));
 	break;
+
+    case tallentaminen_tallenna_tästä:
+	tallenna_kun = hetkinyt() + tallennusaika_ms - 100;
 
     case tallentaminen_palauta_tallenne:
 	return tallenne;
@@ -238,6 +240,8 @@ void käsittele(void* datav) {
 	    _valinta();
 	    kuluma_ms = 0;
 	}
+	if(tallenna_kun && hetkinyt() >= tallenna_kun)
+	    tallentaminen(tallentaminen_tallenna_takaa);
 	putki0_tapahtumat();
     }
 }
@@ -246,10 +250,10 @@ void _valinta() {
     nauh_tauko = 1;
     while(!nauh_tauolla)
 	usleep(2000);
-    siirra_dataa_ympäri_vasen(data[raaka], nauh_jakson_id*pit_jakso, pit_data);
+    siirrä_dataa_ympäri_vasen(data[raaka], nauh_jakson_id*pit_jakso, pit_data);
     havaitse_ylitykset(data, 0, pit_data);
     äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11);
-    //siirra_dataa_ympäri_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
+    //siirrä_dataa_ympäri_vasen( data[raaka], pit_data-nauh_jakson_id*pit_jakso, pit_data ); //takaisin ennalleen
     for(int i=0; i<pit_data; i++)
 	data[raaka][i] = NAN;
     nauh_jakson_id = 0;
@@ -262,8 +266,11 @@ void katso_viesti(int viesti) {
     case aanireuna_valinta:
 	_valinta();
 	return;
-    case äänireuna_tallenna:
-	tallentaminen(tallentaminen_tallenna);
+    case äänireuna_tallenna_takaa:
+	tallentaminen(tallentaminen_tallenna_takaa);
+	return;
+    case äänireuna_tallenna_tästä:
+	tallentaminen(tallentaminen_tallenna_tästä);
 	return;
     case aanireuna_valitse_molemmat:
 	nauh_tauko = 1;
@@ -280,6 +287,8 @@ void katso_viesti(int viesti) {
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan alkukohta
 	nauhoitteen_loppuhetki = _hetki;
 	memcpy(data[raaka], _data, pit_data*sizeof(float));
+	siirrä_dataa_ympäri_vasen(data[raaka], nauh_jakson_id*pit_jakso, pit_data);
+	havaitse_ylitykset(data, 0, pit_data);
 	free(_data);
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan loppukohta
 	nauh_jakson_id = 0;

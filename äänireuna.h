@@ -11,7 +11,8 @@ enum {
   havaittiin_reuna,
 
   aanireuna_valinta=1,
-  äänireuna_tallenna,
+  äänireuna_tallenna_takaa,
+  äänireuna_tallenna_tästä,
   aanireuna_valitse_molemmat,
 };
 #endif

@@ -795,7 +795,7 @@ void aloita_aika() {
     if(tila != tarkastelee)
 	sakko = ei;
     if(äänitila) {
-	uint8_t kirj = äänireuna_tallenna;
+	uint8_t kirj = äänireuna_tallenna_tästä;
 	write(aaniputki1[1], &kirj, 1);
     }
 
