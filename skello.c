@@ -1228,7 +1228,7 @@ void ääni_lue_alun_unixaika() {
     uint64_t luenta;
     if(poll_aani.revents & POLLIN) {
 	if((apuind = read(aaniputki0[0], &luenta, 8)) == 8) {
-	    alku = (struct timeval){.tv_sec=luenta/1000, .tv_usec=(double)luenta/1000000};
+	    alku = (struct timeval){.tv_sec=luenta/1000, .tv_usec=luenta%1000*1000};
 	    float tulos = (double)nyt.tv_sec+nyt.tv_usec/1.0e6 - (double)luenta/1000;
 	    float_kelloksi(KELLO, tulos);
 	    *VIIMEINEN(ftulos) = tulos;

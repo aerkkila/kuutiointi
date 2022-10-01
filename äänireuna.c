@@ -47,7 +47,6 @@ int nauh_jaksoja;
 int nauh_jatka = 1;
 int nauh_tauko = 0;
 int nauh_tauolla = 0;
-int tallenna_kun = 0;
 uint64_t nauhoitteen_loppuhetki = 0;
 
 void sulje_putki(void** putki) {
@@ -154,37 +153,17 @@ enum tallenn_arg {tallentaminen_tallenna, tallentaminen_jälkipuoli,
 void* tallentaminen(int tallenn_arg_enum) {
     static float* tallenne;
     static uint64_t tallenteen_loppuhetki;
-    static int viimeinen_yksikkö, tallennettua;
+    static int tallennettua;
     switch(tallenn_arg_enum) {
 
     case tallentaminen_tallenna:
 	if(!tallenne) tallenne = malloc(pit_data*sizeof(float));
-	tallenna_kun = hetkinyt() + tallennusaika_ms/2;
 	int otto_id = (nauh_jakson_id - 1 + nauh_jaksoja) % nauh_jaksoja;
-	int lopusta = nauh_jaksoja/2.0 - otto_id;
-	tallennettua = 0;
-	if(lopusta > 0) {
-	    tallennettua = (int)(lopusta*pit_jakso);
-	    memcpy(tallenne, data[raaka]+(int)((nauh_jaksoja-lopusta)*pit_jakso), tallennettua*sizeof(float));
-	}
-	int alusta = nauh_jaksoja/2.0 - lopusta;
-	int alku = alusta > nauh_jaksoja/2.0 ? alusta-nauh_jaksoja/2.0 : 0;
-	memcpy(tallenne+tallennettua, data[raaka]+(int)(alku*pit_jakso), (int)(alusta*pit_jakso)*sizeof(float));
-	viimeinen_yksikkö = (int)(alku*pit_jakso) + (int)(alusta*pit_jakso);
-	break;
-
-    case tallentaminen_jälkipuoli:
-	tallenna_kun = 0;
-	int loppua = pit_data - viimeinen_yksikkö;
-	tallennettua = pit_data/2;
-	if(loppua >= pit_data/2)
-	    memcpy(tallenne+tallennettua, data[raaka]+viimeinen_yksikkö, pit_data/2*sizeof(float));
-	else {
-	    memcpy(tallenne+tallennettua, data[raaka]+viimeinen_yksikkö, loppua*sizeof(float));
-	    memcpy(tallenne+tallennettua+loppua, data[raaka], (pit_data/2-loppua)*sizeof(float));
-	}
-	int erotus = ((nauh_jakson_id+nauh_jaksoja)*pit_jakso - viimeinen_yksikkö) % pit_data;
-	tallenteen_loppuhetki = nauhoitteen_loppuhetki - (double)erotus/TAAJ_kHz;
+	tallenteen_loppuhetki = nauhoitteen_loppuhetki;
+	tallennettua = (nauh_jaksoja-otto_id) * pit_jakso; // pitäisi vähän siirtää, ettei ehditä kirjoittaa päälle
+	memcpy(tallenne, data[raaka]+pit_data-tallennettua, tallennettua*sizeof(float));
+	int alusta = nauh_jaksoja - tallennettua;
+	memcpy(tallenne+tallennettua, data[raaka], alusta*sizeof(float));
 	break;
 
     case tallentaminen_palauta_tallenne:
@@ -247,19 +226,19 @@ void käsittele(void* datav) {
 	    usleep(1000);
 	luet_jakson_id = uusi_id;
 	havaitse_ylitykset(data, pit_jakso*luet_jakson_id, pit_jakso); // jaksojen välit pitää vielä käsitellä
+#if 0
 	for(int i=0; i<pit_jakso; i++) {
 	    int ii = i+pit_jakso*luet_jakson_id;
 	    if(data[ohennus][ii] < kynnysarvot[3]) continue;
 	    if(p11 < 0) printf("%.3e\n", data[ohennus][ii]);
 	    else        write(p11, data[ohennus]+ii, sizeof(float));
 	}
+#endif
 	if((kuluma_ms+=jaksonaika_ms) >= opetusviive_ms) {
 	    _valinta();
 	    kuluma_ms = 0;
 	}
 	putki0_tapahtumat();
-	if(tallenna_kun && hetkinyt() > tallenna_kun)
-	    tallentaminen(tallentaminen_jälkipuoli);
     }
 }
 
@@ -302,7 +281,6 @@ void katso_viesti(int viesti) {
 	nauhoitteen_loppuhetki = _hetki;
 	memcpy(data[raaka], _data, pit_data*sizeof(float));
 	free(_data);
-	write(p11, &viesti, 4);
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11); // valitaan loppukohta
 	nauh_jakson_id = 0;
 	luet_jakson_id = -1,
