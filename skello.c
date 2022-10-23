@@ -166,7 +166,7 @@ toistolause:
 		if(lopeta_aika())
 		    break; //ei lopetettu
 		if(äänitila) {
-		    uint8_t kirj = aanireuna_valitse_molemmat;
+		    uint8_t kirj = äänireuna_valitse_molemmat;
 		    write(aaniputki1[1], &kirj, 1);
 		}
 		break;
@@ -381,7 +381,7 @@ toistolause:
 		    laitot |= tkstallai;
 		    break;
 		}
-		uint8_t kirj = aanireuna_valinta;
+		uint8_t kirj = äänireuna_valitse_molemmat;
 		write(aaniputki1[1], &kirj, 1);
 		break;
 	    }

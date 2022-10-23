@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include "modkeys.h"
 #include "äänireuna.h"
+#include "luokittelupuu.h"
 
 typedef union {
     int i;
@@ -22,10 +23,10 @@ typedef struct {
 
 typedef struct {int a[2];} int2;
 
-void näpp_alas(Arg turha);
-void näpp_ylös(Arg turha);
-void hiiri_alas(Arg turha);
-void ikkunatapahtuma(Arg turha);
+void näpp_alas(Arg _);
+void näpp_ylös(Arg _);
+void hiiri_alas(Arg _);
+void ikkunatapahtuma(Arg _);
 void kohdistin_sivulle(Arg i_suunta);
 void kohdistin_alas(Arg i_suunta);
 void kuvan_alku_sivulle(Arg i_suunta);
@@ -40,29 +41,38 @@ void laita_aika(Arg vp_naute);
 void int_nollaksi(Arg vp_muuttuja);
 void alueen_kynnysarvo(Arg n_iter);
 void alueen_kynnysarvo_iteroi(Arg f_toler);
-void valitse_ylimenot(Arg turha);
-void toiseen_reunaan(Arg turha);
+void toista_ympäriltä(Arg ms);
+void seuraava_ylimeno(Arg _);
+void toiseen_reunaan(Arg _);
+void luokittele_kaikki(Arg _);
+void vaihda_luokitus(Arg _);
+void opeta(Arg _);
+void luokittele(Arg _);
 
-void piirrä_raidat();
-void piirra_kynnysarvot();
-void piirra_kohdistin(int x, int r); //x määritellään ääniraidan näytteenä
-void piirra_valinta(int2*);
-int toiston_sijainti();
-void toista_kohdistin();
-void toista_väli(int2);
+void     piirrä_raidat();
+void     piirra_kynnysarvot();
+void     piirrä_kohdistin(int x, int r); //x määritellään ääniraidan näytteenä
+void     piirrä_valinta(int2*);
+void     piirrä_luokitus();
+int      toiston_sijainti();
+void     toista_kohdistin();
+void     toista_väli(int2);
 static uint64_t hetkinyt();
-float skaalaa(float* data, int pit);
+float    skaalaa(float* data, int pit);
+void     tee_opetusdata();
+int      seuraava_ylimeno_tältä();
 
 void aja();
 void äänen_valinta(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva, int ulos_fno);
 #define ASETA_VARI(vari) SDL_SetRenderDrawColor(rend, vari.r, vari.g, vari.b, vari.a)
-#define DATAxKOHTA(raita,xkohta) ( (raita)*raidan_pit + (xkohta) )
-#define LASKE_IVALI ( (int)( raidan_pit/ikk_w / zoom ) )
+#define DATAxKOHTA(raita,xkohta) ((raita)*raidan_pit + (xkohta))
+#define LASKE_IVALI ((int)(raidan_pit/ikk_w / zoom))
 #define PITUUS(taul) (sizeof(taul)/sizeof(*taul))
 #ifdef ABS
 #undef ABS
 #endif
 #define ABS(a) ((a)<0? -(a): a)
+#define vapauta(fun, ptr) do { fun(ptr); ptr=NULL; } while(0)
 
 extern uint64_t nauhoitteen_loppuhetki;
 static SDL_Window* ikkuna;
@@ -70,26 +80,39 @@ static SDL_Renderer* rend;
 static SDL_Texture* tausta;
 static SDL_Event tapaht;
 /*asetelma*/
-static SDL_Color taustavari = {40,40,40,255};
-static SDL_Color aluevari = {.a=255};
-static SDL_Color piirtovari = {255,255,255,255};
-static SDL_Color kohdistin_paaraita = {0,255,50,255};
+static SDL_Color taustavari         = {40,40,40,255};
+static SDL_Color aluevari           = {.a=255};
+static SDL_Color piirtovari         = {255,255,255,255};
+static SDL_Color kohdistin_pääraita = {0,255,50,255};
 static SDL_Color kohdistin_muuraita = {255,80,0,255};
-static SDL_Color kynnysvari = {50,180,255,255};
-static SDL_Color vntavari = {255,255,255,40};
+static SDL_Color kynnysvari         = {50,180,255,255};
+static SDL_Color vntavari           = {255,255,255,40};
+static SDL_Color luokitus_joo       = {100,255,0,100};
+static SDL_Color luokitus_ei        = {255,100,0,100};
 static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
-static int raidan_kork = 200, raidan_vali, raidan_h, ivali, kuvan_alku;
+static int raidan_kork = 200, raidan_vali, raidan_h, iväli, kuvan_alku;
 static float zoom = 1;
 static unsigned tuplaklikkaus_ms = 240, siirtoluku = 4;
 #define KYNNYS_SIETO 0.001
+#define PERUS 0
+#define SUODATE 1
+#define DERIV 2
+#define OHENNE 3
 
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //monesko näyte ääniraidalla
-static int toiston_x, toiston_alku;
+static int toiston_x, toiston_alku, toiston_loppu;
 static int2 valinta = {{-1, -1}};
+#define luokitus_sij_pit 64
+static int2 luokitus_sij[luokitus_sij_pit];
+static long long unsigned luokitukset;
+static int luokituksia;
 static float* data;
 static float** kynnarv;
+static lpuu_matriisi* xmat;
+static char* yvec;
 static float* skaalat;
+static lpuu* puu;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static int ulos_fno;
@@ -99,14 +122,21 @@ static unsigned modkey;
 
 Sidonta näpp_alas_sid[] = {
     { SDLK_g,        0,      kohdistin_sivulle,        {.i=-1}           },
+    { SDLK_LEFT,     0,      kohdistin_sivulle,        {.i=-1}           },
     { SDLK_o,        0,      kohdistin_sivulle,        {.i=1}            },
+    { SDLK_RIGHT,    0,      kohdistin_sivulle,        {.i=1}            },
     { SDLK_a,        0,      kohdistin_alas,           {.i=1}            },
+    { SDLK_DOWN,     0,      kohdistin_alas,           {.i=1}            },
     { SDLK_i,        0,      kohdistin_alas,           {.i=-1}           },
+    { SDLK_UP,       0,      kohdistin_alas,           {.i=-1}           },
     { SDLK_g,        ALT,    kuvan_alku_sivulle,       {.i=-1}           },
+    { SDLK_LEFT,     ALT,    kuvan_alku_sivulle,       {.i=-1}           },
     { SDLK_o,        ALT,    kuvan_alku_sivulle,       {.i=1}            },
+    { SDLK_RIGHT,    ALT,    kuvan_alku_sivulle,       {.i=1}            },
     { SDLK_SPACE,    0,      vaihda_toistaminen,       {0}               },
     { SDLK_SPACE,    ALT,    vaihda_toistaminen,       {.v=&toiston_x}   },
     { SDLK_SPACE,    CTRL,   alusta_valinta,           {.v=&kohdistin.x} },
+    { SDLK_SPACE,    VAIHTO, toista_ympäriltä,         {.i=300}          }, // montako millisekuntia kohdistimen ympäriltä
     { SDLK_ESCAPE,   0,      alusta_valinta,           {0}               },
     { SDLK_ESCAPE,   ALT,    lisaa_kynnysarvoon,       {.f=NAN}          },
     { SDLK_PLUS,     0,      zoomaa,                   {.f=1.1}          },
@@ -122,8 +152,12 @@ Sidonta näpp_alas_sid[] = {
     { SDLK_PERIOD,   0,      alueen_kynnysarvo,        {.i=1}            }, // jatkaa iterointia yhdellä
     { SDLK_PERIOD,   ALT,    alueen_kynnysarvo,        {.i=0}            }, // aloittaa iteroinnin alusta
     { SDLK_PERIOD,   CTRL,   alueen_kynnysarvo_iteroi, {.f=KYNNYS_SIETO} },
-    { SDLK_INSERT,   0,      valitse_ylimenot,         {0}               },
+    { SDLK_INSERT,   0,      seuraava_ylimeno,         {0}               },
+    { SDLK_INSERT,   ALT,    luokittele_kaikki,        {0}               },
+    { SDLK_INSERT,   CTRL,   opeta,                    {0}               },
     { SDLK_TAB,      0,      toiseen_reunaan,          {0}               },
+    { SDLK_LESS,     0,      vaihda_luokitus,          {0}               },
+    { SDLK_s,        CTRL,   tallenna_luokitus,        {0}               },
 };
 
 Sidonta tapaht_sid[] = {
@@ -133,37 +167,6 @@ Sidonta tapaht_sid[] = {
     { SDL_MOUSEBUTTONDOWN, 0, hiiri_alas,      {0}         },
     { SDL_WINDOWEVENT,     0, ikkunatapahtuma, {0}         },
 };
-
-void aja() {
-ALKU:
-    while(SDL_PollEvent(&tapaht)) {
-	for( int i=0; i<PITUUS(tapaht_sid); i++ )
-	    if( tapaht.type == tapaht_sid[i].tapahtuma )
-		tapaht_sid[i].fun(tapaht_sid[i].arg);
-    }
-    if(piirto_raidat) {
-	piirrä_raidat();
-	piirto_raidat = 0;
-    }
-    SDL_RenderCopy(rend, tausta, NULL, NULL);
-    piirra_kohdistin(kohdistin.x, kohdistin.r);
-    if(toistaa) {
-	if((toiston_x = toiston_sijainti()) < 0 ||
-	   (valinta.a[0] >= 0 && toiston_x >= valinta.a[valinta.a[1]>valinta.a[0]]))
-	    toistaa = 0;
-	piirra_kohdistin(toiston_x, kohdistin.r);
-    } else
-	valinta.a[1] = kohdistin.x;
-    piirra_valinta(&valinta);
-    piirra_kynnysarvot();
-    SDL_RenderPresent(rend);
-    if(!jatka) {
-	jatka=1;
-	return;
-    }
-    SDL_Delay(15);
-    goto ALKU;
-}
 
 void näpp_alas(Arg turha) {
     for(int i=0; i<PITUUS(näpp_alas_sid); i++)
@@ -192,7 +195,7 @@ void hiiri_alas(Arg turha) {
 	return;
     }
     hiirihetki0 = hetki;
-    kohdistin.x = tapaht.button.x*ivali + kuvan_alku;
+    kohdistin.x = tapaht.button.x*iväli + kuvan_alku;
     kohdistin.r = tapaht.button.y / raidan_kork;
 }
 
@@ -206,7 +209,7 @@ void ikkunatapahtuma(Arg turha) {
 }
 
 void kohdistin_sivulle(Arg arg) {
-    kohdistin.x += (arg.i*siirtoluku)*ivali;
+    kohdistin.x += (arg.i*siirtoluku)*iväli;
     if(kohdistin.x < 0)
 	kohdistin.x = 0;
     else if(kohdistin.x >= raidan_pit)
@@ -218,12 +221,12 @@ void kohdistin_alas(Arg arg) {
 }
 
 void kuvan_alku_sivulle(Arg arg) {
-    kuvan_alku += (siirtoluku*arg.i)*ivali;
+    kuvan_alku += (siirtoluku*arg.i)*iväli;
     if(kuvan_alku < 0) {
 	kuvan_alku = 0;
 	return;
     }
-    int ylimeno_oikealla = kuvan_alku + ikk_w*ivali - raidan_pit;
+    int ylimeno_oikealla = kuvan_alku + ikk_w*iväli - raidan_pit;
     if(ylimeno_oikealla > 0)
 	kuvan_alku -= ylimeno_oikealla;
     piirto_raidat = 1;
@@ -233,24 +236,24 @@ void zoomaa(Arg arg) {
     zoom *= arg.f;
     if(zoom < 1)
 	zoom = 1;
-    /*päivitetään ivali,
+    /*päivitetään iväli,
       siirretään kuvan alkua, niin että kohdistin pysyy kuvassa paikallaan, jos mahdollista*/
     unsigned vanha_siirtoluku = siirtoluku;
-    int vanha_ivali = ivali;
-    ivali = LASKE_IVALI;
-    if(ivali <= 0) {
-	ivali = 1;
-	zoom = raidan_pit/(ikk_w*ivali);
+    int vanha_ivali = iväli;
+    iväli = LASKE_IVALI;
+    if(iväli <= 0) {
+	iväli = 1;
+	zoom = raidan_pit/(ikk_w*iväli);
     }
-    siirtoluku = (1-(float)ivali/vanha_ivali)*(kohdistin.x-kuvan_alku)/ivali; //saadaan ratkaisemalla yhtälö
+    siirtoluku = (1-(float)iväli/vanha_ivali)*(kohdistin.x-kuvan_alku)/iväli; //saadaan ratkaisemalla yhtälö
     kuvan_alku_sivulle((Arg){.i=1});
     siirtoluku = vanha_siirtoluku;
     piirto_raidat = 1;
 }
 
 void vaihda_toistaminen(Arg arg) {
-    if((toistaa = (toistaa+1)%2)) {
-	if( valinta.a[0] < 0 )
+    if((toistaa = !toistaa)) {
+	if(valinta.a[0] < 0)
 	    toista_väli((int2){{kohdistin.x, raidan_pit}});
 	else
 	    toista_väli(valinta);
@@ -259,6 +262,14 @@ void vaihda_toistaminen(Arg arg) {
     snd_pcm_drop(kahva);
     if(arg.v)
 	kohdistin.x = *(int*)arg.v;
+}
+
+void toista_ympäriltä(Arg arg) {
+    int ero = TAAJ_kHz * arg.i;
+    int2 väli = {{kohdistin.x-ero, kohdistin.x+ero}};
+    if(väli.a[0] < 0) väli.a[0] = 0;
+    if(väli.a[1] > raidan_pit) väli.a[1] = raidan_pit;
+    toista_väli(väli);
 }
 
 void alusta_valinta(Arg arg) {
@@ -356,7 +367,7 @@ void alueen_kynnysarvo_iteroi(Arg arg) {
     printf("\033[93mVaroitus:\033[0m iterointi saavutti maksimipituuden supistumatta.\n");
 }
 
-void valitse_ylimenot(Arg turha) {
+int seuraava_ylimeno_tältä() {
     int r = kohdistin.r;
     if(!(kynnarv[r][0]==kynnarv[r][0] && kynnarv[r][1]==kynnarv[r][1]))
 	alueen_kynnysarvo_iteroi((Arg){.f=KYNNYS_SIETO});
@@ -364,11 +375,11 @@ void valitse_ylimenot(Arg turha) {
     for(int i=kohdistin.x; i<raidan_pit; i++) {
 	if(dp[i] > kynnarv[r][1] || dp[i] < kynnarv[r][0]) {
 	    valinta.a[0] = i;
-	    goto LOPUN_VALINTA;
+	    goto lopun_valinta;
 	}
     }
-    return;
-LOPUN_VALINTA:
+    return 1;
+lopun_valinta:
     int puskuri=0, i;
     for(i=valinta.a[0]; i<raidan_pit; i++)
 	if(dp[i] > kynnarv[r][1] || dp[i] < kynnarv[r][0])
@@ -377,17 +388,122 @@ LOPUN_VALINTA:
 	    break;
     valinta.a[1] = i-puskuri+1;
     kohdistin.x = valinta.a[1];
+    return 0;
 }
 
-void toiseen_reunaan(Arg turha) { //kohdistin kauimmaiseen valinnan reunaan
+void seuraava_ylimeno(Arg _) {
+    kohdistin.r = 2;
+    seuraava_ylimeno_tältä();
+    kohdistin.r = 0;
+}
+
+void toiseen_reunaan(Arg _) { //kohdistin kauimmaiseen valinnan reunaan
     int kauempi = ABS(kohdistin.x-valinta.a[1]) > ABS(kohdistin.x-valinta.a[0]);
     kohdistin.x = valinta.a[kauempi];
     valinta.a[0] = valinta.a[!kauempi]; //valinta.a[1] seuraa kohdistinta, mikä huomioidaan tässä
     valinta.a[1] = kohdistin.x;
 }
 
+void luokittele_kaikki(Arg _) {
+    kohdistin.r = 2;
+    int x0 = kohdistin.x;
+    kohdistin.x = lukituksia = 0;
+    do {
+	if(seuraava_ylimeno_tältä()) goto valmis;
+	luokitus_sij[luokituksia] = valinta;
+    } while(++luokituksia < luokitus_sij_pit);
+    puts("Kaikki luokitukset eivät mahtuneet.");
+valmis:
+    if(luokituksia) {
+	valinta = luokitus_sij[0];
+	kohdistin.x = valinta.a[1];
+    }
+    else
+	kohdistin.x = x0;
+    kohdistin.r = luokitukset = 0;
+    if(!puu) return;
+
+    for(int i=0; i<luokituksia; i++)
+	luokitukset |= lpuu_kerro_luokka(puu, xmat->data + xmat->pit2*i, 0) << i;
+}
+
+void vaihda_luokitus(Arg _) {
+    int i;
+    for(i=0; i<luokituksia; i++)
+	if(luokitus_sij[i].a[0] >= valinta.a[0]) break;
+    luokitukset ^= 1LLU<<i;
+}
+
+void opeta(Arg _) {
+    tee_opetusdata();
+    vapauta_lpuu(puu);
+    puu = luokittelupuu(xmat, yvec, 2);
+}
+
+int argmax(int r, int alku, int loppu) {
+    int ind=0, pit=loppu-alku;
+    float max = -INFINITY;
+    float* d = data + r*raidan_pit + alku;
+    for(int i=0; i<pit; i++)
+	if(d[i] > max) {
+	    ind = i;
+	    max = d[i];
+	}
+    return ind;
+}
+
+float maksimi(int r, int alku, int loppu) {
+    return data[r*raidan_pit + alku + argmax(r,alku,loppu)];
+}
+
+float _kynnysarvon_ylitys(int r, int alku, int loppu) {
+    int vanha_r = kohdistin.r;
+    kohdistin.r = r;
+    alueen_kynnysarvo_iteroi((Arg){.f=KYNNYS_SIETO});
+    kohdistin.r = vanha_r;
+    return maksimi(r, alku, loppu) / kynnarv[r][1];
+}
+
+int laske_ohenne(int alku, int loppu) {
+    int pit = loppu-alku, lasku = 0;
+    float *dt = data + OHENNE*raidan_pit + alku;
+    for(int i=0; i<pit; i++)
+	lasku += dt[i] != 0;
+    return lasku;
+}
+
+/* Tämä alkeellinen versio vain päällekirjoittaa mahdollisen vanhan datan. */
+void tee_opetusdata() {
+    int pit1 = luokituksia, pit2 = 1 + 2 + 1;
+    if(xmat)
+	xmat->data = realloc(xmat->data, pit1*pit2*sizeof(float));
+    else {
+	xmat = malloc(sizeof(lpuu_matriisi));
+	xmat->data = malloc(pit1*pit2*sizeof(float));
+    }
+    xmat->pit1 = pit1;
+    xmat->pit2 = pit2;
+    yvec = realloc(yvec, luokituksia);
+    int ind = 0;
+    for(int i=0; i<luokituksia; i++) {
+	// kesto
+	xmat->data[ind++] = luokitus_sij[i].a[1] - luokitus_sij[i].a[0];
+	// kynnysarvon ylitys [molemmat]
+	xmat->data[ind++] = _kynnysarvon_ylitys(SUODATE, luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
+	xmat->data[ind++] = _kynnysarvon_ylitys(DERIV,   luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
+	// huipun sijainti ajassa / kesto [molemmat]
+	//xmat->data[ind++] = argmax(SUODATE, luokitus_sij[i].a[0], luokitus_sij[i].a[1]) / xmat->data[i-1];
+	//xmat->data[ind++] = argmax(DERIV,   luokitus_sij[i].a[0], luokitus_sij[i].a[1]) / xmat->data[i-1];
+	// ohenteen pisteet
+	xmat->data[ind++] = (float)laske_ohenne(luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
+
+	yvec[i] = luokitukset>>(long)i & 1; // tulos
+    }
+    assert(ind == xmat->pit1*xmat->pit2);
+}
+
 void piirrä_raidat() {
-    ivali = LASKE_IVALI;
+    iväli = LASKE_IVALI;
     raidan_vali = ikk_h / (raitoja*valin_suhde - 1); //saadaan ratkaisemalla yhtälöpari kynällä ja paperilla
     raidan_kork = ikk_h * valin_suhde / (raitoja*valin_suhde - 1);
     raidan_h = raidan_kork - raidan_vali;
@@ -406,9 +522,9 @@ void piirrä_raidat() {
 	SDL_RenderFillRect(rend, &alue);
 	ASETA_VARI(piirtovari);
 	y += raidan_h / 2;
-	float* p = data+raita*raidan_pit + kuvan_alku;        //p viittaa sijaintiin ääniraidalla
-	for(int x=0; x<ikk_w; x++)                            //x on sijainti kuvassa
-	    for(int ii=0; ii<ivali; ii++,p++)                   //ii on näytöllä samaan x-kohtaan tulevan näytteen indeksi
+	float* p = data+raita*raidan_pit + kuvan_alku; // p viittaa sijaintiin ääniraidalla
+	for(int x=0; x<ikk_w; x++)                     // x on sijainti kuvassa
+	    for(int ii=0; ii<iväli; ii++,p++)          // ii on näytöllä samaan x-kohtaan tulevan näytteen indeksi
 		SDL_RenderDrawPoint( rend, x, y-(int)(*p*raidan_h/2) );
 	y -= raidan_h / 2;
     }
@@ -426,21 +542,38 @@ void piirra_kynnysarvot() {
 	}
 }
 
-void piirra_kohdistin(int naute, int r) {
-    int x = (naute-kuvan_alku) / ivali;
+void piirrä_kohdistin(int näyte, int r) {
+    int x = (näyte-kuvan_alku) / iväli;
     ASETA_VARI(kohdistin_muuraita);
     SDL_RenderDrawLine(rend, x, 0, x, ikk_h);
-    ASETA_VARI(kohdistin_paaraita);
+    ASETA_VARI(kohdistin_pääraita);
     SDL_RenderDrawLine(rend, x, r*raidan_kork, x, r*raidan_kork + raidan_h);
 }
 
-void piirra_valinta(int2* vnta) {
+void piirrä_luokitus() {
+    ASETA_VARI(luokitus_joo);
+    for(int iii=0; iii<2; iii++) {
+	for(int ii=0; ii<luokituksia; ii++) {
+	    if(!(luokitukset & 1LLU<<ii)) continue;
+	    SDL_Rect vntarect = {
+		.x = (luokitus_sij[ii].a[0] - kuvan_alku) / iväli,
+		.w = (luokitus_sij[ii].a[1] - luokitus_sij[ii].a[0]) / iväli,
+		.h = ikk_h,
+	    };
+	    SDL_RenderFillRect(rend, &vntarect);
+	}
+	luokitukset = ~luokitukset;
+	ASETA_VARI(luokitus_ei);
+    }
+}
+
+void piirrä_valinta(int2* vnta) {
     if(vnta->a[0] < 0)
 	return;
     int pienempi = vnta->a[1] < vnta->a[0];
     static SDL_Rect vntarect;
-    vntarect.x = (vnta->a[pienempi] - kuvan_alku) / ivali;
-    vntarect.w = (vnta->a[!pienempi] - vnta->a[pienempi]) / ivali;
+    vntarect.x = (vnta->a[pienempi] - kuvan_alku) / iväli;
+    vntarect.w = (vnta->a[!pienempi] - vnta->a[pienempi]) / iväli;
     vntarect.h = ikk_h;
     ASETA_VARI(vntavari);
     SDL_RenderFillRect(rend, &vntarect);
@@ -455,21 +588,22 @@ int toiston_sijainti() {
 
 void toista_kohdistin() {
     snd_pcm_drop(kahva);
+    toiston_alku = kohdistin.x;
+    toiston_loppu = raidan_pit;
     toistaa = 1;
     toistohetki0 = hetkinyt();
-    toiston_alku = kohdistin.x;
-    while(snd_pcm_writei( kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku ) < 0) {
-	snd_pcm_prepare(kahva); //fprintf(stderr, "Puskurin alitäyttö\n");
-    }
+    while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku) < 0)
+	snd_pcm_prepare(kahva);
 }
 
-void toista_väli(int2 vali) {
+void toista_väli(int2 väli) {
     snd_pcm_drop(kahva);
+    int pienempi = väli.a[1] < väli.a[0];
+    toiston_alku = väli.a[pienempi];
+    toiston_loppu = väli.a[!pienempi];
     toistaa = 1;
     toistohetki0 = hetkinyt();
-    int pienempi = vali.a[1] < vali.a[0];
-    toiston_alku = vali.a[pienempi];
-    while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r,vali.a[pienempi]), vali.a[!pienempi]-vali.a[pienempi]) < 0)
+    while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r,väli.a[pienempi]), väli.a[!pienempi]-väli.a[pienempi]) < 0)
 	snd_pcm_prepare(kahva);
 }
 
@@ -489,6 +623,37 @@ float skaalaa(float* data, int pit) {
     for(int i=0; i<pit; i++)
 	data[i] /= max;
     return max;
+}
+
+void aja() {
+alku:
+    while(SDL_PollEvent(&tapaht)) {
+	for( int i=0; i<PITUUS(tapaht_sid); i++ )
+	    if( tapaht.type == tapaht_sid[i].tapahtuma )
+		tapaht_sid[i].fun(tapaht_sid[i].arg);
+    }
+    if(piirto_raidat) {
+	piirrä_raidat();
+	piirto_raidat = 0;
+    }
+    SDL_RenderCopy(rend, tausta, NULL, NULL);
+    piirrä_kohdistin(kohdistin.x, kohdistin.r);
+    if(toistaa) {
+	if((toiston_x = toiston_sijainti()) < 0 ||
+	   (toiston_x >= toiston_loppu))
+	    toistaa = 0;
+	piirrä_kohdistin(toiston_x, kohdistin.r);
+    }
+    else
+	valinta.a[1] = kohdistin.x;
+    piirrä_valinta(&valinta);
+    piirra_kynnysarvot();
+    piirrä_luokitus();
+    SDL_RenderPresent(rend);
+    if(!jatka) {
+	jatka=1; return; }
+    SDL_Delay(15);
+    goto alku;
 }
 
 static int oli_sdl = 0;
@@ -526,11 +691,15 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     piirrä_raidat();
     aja();
 
-    free(data); data=NULL;
-    free(skaalat); skaalat=NULL;
+    luokituksia = kohdistin.x = kohdistin.r = 0;
+    vapauta(free, data);
+    vapauta(free, skaalat);
     for(int i=0; i<raitoja; i++)
 	free(kynnarv[i]);
-    free(kynnarv);
+    vapauta(free, kynnarv);
+    vapauta(vapauta_matriisi, xmat);
+    vapauta(free, yvec);
+    vapauta(vapauta_lpuu, puu);
     SDL_DestroyTexture(tausta);
     SDL_DestroyRenderer(rend);
     SDL_DestroyWindow(ikkuna);
