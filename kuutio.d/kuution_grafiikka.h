@@ -42,7 +42,6 @@ void piirrä_kuvaksi();
 void piirrä_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus);
 int korosta_tahko(int tahko);
 void korosta_ruutu(void* ktit, int onko2vai3);
-void korosta_siivu(int3 siivu);
 void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika);
 double hetkiNyt();
 

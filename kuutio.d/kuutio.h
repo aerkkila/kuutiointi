@@ -38,8 +38,6 @@ typedef struct {int a[3];} int3;
 const char* tahkojärjestys = "RUFLDB";
 
 extern kuutio_t kuutio;
-extern const int3 akst[6];
-extern const int3 akst_tij[6];
 
 void luo_kuutio(kuutio_t*, int);
 int onkoRatkaistu(kuutio_t*);

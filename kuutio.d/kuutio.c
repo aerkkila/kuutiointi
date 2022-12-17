@@ -3,33 +3,9 @@
 #include <assert.h>
 #include "kuutio.h"
 
-/******************************************************************************
-   Nämä on tarkoitus poistaa
-
-   akselit, näissä 0 korvataan 3:lla jotta saadaan etumerkki
-   esim. oikealla (r) j liikuttaa negatiiviseen y-suuntaan (1.indeksi = y, ±2 = j)
-   i liikuttaa negatiiviseen z-suuntaan (2. indeksi = z, ±1 = i)
-   sijainti on positiivisella x-akselilla (0. indeksi = x, ±3 = sijainti) */
-const int3 akst[6] = {			
-    [_r] = {{ 3,-2,-1}},			
-    [_l] = {{-3,-2, 1}},			
-    [_u] = {{ 1, 3, 2}},			
-    [_d] = {{ 1,-3,-2}},			
-    [_f] = {{ 1,-2, 3}},			
-    [_b] = {{-1,-2,-3}}
-};
-/* käänteinen yllä olevaan: luvut ovat tämä, i, j
-   oikea on +x-akselilla (0. = tämä), i on -z-akseli (1. = i, ±2 = z) jne */
-const int3 akst_tij[6] = {
-    [_r] = {{ 3,-2,-1}},
-    [_l] = {{-3, 2,-1}},
-    [_u] = {{ 1, 3, 2}},
-    [_d] = {{-1, 3,-2}},
-    [_f] = {{ 2, 3,-1}},
-    [_b] = {{-2,-3,-1}}
-};
-/*******************************************************************************/
-
+/* Mitkä neljä tahkoa kohdataan kierrettäessä mikin sivu myötäpäivään
+   alkaen ylhäältä eli positiivisesta y-suunnasta.
+   Tässä alustetaan käsin kaksi ensimmäistä sivua jolloin loputkin kaksi tunnetaan. */
 int s_sivut[6][4] = {
     [_r] = {_u,_b},
     [_l] = {_u,_f},
@@ -38,6 +14,10 @@ int s_sivut[6][4] = {
     [_f] = {_u,_r},
     [_b] = {_u,_l},
 };
+
+/* Millä indeksillä (e1) mikin sivu löytyy minkäkin sivun (e0) ympäriltä s_sivut-matriisissa.
+   Esim. s_sivut_arg[_f][_r] == 1
+   ja s_sivut_arg[_f][_b] == -1 (ei löydy) */
 int s_sivut_arg[6][6];
 
 void alusta_matriisit() {
@@ -156,52 +136,6 @@ void siirto(kuutio_t* ku, int tahko, int siirtokaista, int määrä) {
     memcpy(ku->apu, sivu, ku->N2);
     _tahkon_pyöritys[määrä-1](sivu, ku->apu, N);
 }
-
-#if 0
-void vanha_siirto(kuutio_t* kuutp, int tahko, int siirtokaista, int maara) {
-    if(maara == 0) return;
-    int N = kuutp->N;
-    if(siirtokaista < 0 || siirtokaista > N) return;
-    if(siirtokaista == N && N > 1) {
-	maara = (maara+2) % 4;
-	tahko = (tahko+3) % 6;
-	siirtokaista = 1;
-    }
-    /* siirretään kuin old-pochman-menetelmässä:
-       vaihdetaan ensin sivut 0,1, sitten 0,2 jne */
-    int iakseli = ABS(akst_tij[tahko].a[1]%3);
-    int3 ruutu0 = hae_ruutu(N, tahko, 0, -siirtokaista);
-    int IvaiJ = akst[ruutu0.a[0]].a[iakseli];
-    for(int j=1; j<4; j++) {
-	for(int i=0; i<N; i++) {
-	    ruutu0 = hae_ruutu(N, tahko, i, -siirtokaista); // alkukohdaksi valitaan j-akselin alimeno
-	    int etumerkki = SIGN(IvaiJ) * SIGN(akst[tahko].a[iakseli]);
-	    int3 ruutu1 = hae_ruutu(N,
-				    ruutu0.a[0],
-				    ruutu0.a[1] + (2-ABS(IvaiJ)) * j*N * etumerkki,
-				    ruutu0.a[2] + (ABS(IvaiJ)-1) * j*N * etumerkki);
-	    VAIHDA(kuutp->sivut[SIVUINT3(N,ruutu0)], kuutp->sivut[SIVUINT3(N,ruutu1)], char);
-	}
-    }
-    /* siivusiirrolle (slice move) kääntö on nyt suoritettu */
-    if(siirtokaista > 1) {
-	siirto(kuutp, tahko, siirtokaista, maara-1);
-	return;
-    }
-    /* käännetään käännetty sivu */
-    char* sivu = kuutp->sivut+tahko*N*N;
-    char apu[N*N];
-    memcpy(apu, sivu, N*N);
-
-    /* nyt käännetään: */
-#define arvo(taul,j,i) taul[(j)*N+(i)]
-    for(int i=0; i<N; i++)
-	for(int j=0; j<N; j++)
-	    *sivu++ = arvo(apu,N-1-j,i);
-#undef arvo
-    siirto(kuutp, tahko, siirtokaista, maara-1);
-}
-#endif
 
 int onkoRatkaistu(kuutio_t* kuutp) {
     int N2 = kuutp->N*kuutp->N;
