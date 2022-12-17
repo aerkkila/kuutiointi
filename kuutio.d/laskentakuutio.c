@@ -10,21 +10,30 @@
 #include <string.h>
 #include <pthread.h>
 #include <err.h>
+#include <unistd.h>
 
 #include "kuutio.c"
 
 static const char* tahkot = "RUFLDB";
 static const char* suunnat = " '2";
-static const int isuunnat[] = {1,3,2};
+static const int isuunnat[] = {1,3,2}; // montako kertaa 90° myötäpäivään mikin suunta on
+static const char* suuntakirjaimet_90aste = "@ 2'";
 
 long korjaa_sexa(long, int);
-void sarjantekofunktio(int pit, long *sexa, long unsigned *trexa);
+void seuraava_sarja(int pit, long *sexa, unsigned *trexa);
 void* laskenta(void* vp);
 
 long powi(long a, long unsigned n);
-void tulosta_sarjana(long, long, int);
+void stp_sarjaksi(long, long, int, char* ulos);
+void isarja_sarjaksi(int*, int, char*);
+
+struct Lista {
+    unsigned *lasku, *kutakin;
+    size_t pit, kapasit;
+};
 
 typedef struct {
+    struct Lista* lista;
     long sexa;
     long raja;
     int pit;
@@ -53,66 +62,161 @@ alku:
     goto alku;
 }
 
+#define EI_LOPUSSA(työ) (ind[työ] < listat[työ].pit)
+void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
+    FILE *f = fopen(nimi, "w");
+    if(!f) {
+	err(1, "fopen funktiossa vie_tiedostoksi");
+	return; }
+    fprintf(f, "siirtoja kpl\n");
+    size_t ind[töitä];
+    memset(ind, 0, töitä*sizeof(size_t));
+    unsigned pienin, n_eilopussa;
+    do {
+	pienin = (unsigned)-1;
+	n_eilopussa = 0;
+	for(int i=0; i<töitä; i++)
+	    if(EI_LOPUSSA(i)) {
+		n_eilopussa++;
+		if(listat[i].lasku[ind[i]] < pienin)
+		    pienin = listat[i].lasku[ind[i]];
+	    }
+	if(pienin == -1)
+	    break;
+
+	unsigned summa = 0;
+	for(int i=0; i<töitä; i++)
+	    if(EI_LOPUSSA(i) && listat[i].lasku[ind[i]] == pienin)
+		summa += listat[i].kutakin[ind[i]++];
+
+	fprintf(f, "%-8u %u\n", pienin, summa);
+    } while(n_eilopussa > 1);
+    /* Enintään yhtä työtä on jäljellä. */
+    int lasku = 0;
+    for(int i=0; i<töitä; i++)
+	if(EI_LOPUSSA(i)) {
+	    if(lasku)
+		printf("Varoitus %s: rivi %i\n", __FILE__, __LINE__);
+	    for(int j=ind[i]; j<listat[i].pit; j++)
+		fprintf(f, "%-8u %u\n", listat[i].lasku[j], listat[i].kutakin[j]);
+	    lasku++;
+	}
+    fclose(f);
+}
+#undef EI_LOPUSSA
+
+int verbose = 0;
+
 int main(int argc, char** argv) {
     /*komentoriviargumentit*/
     int maxpit_l = 4;
-    int minpit_l = 2;
+    int minpit_l = -1;
     int töitä = 1;
     if(argc > 1)
 	sscanf(argv[1], "%i", &maxpit_l);
-    for(int i=0; i<argc-1; i++)
+    for(int i=1; i<argc; i++)
 	if(!strcmp(argv[i], "--alkaen") || !strcmp(argv[i], "-a")) {
-	    if(sscanf(argv[i+1], "%i", &minpit_l) != 1)
+	    if(sscanf(argv[++i], "%i", &minpit_l) != 1)
 		warn("sscanf minpit_l epäonnistui");
 	}
 	else if(!strcmp(argv[i], "--töitä") || !strcmp(argv[i], "-j")) {
-	    if(sscanf(argv[i+1], "%i", &töitä) != -1)
+	    if(sscanf(argv[++i], "%i", &töitä) != 1)
 		warn("sscanf töitä epäonnistui");
 	}
+	else if(!strcmp(argv[i], "-v"))
+	    verbose = 1;
+    if(minpit_l > maxpit_l)
+	maxpit_l = minpit_l;
+    if(minpit_l < 0)
+	minpit_l = maxpit_l; // oletuksena tehdään vain yksi
     pthread_t säikeet[töitä];
 
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
+	struct Lista listat[töitä];
 	long sexa1 = powi(6, pit-1); // Lopetetaan, kun ensimmäinen siirto olisi U, jolloin kaikki R ... on käyty.
 	long pätkä = sexa1/töitä;
 	säikeen_tiedot t[töitä];
-	for(int i=0; i<töitä; i++) {
-	    long raja0 = pätkä*i;
-	    long raja1 = i==töitä-1 ? sexa1 : pätkä*(i+1);
-	    t[i] = (säikeen_tiedot){.sexa=raja0, .raja=raja1, .pit=pit, .id=i};
+	int i;
+	for(i=0; i<töitä-1; i++) {
+	    listat[i] = (struct Lista){0};
+	    t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=pätkä*(i+1), .pit=pit, .id=i};
 	    pthread_create(säikeet+i, NULL, laskenta, t+i);
 	}
-	for(int i=0; i<töitä; i++)
+	listat[i] = (struct Lista){0};
+	t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=sexa1, .pit=pit, .id=i};
+	laskenta(t+töitä-1);
+	for(int i=0; i<töitä-1; i++)
 	    pthread_join(säikeet[i], NULL);
-	/*Alustetaan uusi tiedosto*/
-	char apu[25];
-	char snimi[22];
-	sprintf(apu, "sarjat%i.csv", pit);
-	FILE *ulos = fopen(apu, "w");
-	/*Liitetään siihen säikeitten tekemät tiedostot*/
-	char c;
+
+	char nimi[20];
+	sprintf(nimi, "sarjat%i.txt", pit);
+	vie_tiedostoksi(listat, töitä, nimi);
+
 	for(int i=0; i<töitä; i++) {
-	    sprintf(snimi, "tmp%i.csv", i);
-	    FILE *f = fopen(snimi, "r");
-	    if(!f)
-		continue;
-	    while((c=fgetc(f)) > 0)
-		fputc(c, ulos);
-	    fclose(f);
-	    sprintf(apu, "rm %s", snimi);
-	    system(apu);
+	    free(listat[i].lasku);
+	    free(listat[i].kutakin);
 	}
-	fclose(ulos);
     }
 }
 
-void tulosta_sarjana(long sexa, long trexa, int pit) {
-    char sarja[32] = {0};
+#ifdef DEBUG
+void stp_sarjaksi(long sexa, long trexa, int pit, char* sarja) {
     for(int i=0; i<pit; i++) {
 	sarja[(pit-i-1)*3] = tahkot[NLUKU(sexa, i, 6)];
 	sarja[(pit-i-1)*3+1] = suunnat[NLUKU(trexa, i, 3)];
 	sarja[(pit-i-1)*3+2] = ' ';
     }
-    puts(sarja);
+}
+#endif
+
+void isarja_sarjaksi(int* isarja, int pit, char* sarja) {
+    for(int i=0; i<pit; i++) {
+	sarja[(pit-i-1)*3] = tahkot[isarja[(pit-i-1)*2]];
+	sarja[(pit-i-1)*3+1] = suuntakirjaimet_90aste[isarja[(pit-i-1)*2+1]];
+    }
+}
+
+size_t puolitushaku(unsigned* a, size_t pit, unsigned kohde) {
+    size_t i0 = 0, i1=pit, keski;
+alku:
+    if(i1-i0 < 11) {
+	for(size_t i=i0; i<i1; i++)
+	    if(kohde <= a[i]) {
+		return i;
+	    }
+	return i1;
+    }
+    keski = (i0 + i1) / 2;
+    if(kohde < a[keski])
+	i1 = keski;
+    else if(kohde > a[keski])
+	i0 = keski+1;
+    else
+	return keski;
+    goto alku;
+}
+
+int luku_listalle(int lasku, struct Lista* lista) {
+    size_t ind = 0;
+    if(!lista->kapasit)
+	goto alusta;
+    ind = puolitushaku(lista->lasku, lista->pit, lasku);
+    if(lista->lasku[ind] == lasku) {
+	lista->kutakin[ind]++;
+	return 0; }
+    if(lista->pit+1 > lista->kapasit) {
+alusta:
+	lista->lasku   = realloc(lista->lasku,   (lista->kapasit+=1024)*sizeof(unsigned));
+	lista->kutakin = realloc(lista->kutakin, (lista->kapasit)      *sizeof(unsigned));
+	if(!(lista->lasku && lista->kutakin))
+	    return 1;
+    }
+    memmove(lista->lasku+ind+1,   lista->lasku+ind,   (lista->pit-ind)*sizeof(unsigned));
+    memmove(lista->kutakin+ind+1, lista->kutakin+ind, (lista->pit-ind)*sizeof(unsigned));
+    lista->lasku[ind] = lasku;
+    lista->kutakin[ind] = 1;
+    lista->pit++;
+    return 0;
 }
 
 #define PIT_SARJA (pit*3)
@@ -122,31 +226,29 @@ void* laskenta(void* vp) {
     luo_kuutio(&kuutio, 3);
     säikeen_tiedot tied = *(säikeen_tiedot*)vp;
     int pit = tied.pit;
-    char* sarja = malloc(PIT_SARJA+1);
-    int* isarja = malloc(PIT_ISARJA);
-    char* sarja0 = malloc(PIT_SARJA+1);
-    int* isarja0 = malloc(PIT_ISARJA);
-    memset(sarja,suunnat[0],PIT_SARJA+1);
+    char sarja[PIT_SARJA+1];
+    int  isarja[PIT_ISARJA];
+    memset(sarja, suunnat[0], PIT_SARJA+1);
     for(int i=0; i<pit*2; i++)
 	isarja[i] = isuunnat[0];
     sarja[PIT_SARJA] = '\0';
 
     char nimi[12];
-    sprintf(nimi, "tmp%i.csv", tied.id);
-    FILE *f = fopen(nimi, "w");
-    long unsigned trexa = -2;
+    sprintf(nimi, "tmp%i.txt", tied.id);
+    unsigned trexa = -1;
+    long sexa = korjaa_sexa(tied.sexa, pit);
+
     while(1) {
-	sarjantekofunktio(pit, &tied.sexa, &trexa);
-	if(tied.sexa >= tied.raja) break;
+	seuraava_sarja(pit, &sexa, &trexa);
+	if(sexa >= tied.raja)
+	    break;
 	unsigned kohta=0;
 	int lasku=0;
-	/*sarja kirjalliseen ja lukumuotoon*/
+	/*sarja lukumuotoon*/
 	for(int i=0; i<pit; i++) {
-	    int ind = NLUKU(tied.sexa, i, 6);
-	    sarja[(pit-i-1)*3] = tahkot[ind];
+	    int ind = NLUKU(sexa, i, 6);
 	    isarja[(pit-i-1)*2] = ind;
 	    ind = NLUKU(trexa, i, 3);
-	    sarja[(pit-i-1)*3+1] = suunnat[ind];
 	    isarja[(pit-i-1)*2+1] = isuunnat[ind];
 	}
 	do {
@@ -154,11 +256,15 @@ void* laskenta(void* vp) {
 	    kohta = (kohta+1) % pit;
 	    lasku++;
 	} while(!onkoRatkaistu(&kuutio));
-	fprintf(f, "%s\t%i\n", sarja,lasku);
+	if(luku_listalle(lasku, tied.lista)) {
+	    puts("epäonnistui");
+	    return NULL; }
+	if(verbose) {
+	    isarja_sarjaksi(isarja, pit, sarja);
+	    printf("%s\t%i\n", sarja, lasku);
+	}
     }
-    fclose(f);
-    free(sarja); free(isarja);
-    free(sarja0); free(isarja0);
+
     free(kuutio.sivut);
     free(*kuutio.indeksit);
     return NULL;
@@ -166,7 +272,7 @@ void* laskenta(void* vp) {
 #undef PIT_SARJA
 #undef PIT_ISARJA
 
-/* Sama sama tahko ei saa esiintyä kahdesti peräkkäin eikä sama akseli kolmesti. */
+/* Sama tahko ei saa esiintyä kahdesti peräkkäin eikä sama akseli kolmesti. */
 int sexa_ei_kelpaa(long sexa, int pit) {
     int n0, n1, n2;
     n0 = NLUKU(sexa, 0, 6);
@@ -187,10 +293,9 @@ long korjaa_sexa(long sexa, int pit) {
     return sexa;
 }
 
-void sarjantekofunktio(int pit, long *sexa, long unsigned *trexa) {
-#ifndef DEBUG // suuntia ei käsitellä virheenjäljityksessä
-    if(++*trexa < powi(3, pit)) return;
-#endif
+void seuraava_sarja(int pit, long *sexa, unsigned *trexa) {
+    if(++*trexa < powi(3, pit))
+	return;
     *trexa = 0;
     *sexa = korjaa_sexa(++*sexa, pit);
 }
