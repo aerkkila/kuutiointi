@@ -3,23 +3,13 @@
  
   1. siirto on aina r[], koska kuutiota kääntämällä muut siirrot voidaan muuntaa siksi.
   2. siirto on aina l[] tai u[], koska kuutiota kääntämällä muut voidaan muuttaa niiksi.
-
-  Seuraavia ei ole vielä toteutettu:
-  Yleisesti sanotaan esimerkiksi, että 1. siirto on x-akselin ympäri positiiviseen suuntaan positiiviselta puolelta
-  ja 2. on y-akselin ympäri positiiviseen suuntaan positiiviselta puolelta.
-  1. siirto määrittelee x-akselin, mutta ei suuntaa, jos tehdään perään toiselta puolelta eri suuntaan, esim R L.
-  1. siirto määrittelee myös suunnan, jos tehdään R L'. Molemmat ovat samaan suuntaan, joten myötäpäivä saadaan määriteltyä.
-  1. siirto määrittelee suunnan silloinkin, jos se on R2, jota ei seuraa L2.
-  Tämä kiinnittää x-akselin positiivisen puolen ja siten myös suunnan.
-  2. siirto määrittelee väkisin y-akselin (R L yms. laskettiin yhdeksi siirroksi)
-  Esim. R2 L2 U' -sarjan jälkeen y2 on mahdollinen, koska R2 L2 kiinnittää x-akselin suunnatta ja U' kiinnittää y-akselin suuntineen
-  R2 L2 U' D -sarjan jälkeen myös x2 tai z2 on mahdollinen, koska kaikki suunnat ovat kiinnittymättä
-*/
+  */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <err.h>
 
 #include "kuutio.c"
 
@@ -41,16 +31,16 @@ typedef struct {
     int id;
 } säikeen_tiedot;
 
-/** merkitään siirtotahkot kuusikantaisilla sexaluvuilla
-    esim. 0135 olisi R U L B
-    lisättäessä 1 saadaan 0140 eli R U D R
+/* merkitään siirtotahkot kuusikantaisilla sexaluvuilla
+   esim. 0135 olisi R U L B
+   lisättäessä 1 saadaan 0140 eli R U D R
 
-    Vastaavasti suunnat merkitään kolmikantaisilla trexaluvuilla.
+   Vastaavasti suunnat merkitään kolmikantaisilla trexaluvuilla.
 
-    Kannan muunnos tehdään tällä makrolla.
-    Kun #luku muutetaan #kanta-kantaiseksi, mikä on vähiten merkitsevästä alkaen #i. numero.
-    Jakojäännös noukkii i+1 viimeistä lukua, esim (kanta=10,i=1). 1215 % 10^2 -> 15.
-    Jakolasku noukkii i:nnen luvun: 15 / 10^1 -> 1 */
+   Kannan muunnos tehdään tällä makrolla.
+   Kun luku muutetaan kanta-kantaiseksi, mikä on vähiten merkitsevästä alkaen i. numero.
+   Jakojäännös noukkii i+1 viimeistä lukua, esim (kanta=10,i=1). 1215 % 10^2 -> 15.
+   Jakolasku noukkii i:nnen luvun: 15 / 10^1 -> 1 */
 #define NLUKU(luku, i, kanta) ((luku) % powi(kanta,i+1) / powi(kanta,i))
 
 long powi(long a, long unsigned n) { // tämä toimii ajassa O(log(n))
@@ -68,26 +58,20 @@ int main(int argc, char** argv) {
     int maxpit_l = 4;
     int minpit_l = 2;
     int töitä = 1;
-    int apu;
+    if(argc > 1)
+	sscanf(argv[1], "%i", &maxpit_l);
     for(int i=0; i<argc-1; i++)
-	if(!strcmp(argv[i], "--pit") || !strcmp(argv[i], "-n")) {
-	    apu = sscanf(argv[i+1], "%i-%i", &maxpit_l, &minpit_l);
-	    switch(apu) {
-	    case 0: puts("Ei luettu pituuksia"); break;
-	    case 2: VAIHDA_XOR(minpit_l, maxpit_l); break;
-	    }
+	if(!strcmp(argv[i], "--alkaen") || !strcmp(argv[i], "-a")) {
+	    if(sscanf(argv[i+1], "%i", &minpit_l) != 1)
+		warn("sscanf minpit_l epäonnistui");
 	}
 	else if(!strcmp(argv[i], "--töitä") || !strcmp(argv[i], "-j")) {
-	    if(!(sscanf(argv[i+1], "%i", &töitä)))
-		puts("Ei luettu töitten määrää");
+	    if(sscanf(argv[i+1], "%i", &töitä) != -1)
+		warn("sscanf töitä epäonnistui");
 	}
     pthread_t säikeet[töitä];
 
-#ifndef DEBUG
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
-#else
-	int pit = maxpit_l;
-#endif
 	long sexa1 = powi(6, pit-1); // Lopetetaan, kun ensimmäinen siirto olisi U, jolloin kaikki R ... on käyty.
 	long pätkä = sexa1/töitä;
 	säikeen_tiedot t[töitä];
@@ -114,15 +98,11 @@ int main(int argc, char** argv) {
 	    while((c=fgetc(f)) > 0)
 		fputc(c, ulos);
 	    fclose(f);
-#ifndef DEBUG
 	    sprintf(apu, "rm %s", snimi);
 	    system(apu);
-#endif
 	}
 	fclose(ulos);
-#ifndef DEBUG
     }
-#endif
 }
 
 void tulosta_sarjana(long sexa, long trexa, int pit) {
