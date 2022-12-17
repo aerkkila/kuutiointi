@@ -10,6 +10,8 @@
 #include <math.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#include <err.h>
 #include "äänireuna.h"
 
 static void putki0_tapahtumat();
@@ -30,8 +32,8 @@ int virhe_id;
 float* data[4];
 float* kokodata;
 enum {raaka, suodate, derivoitu, ohennus, n_raitoja};
-#define ALSAFUNK(fun,...) if( (virhe_id = fun(__VA_ARGS__)) < 0 )	\
-    {									\
+#define ALSAFUNK(fun,...)						\
+    if( (virhe_id = fun(__VA_ARGS__)) < 0 ) {				\
 	fprintf(stderr,"\033[31mVirhe funktiossa %s (äänireuna.c):\033[0m %s\n",#fun,snd_strerror(virhe_id)); \
 	return virhe_id;						\
     }
@@ -159,13 +161,13 @@ void ohentaminen(float* data, float* kohde, int pit) {
 }
 
 void havaitse_ylitykset(float** data, int alkukohta, int pit) {
-    suodata( data[raaka]+alkukohta, data[suodate]+alkukohta, pit );
-    derivaatta( data[suodate]   + alkukohta+3*gauss_sigma_kpl,
-		data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
-		pit -= 6*gauss_sigma_kpl );
-    ohentaminen( data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
-		 data[ohennus]   + alkukohta+3*gauss_sigma_kpl,
-		 pit -= 1 );
+    suodata(data[raaka]+alkukohta, data[suodate]+alkukohta, pit);
+    derivaatta(data[suodate]   + alkukohta+3*gauss_sigma_kpl,
+	       data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
+	       pit -= 6*gauss_sigma_kpl);
+    ohentaminen(data[derivoitu] + alkukohta+3*gauss_sigma_kpl,
+		data[ohennus]   + alkukohta+3*gauss_sigma_kpl,
+		pit -= 1);
 }
 
 void opi(float** data, int pit) {
@@ -273,12 +275,15 @@ void käsittele(void* datav) {
 
 void katso_viesti(int viesti) {
     switch(viesti) {
+
     case äänireuna_tallenna_takaa:
 	tallentaminen(tallentaminen_tallenna_takaa);
 	return;
+
     case äänireuna_tallenna_tästä:
 	tallentaminen(tallentaminen_tallenna_tästä);
 	return;
+
     case äänireuna_valitse_molemmat:
 	nauh_tauko = 1;
 	float* _data = malloc(pit_data*sizeof(float));
@@ -302,6 +307,7 @@ void katso_viesti(int viesti) {
 	luet_jakson_id = -1,
 	    nauh_tauko = 0;
 	return;
+
     }
 }
 

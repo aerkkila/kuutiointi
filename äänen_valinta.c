@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <err.h>
 #include "modkeys.h"
 #include "äänireuna.h"
 #include "luokittelupuu.h"
@@ -48,6 +49,7 @@ void luokittele_kaikki(Arg _);
 void vaihda_luokitus(Arg _);
 void opeta(Arg _);
 void luokittele(Arg _);
+void vie_tiedostoksi(Arg _);
 
 void     piirrä_raidat();
 void     piirra_kynnysarvot();
@@ -157,7 +159,7 @@ Sidonta näpp_alas_sid[] = {
     { SDLK_INSERT,   CTRL,   opeta,                    {0}               },
     { SDLK_TAB,      0,      toiseen_reunaan,          {0}               },
     { SDLK_LESS,     0,      vaihda_luokitus,          {0}               },
-    { SDLK_s,        CTRL,   tallenna_luokitus,        {0}               },
+    { SDLK_s,        CTRL,   vie_tiedostoksi,          {0}               },
 };
 
 Sidonta tapaht_sid[] = {
@@ -407,7 +409,7 @@ void toiseen_reunaan(Arg _) { //kohdistin kauimmaiseen valinnan reunaan
 void luokittele_kaikki(Arg _) {
     kohdistin.r = 2;
     int x0 = kohdistin.x;
-    kohdistin.x = lukituksia = 0;
+    kohdistin.x = luokituksia = 0;
     do {
 	if(seuraava_ylimeno_tältä()) goto valmis;
 	luokitus_sij[luokituksia] = valinta;
@@ -438,6 +440,17 @@ void opeta(Arg _) {
     tee_opetusdata();
     vapauta_lpuu(puu);
     puu = luokittelupuu(xmat, yvec, 2);
+}
+
+void vie_tiedostoksi(Arg _) {
+    const char* funknimi = "vie_tiedostoksi";
+    int fd = open("äänireuna_tallenne.bin", O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    if(fd < 0) {
+	warn("open funktiossa %s", funknimi);
+	return; }
+    if(write(fd, data, raidan_pit*sizeof(float)) < 0)
+	warn("write funktiossa %s", funknimi);
+    close(fd);
 }
 
 int argmax(int r, int alku, int loppu) {
@@ -661,7 +674,7 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1; ulos_fno = ulos_fno1;
     data = malloc(raitoja*raidan_pit*sizeof(float));
     skaalat = malloc(raitoja*sizeof(float));
-    memcpy(data, data1, raitoja*raidan_pit*sizeof(float));
+    memcpy(data, data1, raitoja*raidan_pit*sizeof(float)); // TODO: ei kai tätä tarvitse kopioida
     kynnarv = malloc(raitoja*sizeof(float*));
     for(int j=0; j<raitoja; j++) {
 	kynnarv[j] = malloc(2*sizeof(float));
@@ -683,7 +696,7 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     ikk_y0 = 0;
     ikkuna = SDL_CreateWindow("Äänen valinta", ikk_x0, ikk_y0, ikk_w, ikk_h, SDL_WINDOW_RESIZABLE);
     rend = SDL_CreateRenderer(ikkuna, -1, SDL_RENDERER_TARGETTEXTURE);
-    SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h); //ikkunointimanageri voi muuttaa kokoa pyydetystä
+    SDL_GetWindowSize(ikkuna, &ikk_w, &ikk_h); // ikkunointimanageri voi muuttaa kokoa pyydetystä
     tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
     SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
