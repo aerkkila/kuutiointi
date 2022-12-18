@@ -18,13 +18,14 @@ static const char* tahkot = "RUFLDB";
 static const char* suunnat = " '2";
 static const int isuunnat[] = {1,3,2}; // montako kertaa 90° myötäpäivään mikin suunta on
 static const char* suuntakirjaimet_90aste = "@ 2'";
+typedef long unsigned uint64;
 
-long korjaa_sexa(long, int);
-void seuraava_sarja(int pit, long *sexa, unsigned *trexa);
+uint64 korjaa_sexa(uint64, int);
+void seuraava_sarja(int pit, uint64 *sexa, uint64 *trexa);
 void* laskenta(void* vp);
 
-long powi(long a, long unsigned n);
-void stp_sarjaksi(long, long, int, char* ulos);
+uint64 powi(uint64 a, uint64 n);
+void stp_sarjaksi(uint64, uint64, int, char* ulos);
 void isarja_sarjaksi(int*, int, char*);
 
 struct Lista {
@@ -34,26 +35,24 @@ struct Lista {
 
 typedef struct {
     struct Lista* lista;
-    long sexa;
+    uint64 sexa;
     long raja;
     int pit;
     int id;
 } säikeen_tiedot;
 
-/* merkitään siirtotahkot kuusikantaisilla sexaluvuilla
+/* Merkittäköön siirtotahkot kuusikantaisilla sexaluvuilla.
    esim. 0135 olisi R U L B
    lisättäessä 1 saadaan 0140 eli R U D R
-
    Vastaavasti suunnat merkitään kolmikantaisilla trexaluvuilla.
 
-   Kannan muunnos tehdään tällä makrolla.
-   Kun luku muutetaan kanta-kantaiseksi, mikä on vähiten merkitsevästä alkaen i. numero.
+   Kun luku esitetään kanta-kantaisena, mikä on vähiten merkitsevästä alkaen i. numero.
    Jakojäännös noukkii i+1 viimeistä lukua, esim (kanta=10,i=1). 1215 % 10^2 -> 15.
    Jakolasku noukkii i:nnen luvun: 15 / 10^1 -> 1 */
 #define NLUKU(luku, i, kanta) ((luku) % powi(kanta,i+1) / powi(kanta,i))
 
-long powi(long a, long unsigned n) { // tämä toimii ajassa O(log(n))
-    long r=1;
+uint64 powi(uint64 a, uint64 n) { // tämä toimii ajassa O(log(n))
+    uint64 r=1;
 alku:
     if(!n) return r;
     if(n%2) r *= a;
@@ -133,8 +132,8 @@ int main(int argc, char** argv) {
 
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 	struct Lista listat[töitä];
-	long sexa1 = powi(6, pit-1); // Lopetetaan, kun ensimmäinen siirto olisi U, jolloin kaikki R ... on käyty.
-	long pätkä = sexa1/töitä;
+	uint64 sexa1 = powi(6, pit-1); // Lopetetaan, kun ensimmäinen siirto olisi U, jolloin kaikki R ... on käyty.
+	uint64 pätkä = sexa1/töitä;
 	säikeen_tiedot t[töitä];
 	int i;
 	for(i=0; i<töitä-1; i++) {
@@ -160,7 +159,7 @@ int main(int argc, char** argv) {
 }
 
 #ifdef DEBUG
-void stp_sarjaksi(long sexa, long trexa, int pit, char* sarja) {
+void stp_sarjaksi(uint64 sexa, uint64 trexa, int pit, char* sarja) {
     for(int i=0; i<pit; i++) {
 	sarja[(pit-i-1)*3] = tahkot[NLUKU(sexa, i, 6)];
 	sarja[(pit-i-1)*3+1] = suunnat[NLUKU(trexa, i, 3)];
@@ -235,8 +234,8 @@ void* laskenta(void* vp) {
 
     char nimi[12];
     sprintf(nimi, "tmp%i.txt", tied.id);
-    unsigned trexa = -1;
-    long sexa = korjaa_sexa(tied.sexa, pit);
+    uint64 trexa = -1;
+    uint64 sexa = korjaa_sexa(tied.sexa, pit);
 
     while(1) {
 	seuraava_sarja(pit, &sexa, &trexa);
@@ -273,7 +272,7 @@ void* laskenta(void* vp) {
 #undef PIT_ISARJA
 
 /* Sama tahko ei saa esiintyä kahdesti peräkkäin eikä sama akseli kolmesti. */
-int sexa_ei_kelpaa(long sexa, int pit) {
+int sexa_ei_kelpaa(uint64 sexa, int pit) {
     int n0, n1, n2;
     n0 = NLUKU(sexa, 0, 6);
     n1 = NLUKU(sexa, 1, 6);
@@ -288,12 +287,12 @@ int sexa_ei_kelpaa(long sexa, int pit) {
     return (n0 == n1);
 }
 
-long korjaa_sexa(long sexa, int pit) {
+uint64 korjaa_sexa(uint64 sexa, int pit) {
     while(sexa_ei_kelpaa(sexa, pit)) sexa++;
     return sexa;
 }
 
-void seuraava_sarja(int pit, long *sexa, unsigned *trexa) {
+void seuraava_sarja(int pit, uint64 *sexa, uint64 *trexa) {
     if(++*trexa < powi(3, pit))
 	return;
     *trexa = 0;
