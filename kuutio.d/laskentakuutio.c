@@ -105,11 +105,58 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 }
 #undef EI_LOPUSSA
 
-int verbose = 0;
+int *kunkin_tila, töitä=1, verbose=0;
+short* volatile valmis;
+uint64* rajan_anto;
+
+/* Operaattori &&, jolla otetaan viite goto-merkkiin on GNU-laajennos,
+   ja monen mielestä huonoa tyyliä,
+   mutta hähää, minullapa onkin vapaus kirjoittaa sellaista koodia kuin haluan. */
+int antakaa_työtä(säikeen_tiedot* tied) {
+    void* odott = &&odottaminen;
+    void* saami = &&saaminen;
+    valmis[tied->id] = 1;
+odottaminen:
+    usleep(5000);
+    for(int i=0; i<töitä; i++)
+	if(valmis[i] != 1)
+	    goto *(!valmis[tied->id]? saami: odott);
+    return 0;
+saaminen:
+    tied->sexa = rajan_anto[tied->id*2];
+    tied->raja = rajan_anto[tied->id*2+1];
+    return 1;
+}
+
+int anna_työtä(säikeen_tiedot* tied, uint64 sexa, int säie) {
+    if(valmis[säie] != 1) // funktion kutsun aikana jokin muu säie on voinut jo ehtiä varata tämän
+	return 1;
+    valmis[säie] = tied->id+2; // varataan antamisvuoro tälle säikeelle
+    /* Yllä olevan ehtolauseen ja kirjoituksen välissä jokin muukin säie on voinut todeta tämän olevan vapaana,
+       mutta ehtiä kirjoittamaan varauksen vasta hetken kuluttua.
+       Odotettakoon siksi hetki ja tarkkailtakoon, pysyykö varaus voimassa.
+       */
+    for(int i=0; i<20; i++)
+	if(valmis[säie] != tied->id+2)
+	    return 1;
+    uint64 luku = (sexa+1+tied->raja) / 2;
+    rajan_anto[säie*2] = luku;
+    rajan_anto[säie*2+1] = tied->raja;
+    valmis[säie] = 0;
+    tied->raja = luku;
+    return 0;
+}
 
 void tulostfun(säikeen_tiedot* tied, uint64 sexa) {
-    printf("%lu ‰\r", sexa*1000 / (tied->raja-tied->sexa));
+    printf("\033[K%lu ‰", (sexa-tied->sexa)*1000 / (tied->raja-tied->sexa));
+    for(int i=1; i<töitä; i++)
+	printf(" %i ‰", kunkin_tila[i]);
+    putchar('\r');
     fflush(stdout);
+}
+
+void tiedotusfun(säikeen_tiedot* tied, uint64 sexa) {
+    kunkin_tila[tied->id] = (sexa-tied->sexa)*1000 / (tied->raja-tied->sexa);
 }
 
 void nop(){}
@@ -118,7 +165,6 @@ int main(int argc, char** argv) {
     /*komentoriviargumentit*/
     int maxpit_l = 4;
     int minpit_l = -1;
-    int töitä = 1;
     if(argc > 1)
 	sscanf(argv[1], "%i", &maxpit_l);
     for(int i=1; i<argc; i++)
@@ -137,6 +183,13 @@ int main(int argc, char** argv) {
     if(minpit_l < 0)
 	minpit_l = maxpit_l; // oletuksena tehdään vain yksi
     pthread_t säikeet[töitä];
+    int _kunkin_tila[töitä];
+    short _valmis[töitä];
+    uint64 _rajan_anto[töitä*2];
+    kunkin_tila = _kunkin_tila;
+    valmis = _valmis;
+    rajan_anto = _rajan_anto;
+    memset(kunkin_tila, 0, töitä*sizeof(int));
 
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 	struct Lista listat[töitä];
@@ -149,7 +202,7 @@ int main(int argc, char** argv) {
 	    listat[i] = (struct Lista){0};
 	    t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=pätkä*(i+1), .pit=pit, .id=i, .tulostfun=funptr};
 	    pthread_create(säikeet+i, NULL, laskenta, t+i);
-	    funptr = nop;
+	    funptr = verbose? nop: tiedotusfun;
 	}
 	listat[i] = (struct Lista){0};
 	t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=sexa1, .pit=pit, .id=i, .tulostfun=funptr};
@@ -166,6 +219,7 @@ int main(int argc, char** argv) {
 	    free(listat[i].kutakin);
 	}
     }
+    write(STDOUT_FILENO, "\033[K", 3);
 }
 
 #ifdef DEBUG
@@ -247,37 +301,50 @@ void* laskenta(void* vp) {
 
     char nimi[12];
     sprintf(nimi, "tmp%i.txt", tied.id);
-    uint64 trexa = -1;
+    uint64 trexa = 0;
     uint64 sexa = korjaa_sexa(tied.sexa, pit);
 
     while(1) {
-	seuraava_sarja(pit, &sexa, &trexa);
-	if(sexa >= tied.raja)
-	    break;
-	unsigned kohta=0;
-	int lasku=0;
-	/*sarja lukumuotoon*/
-	for(int i=0; i<pit; i++) {
-	    int ind = NLUKU(sexa, i, 6);
-	    isarja[(pit-i-1)*2] = ind;
-	    ind = NLUKU(trexa, i, 3);
-	    isarja[(pit-i-1)*2+1] = isuunnat[ind];
-	}
-	do {
-	    siirto(&kuutio, isarja[kohta*2], 0, isarja[kohta*2+1]);
-	    kohta = (kohta+1) % pit;
-	    lasku++;
-	} while(!onkoRatkaistu(&kuutio));
-	if(luku_listalle(lasku, tied.lista)) {
-	    puts("epäonnistui");
-	    return NULL; }
-	if(verbose) {
-	    isarja_sarjaksi(isarja, pit, sarja);
-	    printf("%s\t%i\n", sarja, lasku);
+	for(int i=0; i<200; i++) {
+	    /* Jos on valmis, pyydetään muilta säikeiltä lisää ja lopetetaan ellei saada. */
+	    if(sexa >= tied.raja) {
+		if(!antakaa_työtä(&tied))
+		    goto ulos;
+		else {
+		    sexa = korjaa_sexa(tied.sexa, pit);
+		    continue; }
+	    }
+	    unsigned kohta=0;
+	    int lasku=0;
+	    /*sarja lukumuotoon*/
+	    for(int i=0; i<pit; i++) {
+		int ind = NLUKU(sexa, i, 6);
+		isarja[(pit-i-1)*2] = ind;
+		ind = NLUKU(trexa, i, 3);
+		isarja[(pit-i-1)*2+1] = isuunnat[ind];
+	    }
+	    do {
+		siirto(&kuutio, isarja[kohta*2], 0, isarja[kohta*2+1]);
+		kohta = (kohta+1) % pit;
+		lasku++;
+	    } while(!onkoRatkaistu(&kuutio));
+	    if(luku_listalle(lasku, tied.lista)) {
+		puts("epäonnistui");
+		return NULL; }
+	    if(verbose) {
+		isarja_sarjaksi(isarja, pit, sarja);
+		printf("%s\t%i\n", sarja, lasku);
+	    }
+	    seuraava_sarja(pit, &sexa, &trexa);
 	}
 	tied.tulostfun(&tied, sexa);
+	/* Jos jokin muu säie on valmis, annetaan sille tästä osa, ellei jokin muu säie ehdi ensin. */
+	for(int i=0; i<töitä; i++)
+	    if(valmis[i] == 1 && !anna_työtä(&tied, sexa, i))
+		break;
     }
 
+ulos:
     free(kuutio.sivut);
     free(*kuutio.indeksit);
     return NULL;
