@@ -33,12 +33,13 @@ struct Lista {
     size_t pit, kapasit;
 };
 
-typedef struct {
+typedef struct ST {
     struct Lista* lista;
     uint64 sexa;
     long raja;
     int pit;
     int id;
+    void(*tulostfun)(struct ST*, uint64);
 } säikeen_tiedot;
 
 /* Merkittäköön siirtotahkot kuusikantaisilla sexaluvuilla.
@@ -106,6 +107,13 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 
 int verbose = 0;
 
+void tulostfun(säikeen_tiedot* tied, uint64 sexa) {
+    printf("%lu ‰\r", sexa*1000 / (tied->raja-tied->sexa));
+    fflush(stdout);
+}
+
+void nop(){}
+
 int main(int argc, char** argv) {
     /*komentoriviargumentit*/
     int maxpit_l = 4;
@@ -132,17 +140,19 @@ int main(int argc, char** argv) {
 
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 	struct Lista listat[töitä];
-	uint64 sexa1 = powi(6, pit-1); // Lopetetaan, kun ensimmäinen siirto olisi U, jolloin kaikki R ... on käyty.
+	uint64 sexa1 = _d*powi(6, pit-2); // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
 	uint64 pätkä = sexa1/töitä;
 	säikeen_tiedot t[töitä];
+	void(*funptr)(säikeen_tiedot*,uint64) = verbose? nop: tulostfun;
 	int i;
 	for(i=0; i<töitä-1; i++) {
 	    listat[i] = (struct Lista){0};
-	    t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=pätkä*(i+1), .pit=pit, .id=i};
+	    t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=pätkä*(i+1), .pit=pit, .id=i, .tulostfun=funptr};
 	    pthread_create(säikeet+i, NULL, laskenta, t+i);
+	    funptr = nop;
 	}
 	listat[i] = (struct Lista){0};
-	t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=sexa1, .pit=pit, .id=i};
+	t[i] = (säikeen_tiedot){.lista=listat+i, .sexa=pätkä*i, .raja=sexa1, .pit=pit, .id=i, .tulostfun=funptr};
 	laskenta(t+töitä-1);
 	for(int i=0; i<töitä-1; i++)
 	    pthread_join(säikeet[i], NULL);
@@ -198,13 +208,16 @@ alku:
 int luku_listalle(int lasku, struct Lista* lista) {
     size_t ind = 0;
     if(!lista->kapasit)
-	goto alusta;
+	goto alusta_ehdotta;
     ind = puolitushaku(lista->lasku, lista->pit, lasku);
-    if(lista->lasku[ind] == lasku) {
+    if(ind == lista->pit)
+	goto alusta_ehdolla;
+    else if(lista->lasku[ind] == lasku) {
 	lista->kutakin[ind]++;
 	return 0; }
+alusta_ehdolla:
     if(lista->pit+1 > lista->kapasit) {
-alusta:
+alusta_ehdotta:
 	lista->lasku   = realloc(lista->lasku,   (lista->kapasit+=1024)*sizeof(unsigned));
 	lista->kutakin = realloc(lista->kutakin, (lista->kapasit)      *sizeof(unsigned));
 	if(!(lista->lasku && lista->kutakin))
@@ -223,7 +236,7 @@ alusta:
 void* laskenta(void* vp) {
     kuutio_t kuutio;
     luo_kuutio(&kuutio, 3);
-    säikeen_tiedot tied = *(säikeen_tiedot*)vp;
+    säikeen_tiedot tied = *(säikeen_tiedot*)vp; // Miksi tämä kopioidaan?
     int pit = tied.pit;
     char sarja[PIT_SARJA+1];
     int  isarja[PIT_ISARJA];
@@ -262,6 +275,7 @@ void* laskenta(void* vp) {
 	    isarja_sarjaksi(isarja, pit, sarja);
 	    printf("%s\t%i\n", sarja, lasku);
 	}
+	tied.tulostfun(&tied, sexa);
     }
 
     free(kuutio.sivut);
