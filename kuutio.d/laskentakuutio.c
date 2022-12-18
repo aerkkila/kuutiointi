@@ -111,16 +111,20 @@ uint64* rajan_anto;
 
 /* Operaattori &&, jolla otetaan viite goto-merkkiin on GNU-laajennos,
    ja monen mielestä huonoa tyyliä,
-   mutta hähää, minullapa onkin vapaus kirjoittaa sellaista koodia kuin haluan. */
+   mutta hähää, minullapa onkin vapaus kirjoittaa sellaista koodia kuin haluan.
+   Ei pidä vain seurata jotain kieltoja, vaan pitää katsoa, onko koodi luettavaa ja toimivaa.
+   Samaa voisi soveltaa liikennevaloihin: ei pidä vain katsoa onko valo punainen,
+   vaan jos ketään ei tule, niin kyllä siitä pitäisi olla silloin lupa mennä.
+   */
 int antakaa_työtä(säikeen_tiedot* tied) {
-    void* odott = &&odottaminen;
-    void* saami = &&saaminen;
+    void* odottaminen_ = &&odottaminen;
+    void* saaminen_ = &&saaminen;
     valmis[tied->id] = 1;
 odottaminen:
     usleep(5000);
     for(int i=0; i<töitä; i++)
 	if(valmis[i] != 1)
-	    goto *(!valmis[tied->id]? saami: odott);
+	    goto *(!valmis[tied->id]? saaminen_: odottaminen_);
     return 0;
 saaminen:
     tied->sexa = rajan_anto[tied->id*2];
@@ -230,6 +234,14 @@ void stp_sarjaksi(uint64 sexa, uint64 trexa, int pit, char* sarja) {
 	sarja[(pit-i-1)*3+2] = ' ';
     }
 }
+
+/* Voidaan kutsua vuorovaikutuksellisesti virheenjäljittäjästä.
+   Muuten tätä ei käytetä. */
+void tulosta_sarja_stp(uint64 sexa, uint64 trexa, int pit) {
+    char sarja[64];
+    stp_sarjaksi(sexa, trexa, pit, sarja);
+    puts(sarja);
+}
 #endif
 
 void isarja_sarjaksi(int* isarja, int pit, char* sarja) {
@@ -259,30 +271,43 @@ alku:
     goto alku;
 }
 
-int luku_listalle(int lasku, struct Lista* lista) {
-    size_t ind = 0;
-    if(!lista->kapasit)
-	goto alusta_ehdotta;
-    ind = puolitushaku(lista->lasku, lista->pit, lasku);
-    if(ind == lista->pit)
-	goto alusta_ehdolla;
-    else if(lista->lasku[ind] == lasku) {
-	lista->kutakin[ind]++;
-	return 0; }
-alusta_ehdolla:
-    if(lista->pit+1 > lista->kapasit) {
-alusta_ehdotta:
-	lista->lasku   = realloc(lista->lasku,   (lista->kapasit+=1024)*sizeof(unsigned));
-	lista->kutakin = realloc(lista->kutakin, (lista->kapasit)      *sizeof(unsigned));
-	if(!(lista->lasku && lista->kutakin))
-	    return 1;
-    }
-    memmove(lista->lasku+ind+1,   lista->lasku+ind,   (lista->pit-ind)*sizeof(unsigned));
-    memmove(lista->kutakin+ind+1, lista->kutakin+ind, (lista->pit-ind)*sizeof(unsigned));
+/* Kutsuttakoon ainoastaan funktiosta luku_listalle. */
+int _jatka_listaa(struct Lista* lista) {
+    lista->lasku   = realloc(lista->lasku,   (lista->kapasit+=1024)*sizeof(unsigned));
+    lista->kutakin = realloc(lista->kutakin, (lista->kapasit)      *sizeof(unsigned));
+    return !(lista->lasku && lista->kutakin);
+}
+
+void _luku_listalle(int lasku, int ind, struct Lista* lista) {
     lista->lasku[ind] = lasku;
     lista->kutakin[ind] = 1;
     lista->pit++;
+}
+
+int luku_listalle(int lasku, struct Lista* lista) {
+    if(!lista->kapasit) {
+	if(_jatka_listaa(lista))
+	    return 1;
+	_luku_listalle(lasku, 0, lista);
+	return 0;
+    }
+
+    size_t ind = puolitushaku(lista->lasku, lista->pit, lasku);
+    if(ind < lista->pit && lista->lasku[ind] == lasku) {
+	lista->kutakin[ind]++;
+	return 0;
+    }
+    if(lista->pit+1 > lista->kapasit)
+	if(_jatka_listaa(lista))
+	    return 1;
+    memmove(lista->lasku+ind+1,   lista->lasku+ind,   (lista->pit-ind)*sizeof(unsigned));
+    memmove(lista->kutakin+ind+1, lista->kutakin+ind, (lista->pit-ind)*sizeof(unsigned));
+    _luku_listalle(lasku, ind, lista);
     return 0;
+}
+
+int symmetria_aiempaan(int* isarja, int pit) {
+    return 0; // TODO
 }
 
 #define PIT_SARJA (pit*3)
@@ -301,21 +326,18 @@ void* laskenta(void* vp) {
 
     char nimi[12];
     sprintf(nimi, "tmp%i.txt", tied.id);
-    uint64 trexa = 0;
+    uint64 trexa = -1;
     uint64 sexa = korjaa_sexa(tied.sexa, pit);
 
     while(1) {
 	for(int i=0; i<200; i++) {
+	    seuraava_sarja(pit, &sexa, &trexa);
 	    /* Jos on valmis, pyydetään muilta säikeiltä lisää ja lopetetaan ellei saada. */
-	    if(sexa >= tied.raja) {
+	    while(sexa >= tied.raja) {
 		if(!antakaa_työtä(&tied))
 		    goto ulos;
-		else {
-		    sexa = korjaa_sexa(tied.sexa, pit);
-		    continue; }
+		sexa = korjaa_sexa(tied.sexa, pit);
 	    }
-	    unsigned kohta=0;
-	    int lasku=0;
 	    /*sarja lukumuotoon*/
 	    for(int i=0; i<pit; i++) {
 		int ind = NLUKU(sexa, i, 6);
@@ -323,11 +345,17 @@ void* laskenta(void* vp) {
 		ind = NLUKU(trexa, i, 3);
 		isarja[(pit-i-1)*2+1] = isuunnat[ind];
 	    }
+	    if(symmetria_aiempaan(isarja, pit))
+		continue;
+
+	    unsigned kohta=0;
+	    int lasku=0;
 	    do {
 		siirto(&kuutio, isarja[kohta*2], 0, isarja[kohta*2+1]);
 		kohta = (kohta+1) % pit;
 		lasku++;
 	    } while(!onkoRatkaistu(&kuutio));
+
 	    if(luku_listalle(lasku, tied.lista)) {
 		puts("epäonnistui");
 		return NULL; }
@@ -335,7 +363,6 @@ void* laskenta(void* vp) {
 		isarja_sarjaksi(isarja, pit, sarja);
 		printf("%s\t%i\n", sarja, lasku);
 	    }
-	    seuraava_sarja(pit, &sexa, &trexa);
 	}
 	tied.tulostfun(&tied, sexa);
 	/* Jos jokin muu säie on valmis, annetaan sille tästä osa, ellei jokin muu säie ehdi ensin. */
