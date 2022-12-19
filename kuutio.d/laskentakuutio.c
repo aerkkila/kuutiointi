@@ -306,8 +306,43 @@ int luku_listalle(int lasku, struct Lista* lista) {
     return 0;
 }
 
-int symmetria_aiempaan(int* isarja, int pit) {
-    return 0; // TODO
+/* isarjassa parilliset indeksit ovat tahkoja */
+int yhtenevyys_aiempaan(int* isarja, int pit) {
+    enum {x,y,z};
+    char puhdas_aks[3] = {1,1,1};
+    char puhdas_suunta[3] = {1,1,1};
+    int i;
+
+    int _tarkistus() {
+	int ax = isarja[i] % 3;
+	if(puhdas_aks[ax] && puhdas_aks[x]) {
+	    if(ax != x)
+		return 1; // Akseli voidaan kääntää x-akseliksi. Ei kyllä tapahdu, koska ensimmäinen on aina R.
+	}
+	else if(puhdas_aks[ax] && puhdas_aks[y]) {
+	    if(ax != y)
+		return 1; // Akseli voidaan kääntää y-akseliksi.
+	}
+	puhdas_aks[ax] = 0;
+
+	if(puhdas_suunta[x]+puhdas_suunta[y]+puhdas_suunta[z] <= 1) // yhdestä vapaasta suunnasta ei ole hyötyä
+	    return 0;
+	if(puhdas_suunta[ax] && isarja[i] >= 3) // Akseli voi kääntyä 180°, yllä jo tarkistettiin, että toinenkin vapaa löytyy.
+	    return 1;
+
+	if(isarja[i+2]%3 != ax)
+	    puhdas_suunta[ax] = 0;
+	else
+	    i+=2; // Saman akselin käsittely uudestaan ei hyödytä ja sotkisi puhtaat suunnat.
+	return 0;
+    }
+
+    for(i=0; i<(pit-1)*2; i+=2)
+	if(_tarkistus())
+	    return 1;
+    if(i<pit*2)
+	return _tarkistus();
+    return 0;
 }
 
 #define PIT_SARJA (pit*3)
@@ -345,8 +380,14 @@ void* laskenta(void* vp) {
 		ind = NLUKU(trexa, i, 3);
 		isarja[(pit-i-1)*2+1] = isuunnat[ind];
 	    }
-	    if(symmetria_aiempaan(isarja, pit))
-		continue;
+	    /* Tämä olisi looginen siirtää korjaa-sexa funktioon. */
+	    if(yhtenevyys_aiempaan(isarja, pit)) {
+		if(verbose) {
+		    isarja_sarjaksi(isarja, pit, sarja);
+		    printf("%s yhtenevä\n", sarja);
+		}
+		trexa = powi(3, pit); // jotta otetaan heti seuraava
+		continue; }
 
 	    unsigned kohta=0;
 	    int lasku=0;
