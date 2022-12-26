@@ -10,6 +10,7 @@
 #include <math.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <err.h>
 #include "äänireuna.h"
@@ -24,6 +25,7 @@ int jaksonaika_ms = 30;
 int tallennusaika_ms = 5000;
 int gauss_sigma_kpl = 180;
 int maksimin_alue = 30; //yhteen suuntaan
+const char* avattava;
 float kynnysarvot[] = {NAN, NAN, NAN, 1e-6};
 long unsigned pit_data, pit_jakso;
 unsigned tarkka_taaj;
@@ -55,14 +57,22 @@ void sulje_putki(void** putki) {
 }
 
 /* komentoriviargumentit */
-const struct {char* nimi; char* muoto; void* muuttujat[3]; void (*funktio)(void**); void** funargt;} kntoarg[] = {
-    { "--tallennusaika_ms", "%i", {&tallennusaika_ms} },
-    { "--jaksonaika_ms",    "%i", {&jaksonaika_ms} },
-    { "--opettaminen",      "%i", {&opettaminen} },
-    { "--gauss_sigma_kpl",  "%i", {&gauss_sigma_kpl} },
-    { "--kynnysarvo",       "%e", {kynnysarvot+3} },
-    { "--putki0",           "%i", {&p00, &apuint}, sulje_putki, (void**)&apuint },
-    { "--putki1",           "%i", {&apuint, &p11}, sulje_putki, (void**)&apuint },
+struct {
+    char* nimi;
+    char* muoto;
+    void* muuttujat[3];
+    void (*funktio)(void**);
+    void** funargt;
+}
+kntoarg[] = {
+    { "--tallennusaika_ms", "%i", {&tallennusaika_ms}					},
+    { "--jaksonaika_ms",    "%i", {&jaksonaika_ms   }					},
+    { "--opettaminen",      "%i", {&opettaminen     }					},
+    { "--gauss_sigma_kpl",  "%i", {&gauss_sigma_kpl }					},
+    { "--kynnysarvo",       "%e", {kynnysarvot+3    }					},
+    { "--putki0",           "%i", {&p00, &apuint    }, sulje_putki, (void**)&apuint	},
+    { "--putki1",           "%i", {&apuint, &p11    }, sulje_putki, (void**)&apuint	},
+    { "--avattava",         NULL, {&avattava        }					},
 };
 
 void lue_kntoriviargt(int argc, char** argv) {
@@ -71,11 +81,16 @@ void lue_kntoriviargt(int argc, char** argv) {
 	for(int j=0; j<pit; j++) {
 	    if(strcmp(argv[i], kntoarg[j].nimi))
 		continue;
-	    for(int k=0; kntoarg[j].muuttujat[k]; k++)
-		if(sscanf(argv[++i], kntoarg[j].muoto, kntoarg[j].muuttujat[k]) != 1) {
-		    fprintf(stderr, "\033[31mVirhe\033[0m argumentin \"%s\" jälkeen\n", kntoarg[j].nimi);
-		    exit(1);
-		}
+	    if(kntoarg[j].muoto) {
+		for(int k=0; kntoarg[j].muuttujat[k]; k++)
+		    if(sscanf(argv[++i], kntoarg[j].muoto, kntoarg[j].muuttujat[k]) != 1) {
+			fprintf(stderr, "\033[31mVirhe\033[0m argumentin \"%s\" jälkeen\n", kntoarg[j].nimi);
+			exit(1);
+		    }
+	    }
+	    else
+		for(int k=0; kntoarg[j].muuttujat[k]; k++)
+		    *(void**)kntoarg[j].muuttujat[k] = argv[++i];
 	    if(kntoarg[j].funktio)
 		kntoarg[j].funktio(kntoarg[j].funargt);
 	    goto seuraava_argumentti;
@@ -333,6 +348,19 @@ void putki0_tapahtumat() {
 	fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0.fd);
 }
 
+void avaa_ääni(const char* avattava) {
+    int fd = open(avattava, O_RDONLY);
+    if(fd < 0)
+	warn("open rivillä %i", __LINE__);
+    struct stat stat;
+    fstat(fd, &stat);
+    pit_data = stat.st_size / sizeof(float);
+    kokodata = malloc(pit_data * n_raitoja * sizeof(float));
+    if(read(fd, kokodata, pit_data*sizeof(float)) < pit_data*sizeof(float))
+	warn("read rivillä %i", __LINE__);
+    close(fd);
+}
+
 int main(int argc, char** argv) {
     lue_kntoriviargt(argc, argv);
     if(p00>0)
@@ -341,26 +369,37 @@ int main(int argc, char** argv) {
     signal(SIGPIPE, sigint);
     signal(SIGCHLD, sigchld);
     pthread_t saie;
-    pit_data = taaj*tallennusaika_ms/1000;
-    pit_jakso = taaj*jaksonaika_ms/1000;
-    nauh_jaksoja = pit_data / pit_jakso;
-    if(nauh_jaksoja < 2) {
-	printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
-	nauh_jaksoja = 2;
-    }
-    pit_data = nauh_jaksoja * pit_jakso; // tehtäköön tästä jakson pituuden monikerta
     alusta_ääni(&kahva_capt, SND_PCM_STREAM_CAPTURE);
     alusta_ääni(&kahva_play, SND_PCM_STREAM_PLAYBACK);
-    kokodata = calloc(pit_data * n_raitoja, sizeof(float));
+    puts(avattava);
+    if(avattava)
+	avaa_ääni(avattava);
+    else {
+	pit_data = taaj*tallennusaika_ms/1000;
+	pit_jakso = taaj*jaksonaika_ms/1000;
+	nauh_jaksoja = pit_data / pit_jakso;
+	if(nauh_jaksoja < 2) {
+	    printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
+	    nauh_jaksoja = 2;
+	}
+	pit_data = nauh_jaksoja * pit_jakso; // tehtäköön tästä jakson pituuden monikerta
+	kokodata = malloc(pit_data * n_raitoja * sizeof(float));
+    }
     for(int i=0; i<n_raitoja; i++)
 	data[i] = kokodata + i*pit_data;
 
-    for(int i=0; i<pit_data*n_raitoja; i++)
-	kokodata[i] = NAN;
+    if(avattava) {
+	havaitse_ylitykset(data, 0, pit_data);
+	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11);
+    }
+    else {
+	for(int i=0; i<pit_data*n_raitoja; i++)
+	    kokodata[i] = NAN;
 
-    pthread_create(&saie, NULL, nauhoita, kokodata);
-    käsittele(data);
-    pthread_join(saie, NULL);
+	pthread_create(&saie, NULL, nauhoita, kokodata);
+	käsittele(data);
+	pthread_join(saie, NULL);
+    }
     snd_pcm_close(kahva_capt);
     close(p00);
     p00 = -1;
