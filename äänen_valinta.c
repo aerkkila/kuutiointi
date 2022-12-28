@@ -48,6 +48,7 @@ void toiseen_reunaan(Arg _);
 void luokittele_kaikki(Arg _);
 void vaihda_luokitus(Arg _);
 void opeta(Arg _);
+void poista_luokitukset(Arg _);
 void luokittele(Arg _);
 void vie_tiedostoksi(Arg _);
 
@@ -63,6 +64,7 @@ static uint64_t hetkinyt();
 float    skaalaa(float* data, int pit);
 void     tee_opetusdata();
 int      seuraava_ylimeno_tältä();
+void     poista_kynnysarvot();
 
 void aja();
 void äänen_valinta(float* data, int raitoja, int raidan_pit, snd_pcm_t* kahva, int ulos_fno);
@@ -157,6 +159,7 @@ Sidonta näpp_alas_sid[] = {
     { SDLK_INSERT,   0,      seuraava_ylimeno,         {0}               },
     { SDLK_INSERT,   ALT,    luokittele_kaikki,        {0}               },
     { SDLK_INSERT,   CTRL,   opeta,                    {0}               },
+    { SDLK_DELETE,   0,      poista_luokitukset,       {0}               },
     { SDLK_TAB,      0,      toiseen_reunaan,          {0}               },
     { SDLK_LESS,     0,      vaihda_luokitus,          {0}               },
     { SDLK_s,        CTRL,   vie_tiedostoksi,          {0}               },
@@ -442,6 +445,11 @@ void opeta(Arg _) {
     puu = luokittelupuu(xmat, yvec, 2);
 }
 
+void poista_luokitukset(Arg _) {
+    luokituksia = 0;
+    poista_kynnysarvot();
+}
+
 void vie_tiedostoksi(Arg _) {
     const char* funknimi = "vie_tiedostoksi";
     int fd = open("äänireuna_tallenne.bin", O_WRONLY | O_TRUNC | O_CREAT, 0644);
@@ -669,6 +677,14 @@ alku:
     goto alku;
 }
 
+void poista_kynnysarvot() {
+    for(int j=0; j<raitoja; j++) {
+	kynnarv[j] = malloc(2*sizeof(float));
+	for(int i=0; i<2; i++)
+	    kynnarv[j][i] = NAN;
+    }
+}
+
 static int oli_sdl = 0;
 void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kahva1, int ulos_fno1) {
     raitoja = raitoja1; raidan_pit = raidan_pit1; kahva = kahva1; ulos_fno = ulos_fno1;
@@ -676,11 +692,7 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     skaalat = malloc(raitoja*sizeof(float));
     memcpy(data, data1, raitoja*raidan_pit*sizeof(float)); // TODO: ei kai tätä tarvitse kopioida
     kynnarv = malloc(raitoja*sizeof(float*));
-    for(int j=0; j<raitoja; j++) {
-	kynnarv[j] = malloc(2*sizeof(float));
-	for(int i=0; i<2; i++)
-	    kynnarv[j][i] = NAN;
-    }
+    poista_kynnysarvot();
     if(SDL_WasInit(SDL_INIT_VIDEO))
 	oli_sdl = 1;
     else if(SDL_Init(SDL_INIT_VIDEO)) {
