@@ -109,10 +109,10 @@ static void lpuu_hae_lehti(lpuu_A* kaikki, int ilehti_sis) {
 	sarake = lehti->muuttuja;
 	if(lehti->seur[1] == ilehti)
 	    for(int i=0; i<pit; i++)
-		maski[i] = Xmat(x, i, sarake) >= lehti->arvo;
+		maski[i] = maski[i] && Xmat(x, i, sarake) >= lehti->arvo;
 	else
 	    for(int i=0; i<pit; i++)
-		maski[i] = Xmat(x, i, sarake) < lehti->arvo;
+		maski[i] = maski[i] && Xmat(x, i, sarake) < lehti->arvo;
 	ilehti = ilehti_;
     }
 }
