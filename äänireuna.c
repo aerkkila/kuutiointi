@@ -110,9 +110,9 @@ void lue_kntoriviargt(int argc, char** argv) {
     }
 }
 
-int alusta_ääni(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto) {
+int alusta_ääni(snd_pcm_t** kahva, snd_pcm_stream_t suoratoisto, int args) {
     snd_pcm_hw_params_t* hwparams;
-    ALSAFUNK(snd_pcm_open, kahva, "default", suoratoisto, 0);                                  // avaa
+    ALSAFUNK(snd_pcm_open, kahva, "default", suoratoisto, args);                               // avaa
     snd_pcm_hw_params_alloca(&hwparams);						          
     ALSAFUNK(snd_pcm_hw_params_any, *kahva, hwparams);                                         // params_any
     ALSAFUNK(snd_pcm_hw_params_set_access, *kahva, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED);   // access
@@ -426,8 +426,8 @@ int main(int argc, char** argv) {
     signal(SIGPIPE, sigint);
     signal(SIGCHLD, sigchld);
     pthread_t saie;
-    alusta_ääni(&kahva_capt, SND_PCM_STREAM_CAPTURE);
-    alusta_ääni(&kahva_play, SND_PCM_STREAM_PLAYBACK);
+    alusta_ääni(&kahva_capt, SND_PCM_STREAM_CAPTURE, 0);
+    alusta_ääni(&kahva_play, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
     if(avattava) {
 	avaa_ääni(avattava);
 	for(int i=0; i<n_raitoja; i++)

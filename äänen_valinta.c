@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <sys/stat.h> // mkdir
 #include <err.h>
+#include <pthread.h>
 #include "modkeys.h"
 #include "äänireuna.h"
 #include "luokittelupuu.h"
@@ -55,7 +56,7 @@ void vie_tiedostoksi(Arg _);
 
 void     piirrä_raidat();
 void     piirra_kynnysarvot();
-void     piirrä_kohdistin(int x, int r); //x määritellään ääniraidan näytteenä
+void     piirrä_kohdistin(int x, int r); // x määritellään ääniraidan näytteenä
 void     piirrä_valinta(int2*);
 void     piirrä_luokitus();
 int      toiston_sijainti();
@@ -93,13 +94,13 @@ static SDL_Color kynnysvari         = {50,180,255,255};
 static SDL_Color vntavari           = {255,255,255,40};
 static SDL_Color luokitus_joo       = {100,255,0,100};
 static SDL_Color luokitus_ei        = {255,100,0,100};
-static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; //ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
+static int ikk_x0=0, ikk_y0=0, ikk_w, ikk_h; // ikk_w on näytön leveys, ikk_h riippuu raitojen määrästä
 static int32_t valin_suhde = 14, raitoja, raidan_pit;
 static int raidan_kork = 200, raidan_vali, raidan_h, iväli, kuvan_alku;
 static float zoom = 1;
 static unsigned tuplaklikkaus_ms = 240, siirtoluku = 4;
 
-static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //monesko näyte ääniraidalla
+static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; // monesko näyte ääniraidalla
 static int toiston_x, toiston_alku, toiston_loppu;
 static int2 valinta = {{-1, -1}};
 
@@ -109,7 +110,8 @@ static float* skaalat;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static int ulos_fno;
-static int toistaa = 0, piirto_raidat=0, jatka=1;
+static int toistaa=0, lopeta_toisto=0, toistaja_lopetti=0, piirto_raidat=0, jatka=1, arg_luettu;
+static pthread_t toistajasäie;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
 static unsigned modkey;
 
@@ -246,16 +248,19 @@ void zoomaa(Arg arg) {
 }
 
 void vaihda_toistaminen(Arg arg) {
-    if((toistaa = !toistaa)) {
+    if(toistaa) {
+	lopeta_toisto = 1;
+	pthread_join(toistajasäie, NULL);
+	if(arg.v)
+	    kohdistin.x = *(int*)arg.v;
+    }
+    else {
 	if(valinta.a[0] < 0)
 	    toista_väli((int2){{kohdistin.x, raidan_pit}});
 	else
 	    toista_väli(valinta);
 	return;
     }
-    snd_pcm_drop(kahva);
-    if(arg.v)
-	kohdistin.x = *(int*)arg.v;
 }
 
 void toista_ympäriltä(Arg arg) {
@@ -586,24 +591,42 @@ int toiston_sijainti() {
 }
 
 void toista_kohdistin() {
-    snd_pcm_drop(kahva);
-    toiston_alku = kohdistin.x;
-    toiston_loppu = raidan_pit;
-    toistaa = 1;
-    toistohetki0 = hetkinyt();
-    while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r, toiston_alku), raidan_pit-toiston_alku) < 0)
-	snd_pcm_prepare(kahva);
+    int2 väli = {{kohdistin.x, raidan_pit}};
+    toista_väli(väli);
 }
 
-void toista_väli(int2 väli) {
+void* toista_väli_säie(void* arg) {
+    int2 väli = *(int2*)arg;
+    arg_luettu = 1;
     snd_pcm_drop(kahva);
-    int pienempi = väli.a[1] < väli.a[0];
-    toiston_alku = väli.a[pienempi];
+    long pienempi = väli.a[1] < väli.a[0], alkunyt;
+    toiston_alku = alkunyt = väli.a[pienempi];
     toiston_loppu = väli.a[!pienempi];
     toistaa = 1;
     toistohetki0 = hetkinyt();
-    while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r,väli.a[pienempi]), väli.a[!pienempi]-väli.a[pienempi]) < 0)
-	snd_pcm_prepare(kahva);
+    while(alkunyt < toiston_loppu) {
+	long pit = toiston_loppu-alkunyt <= TAAJ_kHz*1000? toiston_loppu-alkunyt: TAAJ_kHz*1000; // enintään 1000 ms kerralla
+	while(snd_pcm_writei(kahva, data+DATAxKOHTA(kohdistin.r, alkunyt), pit) < 0)
+	    snd_pcm_prepare(kahva);
+	alkunyt += pit;
+	for(int i=0; i<70; i++) { // noin 0,7 sekuntia tarkkaillaan
+	    usleep(10000);
+	    if(lopeta_toisto)
+		goto ulos;
+	}
+    }
+ulos:
+    snd_pcm_drop(kahva);
+    toistaa = lopeta_toisto = 0;
+    toistaja_lopetti = 1;
+    return NULL;
+}
+
+void toista_väli(int2 väli) {
+    arg_luettu = 0;
+    pthread_create(&toistajasäie, NULL, toista_väli_säie, &väli);
+    while(!arg_luettu)
+	usleep(1000);
 }
 
 static uint64_t hetkinyt() {
@@ -649,6 +672,10 @@ alku:
     piirra_kynnysarvot();
     piirrä_luokitus();
     SDL_RenderPresent(rend);
+    if(toistaja_lopetti) {
+	pthread_join(toistajasäie, NULL);
+	toistaja_lopetti = 0;
+    }
     if(!jatka) {
 	jatka=1; return; }
     SDL_Delay(15);
@@ -694,6 +721,12 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     piirrä_raidat();
     aja();
 
+    if(toistaa || toistaja_lopetti) {
+	if(toistaa)
+	    lopeta_toisto = 1;
+	pthread_join(toistajasäie, NULL);
+	toistaja_lopetti = 0;
+    }
     luokituksia = kohdistin.x = kohdistin.r = 0;
     vapauta(free, data);
     vapauta(free, skaalat);
