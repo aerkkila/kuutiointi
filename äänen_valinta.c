@@ -4,10 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/stat.h> // mkdir
 #include <err.h>
 #include "modkeys.h"
 #include "äänireuna.h"
 #include "luokittelupuu.h"
+#include "opetusääni.h"
 
 typedef union {
     int i;
@@ -22,7 +24,6 @@ typedef struct {
     Arg arg;
 } Sidonta;
 
-typedef struct {int a[2];} int2;
 
 void näpp_alas(Arg _);
 void näpp_ylös(Arg _);
@@ -62,7 +63,6 @@ void     toista_kohdistin();
 void     toista_väli(int2);
 static uint64_t hetkinyt();
 float    skaalaa(float* data, int pit);
-void     tee_opetusdata();
 int      seuraava_ylimeno_tältä();
 void     poista_kynnysarvot();
 
@@ -98,25 +98,14 @@ static int32_t valin_suhde = 14, raitoja, raidan_pit;
 static int raidan_kork = 200, raidan_vali, raidan_h, iväli, kuvan_alku;
 static float zoom = 1;
 static unsigned tuplaklikkaus_ms = 240, siirtoluku = 4;
-#define KYNNYS_SIETO 0.001
-#define PERUS 0
-#define SUODATE 1
-#define DERIV 2
-#define OHENNE 3
 
 static struct {int x; int r;} kohdistin = {.x = 0, .r = 0}; //monesko näyte ääniraidalla
 static int toiston_x, toiston_alku, toiston_loppu;
 static int2 valinta = {{-1, -1}};
-#define luokitus_sij_pit 64
-static int2 luokitus_sij[luokitus_sij_pit];
-static long long unsigned luokitukset;
-static int luokituksia;
+
 static float* data;
 static float** kynnarv;
-static lpuu_matriisi* xmat;
-static char* yvec;
 static float* skaalat;
-static lpuu* puu;
 static int raitoja, raidan_pit;
 static snd_pcm_t* kahva;
 static int ulos_fno;
@@ -329,34 +318,32 @@ void int_nollaksi(Arg arg) {
     *(int*)arg.v = 0;
 }
 
+/* Minkä arvon ylittäneet arvot lasketaan piikeiksi.
+   Määritetään laskemalla keskiarvo ja keskihajonta funktiossa laske_kynnysarvo.
+   Jos arg.i ja kynnarv on olemassa,
+   hylätään kynnysarvon ylittäneet luvut laskettaessa keskiarvoa,
+   mikä mahdollistaa kynnysarvon määrittämisen iteratiivisesti.
+   */
 void alueen_kynnysarvo(Arg arg) {
     int r = kohdistin.r;
-    float hylkraja1 = (arg.i && kynnarv[r][1]==kynnarv[r][1])? kynnarv[r][1]: INFINITY;
-    float hylkraja0 = (arg.i && kynnarv[r][0]==kynnarv[r][0])? kynnarv[r][0]: -INFINITY;
     int eivalintaa = valinta.a[0] < 0;
+    float hylkraja0, hylkraja1;
+    if(arg.i) {
+	hylkraja0 = kynnarv[r][0];
+	hylkraja1 = kynnarv[r][1];
+    }
+    else
+	hylkraja0 = hylkraja1 = NAN;
     if(eivalintaa) {
 	valinta.a[0] = 0;
 	valinta.a[1] = raidan_pit;
     }
     int suurempi = valinta.a[1] > valinta.a[0];
-    int pit0 = valinta.a[suurempi]-valinta.a[!suurempi], pit = 0;
+    int pit0 = valinta.a[suurempi]-valinta.a[!suurempi];
     float* dp = data + DATAxKOHTA(r,valinta.a[!suurempi]);
-    double avg = 0;
     if(eivalintaa)
 	valinta.a[0] = -1;
-    for(int i=0; i<pit0; i++)
-	if(hylkraja0<dp[i] && dp[i]<hylkraja1) {
-	    avg += dp[i];
-	    pit++;
-	}
-    avg /= pit;
-    double std = 0;
-    for(int i=0; i<pit0; i++)
-	if(hylkraja0<dp[i] && dp[i]<hylkraja1)
-	    std += (dp[i]-avg)*(dp[i]-avg);
-    std = sqrt(std/pit);
-    kynnarv[r][1] = avg+std*4.5;
-    kynnarv[r][0] = avg-std*4.5;
+    laske_kynnysarvo(dp, pit0, hylkraja0, hylkraja1, kynnarv[r]);
 }
 
 void alueen_kynnysarvo_iteroi(Arg arg) {
@@ -368,8 +355,9 @@ void alueen_kynnysarvo_iteroi(Arg arg) {
 	    return;
 	vanhat[0] = kynnarv[r][0];
 	vanhat[1] = kynnarv[r][1];
+	printf("%lf, %lf\n", kynnarv[r][0], kynnarv[r][1]);
     }
-    printf("\033[93mVaroitus:\033[0m iterointi saavutti maksimipituuden supistumatta.\n");
+    printf("\033[93mVaroitus:\033[0m iterointi saavutti maksimipituuden supistumatta (%s: %i).\n", __FILE__, __LINE__);
 }
 
 int seuraava_ylimeno_tältä() {
@@ -413,36 +401,45 @@ void luokittele_kaikki(Arg _) {
     kohdistin.r = 2;
     int x0 = kohdistin.x;
     kohdistin.x = luokituksia = 0;
-    do {
-	if(seuraava_ylimeno_tältä()) goto valmis;
-	luokitus_sij[luokituksia] = valinta;
-    } while(++luokituksia < luokitus_sij_pit);
-    puts("Kaikki luokitukset eivät mahtuneet.");
-valmis:
+
+    int tilaa = 64;
+    luokitus_sij = realloc(luokitus_sij, tilaa*sizeof(int2));
+    while(!seuraava_ylimeno_tältä()) {
+	if(luokituksia >= tilaa)
+	    luokitus_sij = realloc(luokitus_sij, (tilaa+=tilaa/2)*sizeof(int2));
+	luokitus_sij[luokituksia++] = valinta; // valinta asetettiin funktiossa seuraava_ylimeno_tältä
+    }
+
+#if 0
+    /* Mikä tämä juttu on? */
     if(luokituksia) {
 	valinta = luokitus_sij[0];
 	kohdistin.x = valinta.a[1];
     }
     else
 	kohdistin.x = x0;
-    kohdistin.r = luokitukset = 0;
-    if(!puu) return;
-
-    for(int i=0; i<luokituksia; i++)
-	luokitukset |= lpuu_kerro_luokka(puu, xmat->data + xmat->pit2*i, 0) << i;
+#endif
+    kohdistin.r = 0;
+    yarr = realloc(yarr, luokituksia);
+    if(!puu)
+	for(int i=0; i<luokituksia; i++)
+	    yarr[i] = 0;
+    else
+	for(int i=0; i<luokituksia; i++)
+	    yarr[i] = lpuu_kerro_luokka(puu, xmat->data + xmat->pit2*i, 0);
 }
 
 void vaihda_luokitus(Arg _) {
     int i;
     for(i=0; i<luokituksia; i++)
 	if(luokitus_sij[i].a[0] >= valinta.a[0]) break;
-    luokitukset ^= 1LLU<<i;
+    yarr[i] = !yarr[i];
 }
 
 void opeta(Arg _) {
-    tee_opetusdata();
+    tee_opetusdata(data, raidan_pit);
     vapauta_lpuu(puu);
-    puu = luokittelupuu(xmat, yvec, 2);
+    puu = luokittelupuu(xmat, yarr, 2);
 }
 
 void poista_luokitukset(Arg _) {
@@ -450,15 +447,40 @@ void poista_luokitukset(Arg _) {
     poista_kynnysarvot();
 }
 
+#define Write(a, b, c) if(write(a,b,c) != c) warn("write rivillä %i", __LINE__)
+
 void vie_tiedostoksi(Arg _) {
-    const char* funknimi = "vie_tiedostoksi";
-    int fd = open("äänireuna_tallenne.bin", O_WRONLY | O_TRUNC | O_CREAT, 0644);
-    if(fd < 0) {
-	warn("open funktiossa %s", funknimi);
-	return; }
-    if(write(fd, data, raidan_pit*sizeof(float)) < 0)
-	warn("write funktiossa %s", funknimi);
+    const char* nimi = "äänireuna_tallenne.bin";
+    if(luokituksia)
+	goto luokituksineen;
+    int fd = open(nimi, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    Write(fd, data, raidan_pit*sizeof(float));
+    else
+	printf("kirjoitettiin %s\n", nimi);
     close(fd);
+
+luokituksineen:
+    nimi = "äänireuna_tallenne";
+    if(mkdir(nimi, 0755) && errno != EEXIST)
+	warn("mkdir %s", nimi);
+    if(chdir(nimi)) {
+	warn("chdir %s", nimi);
+	return;
+    }
+
+    fd = open("a", O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    Write(fd, data, raidan_pit*sizeof(float));
+    close(fd);
+    fd = open("b", O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    Write(fd, luokitus_sij, luokituksia*sizeof(int2));
+    close(fd);
+    fd = open("c", O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    Write(fd, yarr, luokituksia);
+    else
+	printf("lienee kirjoitettu %s\n", nimi);
+    close(fd);
+
+    chdir("..");
 }
 
 int argmax(int r, int alku, int loppu) {
@@ -473,54 +495,12 @@ int argmax(int r, int alku, int loppu) {
     return ind;
 }
 
-float maksimi(int r, int alku, int loppu) {
-    return data[r*raidan_pit + alku + argmax(r,alku,loppu)];
-}
-
-float _kynnysarvon_ylitys(int r, int alku, int loppu) {
-    int vanha_r = kohdistin.r;
-    kohdistin.r = r;
-    alueen_kynnysarvo_iteroi((Arg){.f=KYNNYS_SIETO});
-    kohdistin.r = vanha_r;
-    return maksimi(r, alku, loppu) / kynnarv[r][1];
-}
-
 int laske_ohenne(int alku, int loppu) {
     int pit = loppu-alku, lasku = 0;
     float *dt = data + OHENNE*raidan_pit + alku;
     for(int i=0; i<pit; i++)
 	lasku += dt[i] != 0;
     return lasku;
-}
-
-/* Tämä alkeellinen versio vain päällekirjoittaa mahdollisen vanhan datan. */
-void tee_opetusdata() {
-    int pit1 = luokituksia, pit2 = 1 + 2 + 1;
-    if(xmat)
-	xmat->data = realloc(xmat->data, pit1*pit2*sizeof(float));
-    else {
-	xmat = malloc(sizeof(lpuu_matriisi));
-	xmat->data = malloc(pit1*pit2*sizeof(float));
-    }
-    xmat->pit1 = pit1;
-    xmat->pit2 = pit2;
-    yvec = realloc(yvec, luokituksia);
-    int ind = 0;
-    for(int i=0; i<luokituksia; i++) {
-	// kesto
-	xmat->data[ind++] = luokitus_sij[i].a[1] - luokitus_sij[i].a[0];
-	// kynnysarvon ylitys [molemmat]
-	xmat->data[ind++] = _kynnysarvon_ylitys(SUODATE, luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
-	xmat->data[ind++] = _kynnysarvon_ylitys(DERIV,   luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
-	// huipun sijainti ajassa / kesto [molemmat]
-	//xmat->data[ind++] = argmax(SUODATE, luokitus_sij[i].a[0], luokitus_sij[i].a[1]) / xmat->data[i-1];
-	//xmat->data[ind++] = argmax(DERIV,   luokitus_sij[i].a[0], luokitus_sij[i].a[1]) / xmat->data[i-1];
-	// ohenteen pisteet
-	xmat->data[ind++] = (float)laske_ohenne(luokitus_sij[i].a[0], luokitus_sij[i].a[1]);
-
-	yvec[i] = luokitukset>>(long)i & 1; // tulos
-    }
-    assert(ind == xmat->pit1*xmat->pit2);
 }
 
 void piirrä_raidat() {
@@ -572,19 +552,17 @@ void piirrä_kohdistin(int näyte, int r) {
 }
 
 void piirrä_luokitus() {
-    ASETA_VARI(luokitus_joo);
-    for(int iii=0; iii<2; iii++) {
-	for(int ii=0; ii<luokituksia; ii++) {
-	    if(!(luokitukset & 1LLU<<ii)) continue;
-	    SDL_Rect vntarect = {
-		.x = (luokitus_sij[ii].a[0] - kuvan_alku) / iväli,
-		.w = (luokitus_sij[ii].a[1] - luokitus_sij[ii].a[0]) / iväli,
-		.h = ikk_h,
-	    };
-	    SDL_RenderFillRect(rend, &vntarect);
-	}
-	luokitukset = ~luokitukset;
-	ASETA_VARI(luokitus_ei);
+    for(int ii=0; ii<luokituksia; ii++) {
+	if(yarr[ii])
+	    ASETA_VARI(luokitus_joo);
+	else
+	    ASETA_VARI(luokitus_ei);
+	SDL_Rect vntarect = {
+	    .x = (luokitus_sij[ii].a[0] - kuvan_alku) / iväli,
+	    .w = (luokitus_sij[ii].a[1] - luokitus_sij[ii].a[0]) / iväli,
+	    .h = ikk_h,
+	};
+	SDL_RenderFillRect(rend, &vntarect);
     }
 }
 
@@ -723,8 +701,9 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
 	free(kynnarv[i]);
     vapauta(free, kynnarv);
     vapauta(vapauta_matriisi, xmat);
-    vapauta(free, yvec);
+    vapauta(free, yarr);
     vapauta(vapauta_lpuu, puu);
+    vapauta(free, luokitus_sij);
     SDL_DestroyTexture(tausta);
     SDL_DestroyRenderer(rend);
     SDL_DestroyWindow(ikkuna);

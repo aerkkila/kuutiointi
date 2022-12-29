@@ -1,3 +1,5 @@
+#ifndef __luokittelupuu_h__
+#define __luokittelupuu_h__
 #include <string.h>
 #include <stdlib.h>
 
@@ -35,13 +37,6 @@ typedef struct {
     lpuu_matriisi *x;
     char *y, *maski;
 } lpuu_A;
-
-void vapauta_matriisi(lpuu_matriisi* m) {
-    if(!m) return;
-    free(m->data);
-    m->data = NULL;
-    free(m);
-}
 
 #define Xmat(x,j,i) ((x)->data[(j)*(x)->pit2 + (i)])
 
@@ -191,7 +186,8 @@ static void jaa_tämä_lehti(lpuu_A* kaikki, int ilehti) {
 	    jaa_tämä_lehti(kaikki, kaikki->puu->lehtiä-i);
 }
 
-void lpuu_tee_jako(lpuu_matriisi* xmat, char* yvec, lpuu* puu) {
+/* kutsuttavissa */
+static void lpuu_tee_jako(lpuu_matriisi* xmat, char* yvec, lpuu* puu) {
     char* maski = malloc(xmat->pit1);
     memset(maski, 1, xmat->pit1);
     puu->lehtiä = 1; // ensimmäinen on aina olemassa
@@ -203,21 +199,32 @@ void lpuu_tee_jako(lpuu_matriisi* xmat, char* yvec, lpuu* puu) {
     free(maski);
 }
 
-void vapauta_lpuu(lpuu* lp) {
+/* kutsuttavissa */
+static void vapauta_lpuu(lpuu* lp) {
     if(!lp) return;
     free(lp->lehdet);
     *lp = (lpuu){0};
     free(lp);
 }
 
-int lpuu_kerro_luokka(const lpuu* puu, const float* x, float suvaitsevuus) {
+/*kutsuttavissa */
+static void vapauta_matriisi(lpuu_matriisi* m) {
+    if(!m) return;
+    free(m->data);
+    m->data = NULL;
+    free(m);
+}
+
+/* kutsuttavissa */
+static int lpuu_kerro_luokka(const lpuu* puu, const float* x, float suvaitsevuus) {
     lpuu_lehti *lehti = puu->lehdet;
     while(lehti->seur[0] && lehti->gini > suvaitsevuus)
 	lehti = puu->lehdet + lehti->seur[x[lehti->muuttuja] > lehti->arvo];
     return lehti->luokka;
 }
 
-lpuu* luokittelupuu(lpuu_matriisi* xmat, char* yvec, int luokkia) {
+/* kutsuttavissa */
+static lpuu* luokittelupuu(lpuu_matriisi* xmat, char* yvec, int luokkia) {
     /* Kopioidaan x ja y, jotta niitä on vapaus järjestää uudelleen. */
     size_t pit = xmat->pit1*xmat->pit2*sizeof(float);
     lpuu_matriisi x1 = *xmat;
@@ -237,3 +244,4 @@ lpuu* luokittelupuu(lpuu_matriisi* xmat, char* yvec, int luokkia) {
 }
 
 #undef Xmat
+#endif // ifndef __luokittelupuu_h__

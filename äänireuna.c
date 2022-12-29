@@ -14,6 +14,8 @@
 #include <fcntl.h>
 #include <err.h>
 #include "äänireuna.h"
+#include "luokittelupuu.h"
+#include "opetusääni.h"
 
 static void putki0_tapahtumat();
 void äänen_valinta(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* kahva_play, int ulos_fno); // ulkoinen
@@ -21,8 +23,8 @@ void äänen_valinta(float* kokodata, int raitoja, int raidan_pit, snd_pcm_t* ka
 snd_pcm_t* kahva_capt;
 snd_pcm_t* kahva_play;
 const int taaj = TAAJ_Hz;
-int jaksonaika_ms = 30;
-int tallennusaika_ms = 5000;
+long jaksonaika_ms = 30;
+long tallennusaika_ms = 5000;
 int gauss_sigma_kpl = 180;
 int maksimin_alue = 30; //yhteen suuntaan
 const char* avattava;
@@ -51,6 +53,13 @@ int nauh_tauko = 0;
 int nauh_tauolla = 0;
 long tallenna_kun = 0;
 uint64_t nauhoitteen_loppuhetki = 0;
+
+/* luokitteluparametrit */
+lpuu_matriisi* xmat;
+char* yarr;
+lpuu* puu;
+int2* luokitus_sij;
+int luokituksia;
 
 void sulje_putki(void** putki) {
     close(*((int*)putki));
@@ -348,17 +357,65 @@ void putki0_tapahtumat() {
 	fprintf(stderr, "Virhetila putkessa %i (äänireuna->putki0_tapahtumat)\n", poll_0.fd);
 }
 
-void avaa_ääni(const char* avattava) {
+void avaa_äänitiedosto(const char* avattava) {
+    struct stat stat;
     int fd = open(avattava, O_RDONLY);
     if(fd < 0)
 	warn("open rivillä %i", __LINE__);
-    struct stat stat;
     fstat(fd, &stat);
     pit_data = stat.st_size / sizeof(float);
     kokodata = malloc(pit_data * n_raitoja * sizeof(float));
     if(read(fd, kokodata, pit_data*sizeof(float)) < pit_data*sizeof(float))
 	warn("read rivillä %i", __LINE__);
     close(fd);
+}
+
+void avaa_luokitussijainnit(const char* avattava) {
+    int fd = open(avattava, O_RDONLY);
+    if(fd < 0)
+	warn("open %s rivillä %i", avattava, __LINE__);
+    struct stat stat;
+    fstat(fd, &stat);
+    luokituksia = stat.st_size / (2*sizeof(int));
+
+    luokitus_sij = realloc(luokitus_sij, luokituksia*sizeof(int2));
+    read(fd, luokitus_sij, luokituksia*2*sizeof(int));
+    close(fd);
+}
+
+void avaa_luokitukset(const char* avattava) {
+    int fd = open(avattava, O_RDONLY);
+    if(fd < 0)
+	warn("open %s rivillä %i", avattava, __LINE__);
+    struct stat stat;
+    fstat(fd, &stat);
+    luokituksia = stat.st_size;
+
+    yarr = realloc(yarr, luokituksia);
+    if(read(fd, yarr, luokituksia) < luokituksia)
+	warn("read rivillä %i", __LINE__);
+    close(fd);
+}
+
+void avaa_ääniluokitus(const char* avattava) {
+    int vanha_fd = open(".", O_RDONLY);
+    if(chdir(avattava))
+	warn("chdir %s", avattava);
+    avaa_äänitiedosto("a");
+    avaa_luokitussijainnit("b");
+    avaa_luokitukset("c");
+    if(fchdir(vanha_fd))
+	warn("chdir - rivillä %i", __LINE__);
+    close(vanha_fd);
+}
+
+void avaa_ääni(const char* avattava) {
+    struct stat stat_s;
+    stat(avattava, &stat_s);
+    if(S_ISDIR(stat_s.st_mode))
+	avaa_ääniluokitus(avattava);
+    else
+	avaa_äänitiedosto(avattava);
 }
 
 int main(int argc, char** argv) {
@@ -371,35 +428,33 @@ int main(int argc, char** argv) {
     pthread_t saie;
     alusta_ääni(&kahva_capt, SND_PCM_STREAM_CAPTURE);
     alusta_ääni(&kahva_play, SND_PCM_STREAM_PLAYBACK);
-    puts(avattava);
-    if(avattava)
-	avaa_ääni(avattava);
-    else {
-	pit_data = taaj*tallennusaika_ms/1000;
-	pit_jakso = taaj*jaksonaika_ms/1000;
-	nauh_jaksoja = pit_data / pit_jakso;
-	if(nauh_jaksoja < 2) {
-	    printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
-	    nauh_jaksoja = 2;
-	}
-	pit_data = nauh_jaksoja * pit_jakso; // tehtäköön tästä jakson pituuden monikerta
-	kokodata = malloc(pit_data * n_raitoja * sizeof(float));
-    }
-    for(int i=0; i<n_raitoja; i++)
-	data[i] = kokodata + i*pit_data;
-
     if(avattava) {
+	avaa_ääni(avattava);
+	for(int i=0; i<n_raitoja; i++)
+	    data[i] = kokodata + i*pit_data;
 	havaitse_ylitykset(data, 0, pit_data);
 	äänen_valinta(kokodata, n_raitoja, pit_data, kahva_play, p11);
     }
-    else {
-	for(int i=0; i<pit_data*n_raitoja; i++)
-	    kokodata[i] = NAN;
-
-	pthread_create(&saie, NULL, nauhoita, kokodata);
-	käsittele(data);
-	pthread_join(saie, NULL);
+    pit_data = taaj*tallennusaika_ms/1000;
+    pit_jakso = taaj*jaksonaika_ms/1000;
+    nauh_jaksoja = pit_data / pit_jakso;
+    if(nauh_jaksoja < 2) {
+	printf("\033[31mVaroitus:\033[0m tallennusaikaa täytyi pidentää.\n");
+	nauh_jaksoja = 2;
     }
+    pit_data = nauh_jaksoja * pit_jakso; // tehtäköön tästä jakson pituuden monikerta
+    kokodata = malloc(pit_data * n_raitoja * sizeof(float));
+    if(!kokodata)
+	err(1, "malloc %li*%i*%zu = %zu", pit_data, n_raitoja, sizeof(float), pit_data*n_raitoja*sizeof(float));
+    for(int i=0; i<n_raitoja; i++)
+	data[i] = kokodata + i*pit_data;
+
+    for(int i=0; i<pit_data*n_raitoja; i++)
+	kokodata[i] = NAN;
+
+    pthread_create(&saie, NULL, nauhoita, kokodata);
+    käsittele(data);
+    pthread_join(saie, NULL);
     snd_pcm_close(kahva_capt);
     close(p00);
     p00 = -1;
@@ -409,6 +464,8 @@ int main(int argc, char** argv) {
 	p11 = -1;
     }
     free(kokodata);
+    free(luokitus_sij);
+    free(yarr);
     tallentaminen(tallentaminen_vapauta);
     puts("\nÄäniohjelma lopetti");
     return 0;
