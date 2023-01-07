@@ -10,6 +10,8 @@ a.out
 *.txt
 *.csv
 *.so
+*.out
+*.bin
 vgcore*
 tmp*
 kuutio.d/tmp*

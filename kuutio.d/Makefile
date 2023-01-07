@@ -15,3 +15,6 @@ laskentakuutio: kuutio.[ch] laskentakuutio.c
 
 laskentakuutio0: kuutio.c laskentakuutio.c kuutio.h
 	${CC} -Wall -o $@ laskentakuutio.c -O0 -gdwarf-2 -g3 -pthread -DDEBUG
+
+kuvaaja.out: kuvaaja.cc
+	g++ -Wall kuvaaja.cc `pkg-config --cflags --libs Qt5Widgets` -lqcustomplot -o $@ -g
