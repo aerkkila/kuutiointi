@@ -39,7 +39,7 @@ typedef struct ST {
     long raja;
     int pit;
     int id;
-    void(*tulostfun)(struct ST*, uint64);
+    void(*tulostfun)(struct ST*, long);
 } säikeen_tiedot;
 
 /* Merkittäköön siirtotahkot kuusikantaisilla sexaluvuilla.
@@ -151,16 +151,17 @@ int anna_työtä(säikeen_tiedot* tied, uint64 sexa, int säie) {
     return 0;
 }
 
-void tulostfun(säikeen_tiedot* tied, uint64 sexa) {
-    printf("\033[K%lu ‰", (sexa-tied->sexa)*1000 / (tied->raja-tied->sexa));
+/* Ensimmäinen säie saa tämän ja loput tiedotusfun-funktion. */
+void tulostfun(säikeen_tiedot* tied, long käytyjä) {
+    long yht = käytyjä;
     for(int i=1; i<töitä; i++)
-	printf(" %i ‰", kunkin_tila[i]);
-    putchar('\r');
+	yht += kunkin_tila[i];
+    printf("\033[K%li\r", yht);
     fflush(stdout);
 }
 
-void tiedotusfun(säikeen_tiedot* tied, uint64 sexa) {
-    kunkin_tila[tied->id] = (sexa-tied->sexa)*1000 / (tied->raja-tied->sexa);
+void tiedotusfun(säikeen_tiedot* tied, long käytyjä) {
+    kunkin_tila[tied->id] = käytyjä;
 }
 
 void nop(){}
@@ -200,7 +201,7 @@ int main(int argc, char** argv) {
 	uint64 sexa1 = _d*powi(6, pit-2); // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
 	uint64 pätkä = sexa1/töitä;
 	säikeen_tiedot t[töitä];
-	void(*funptr)(säikeen_tiedot*,uint64) = verbose? nop: tulostfun;
+	void(*funptr)(säikeen_tiedot*,long) = verbose? nop: tulostfun; // verbose-tilassa on muuta tulostettavaa ja tämä väistyy
 	int i;
 	for(i=0; i<töitä-1; i++) {
 	    listat[i] = (struct Lista){0};
@@ -363,16 +364,22 @@ void* laskenta(void* vp) {
     sprintf(nimi, "tmp%i.txt", tied.id);
     uint64 trexa = -1;
     uint64 sexa = korjaa_sexa(tied.sexa, pit);
+    long käytyjä = 0, sivuttuja = 0; // sivuttuja toiminee vasta, kun yhtenevyys_aiempaan siirretään korjaa-sexaan
+    const int pötkö = 200;
 
     while(1) {
-	for(int i=0; i<200; i++) {
+	for(int i=0; i<pötkö; i++) {
+	    uint64 vanha = sexa;
 	    seuraava_sarja(pit, &sexa, &trexa);
 	    /* Jos on valmis, pyydetään muilta säikeiltä lisää ja lopetetaan ellei saada. */
 	    while(sexa >= tied.raja) {
 		if(!antakaa_työtä(&tied))
 		    goto ulos;
+		vanha = sexa;
 		sexa = korjaa_sexa(tied.sexa, pit);
 	    }
+	    sivuttuja += sexa-vanha;
+
 	    /*sarja lukumuotoon*/
 	    for(int i=0; i<pit; i++) {
 		int ind = NLUKU(sexa, i, 6);
@@ -396,6 +403,7 @@ void* laskenta(void* vp) {
 		kohta = (kohta+1) % pit;
 		lasku++;
 	    } while(!onkoRatkaistu(&kuutio));
+	    käytyjä++;
 
 	    if(luku_listalle(lasku, tied.lista)) {
 		puts("epäonnistui");
@@ -405,7 +413,7 @@ void* laskenta(void* vp) {
 		printf("%s\t%i\n", sarja, lasku);
 	    }
 	}
-	tied.tulostfun(&tied, sexa);
+	tied.tulostfun(&tied, käytyjä);
 	/* Jos jokin muu säie on valmis, annetaan sille tästä osa, ellei jokin muu säie ehdi ensin. */
 	for(int i=0; i<töitä; i++)
 	    if(valmis[i] == 1 && !anna_työtä(&tied, sexa, i))
