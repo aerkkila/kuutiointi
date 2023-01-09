@@ -170,8 +170,8 @@ void tiedotusfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
 void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
     static double viimeaika = 0;
     double nyt = hetkinyt();
-    //if(nyt-viimeaika < 0.05)
-	//return;
+    if(nyt-viimeaika < 0.3)
+	return;
     viimeaika = nyt;
     for(int i=1; i<töitä; i++) {
 	käytyjä += kunkin_tila[i];
@@ -180,7 +180,7 @@ void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
     if(!käytyjä || !sivuttuja)
 	return;
     long kaikkiaan = kaikkiaan_glob - (sivuttuja-käytyjä);
-    printf("\033[Ksivuttu %li/%li -> %.2lf %%, käyty %li/≤%lu -> ≥ %.2lf %%\n",
+    printf("\033[Ksivuttu %li/%li -> %.2lf %%, käyty %li/≤%lu -> ≥%.2lf %%\r",
 	    sivuttuja, kaikkiaan_glob, (double)sivuttuja/kaikkiaan_glob*100, käytyjä, kaikkiaan, (double)käytyjä/kaikkiaan*100);
     fflush(stdout);
 }
@@ -255,7 +255,7 @@ int main(int argc, char** argv) {
 	    free(listat[i].kutakin);
 	}
     }
-    putchar('\n');//write(STDOUT_FILENO, "\033[K", 3);
+    write(STDOUT_FILENO, "\033[K", 3);
 }
 
 #ifdef DEBUG
@@ -420,8 +420,10 @@ void* laskenta(void* vp) {
     uint64 trexa = 0, sexa = tied.alku;
     korjaa_sarja(&sexa, &trexa, pit, isarja, tied.raja);
     trexa--; // jotta seuraava_sarja palauttaakin saman
-    long käytyjä = 0, sivuttuja = sexa>tied.raja? tied.raja-tied.alku: sexa-tied.alku;
-    const int pötkö = 200;
+    if(sexa > tied.raja)
+	sexa = tied.raja;
+    long käytyjä = 0, sivuttuja = sexa-tied.alku;
+    const int pötkö = 1;
 
     while(1) {
 	for(int i=0; i<pötkö; i++) {
@@ -429,6 +431,7 @@ void* laskenta(void* vp) {
 	    seuraava_sarja(&sexa, &trexa, pit, isarja, tied.raja);
 	    /* Jos on valmis, pyydetään muilta säikeiltä lisää ja lopetetaan ellei saada. */
 	    while(sexa >= tied.raja) {
+		sivuttuja += tied.raja-vanha; // kaikkea on nyt sivuttu
 		if(!antakaa_työtä(&tied))
 		    goto ulos;
 		sexa = tied.alku;
@@ -452,7 +455,7 @@ void* laskenta(void* vp) {
 		return NULL; }
 	    if(verbose) {
 		isarja_sarjaksi(isarja, pit, sarja);
-		printf("%s\t%i\n", sarja, lasku);
+		printf("%-10li %s\t%i\n", sexa, sarja, lasku);
 	    }
 	}
 	tied.tulostfun(&tied, käytyjä, sivuttuja);
