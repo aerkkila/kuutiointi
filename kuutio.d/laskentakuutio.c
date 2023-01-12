@@ -425,6 +425,10 @@ void* laskenta(void* vp) {
     long käytyjä = 0, sivuttuja = sexa-tied.alku;
     const int pötkö = 1;
 
+    assert(kuutio.N2*6 <= 256);
+    char muutos[kuutio.N2*6];
+    char* apusivut = malloc(kuutio.N2*6);
+
     while(1) {
 	for(int i=0; i<pötkö; i++) {
 	    uint64 vanha = sexa;
@@ -442,6 +446,28 @@ void* laskenta(void* vp) {
 	    sivuttuja += sexa-vanha;
 	    käytyjä += sexa!=vanha;
 
+#if 1
+	    /* Tarkistetaan, mitä tämä sarja tekee. */
+	    char* apu = kuutio.sivut;
+	    kuutio.sivut = muutos;
+	    for(int i=0; i<kuutio.N2*6; i++)
+		kuutio.sivut[i] = i;
+	    for(int i=0; i<pit; i++)
+		siirto(&kuutio, isarja[i*2], 0, isarja[i*2+1]);
+	    kuutio.sivut = apu;
+
+	    /* Lasketaan tarvittavat toistot.
+	       Tehdään se sarja kerrallaan käyttäen edellä luotuja indeksejä. */
+	    int lasku = 0;
+	    do {
+		for(int i=0; i<kuutio.N2*6; i++)
+		    apusivut[i] = kuutio.sivut[(int)muutos[i]];
+		apu=apusivut; apusivut=kuutio.sivut; kuutio.sivut=apu;
+		lasku += pit;
+	    } while(!onkoRatkaistu(&kuutio));
+#else
+	    /* Tämä on yksinkertainen ja hidas menetelmä:
+	       Tehdään siirto kerrallaan ja tarkistetaan onko ratkaistu. */
 	    unsigned kohta=0;
 	    int lasku=0;
 	    do {
@@ -449,6 +475,7 @@ void* laskenta(void* vp) {
 		kohta = (kohta+1) % pit;
 		lasku++;
 	    } while(!onkoRatkaistu(&kuutio));
+#endif
 
 	    if(luku_listalle(lasku, tied.lista)) {
 		puts("epäonnistui");
@@ -468,6 +495,7 @@ void* laskenta(void* vp) {
 ulos:
     free(kuutio.sivut);
     free(*kuutio.indeksit);
+    free(apusivut);
     return NULL;
 }
 
