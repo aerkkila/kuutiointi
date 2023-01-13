@@ -265,6 +265,7 @@ void stp_sarjaksi(uint64 sexa, uint64 trexa, int pit, char* sarja) {
 	sarja[(pit-i-1)*3+1] = suunnat[NLUKU(trexa, i, 3)];
 	sarja[(pit-i-1)*3+2] = ' ';
     }
+    sarja[pit*3] = '\0';
 }
 
 /* Voidaan kutsua vuorovaikutuksellisesti virheenjäljittäjästä.
@@ -401,8 +402,32 @@ void trexa_isarjaan(int* isarja, uint64 trexa, int pit) {
 	}
 }
 
+int gcd(int a, int b) {
+    while(b) {
+	int apu = b;
+	b = a % b;
+	a = apu;
+    }
+    return a;
+}
+
+int lcm(int a, int b) {
+    if(a<b) {
+	a ^= b; b ^= a; a ^= b; }
+    return a*b / gcd(a,b);
+}
+
+int lcm_(int* luvut, int pit) {
+    if(pit < 2)
+	return pit>0? luvut[0]: 0;
+    int ret = lcm(luvut[0], luvut[1]);
+    for(int i=2; i<pit; i++)
+	ret = lcm(ret, luvut[i]);
+    return ret;
+}
+
 #define PIT_SARJA (pit*3)
-#define PIT_ISARJA (pit*2*sizeof(int))
+#define PIT_ISARJA (pit*2)
 void* laskenta(void* vp) {
     kuutio_t kuutio;
     luo_kuutio(&kuutio, 3);
@@ -428,6 +453,22 @@ void* laskenta(void* vp) {
     assert(kuutio.N2*6 <= 256);
     char muutos[kuutio.N2*6];
     char* apusivut = malloc(kuutio.N2*6);
+
+    /* Käytetään osiossa 'polkuosio'. */
+#define R(tahko,j,i) SIVU2(kuutio.N2, kuutio.N, tahko, j, i)
+    int nurkan_ind[] = {
+	R(_r,0,0), R(_r,0,2), R(_r,2,0), R(_r,2,2), R(_l,0,0), R(_l,0,2), R(_l,2,0), R(_l,2,2),
+	R(_f,0,2), R(_u,0,2), R(_d,0,2), R(_b,2,0), R(_b,0,2), R(_u,2,0), R(_d,2,0), R(_f,2,0),
+	R(_u,2,2), R(_b,0,0), R(_f,2,2), R(_d,2,2), R(_u,0,0), R(_f,0,0), R(_b,2,2), R(_d,0,0)
+    };
+    int reunan_ind[] = {
+	R(_r,0,1), R(_r,1,2), R(_r,2,1), R(_r,1,0), R(_l,0,1), R(_l,1,2), R(_l,2,1), R(_l,1,0), R(_u,0,1), R(_u,2,1), R(_d,0,1), R(_d,2,1),
+	R(_u,1,2), R(_b,1,0), R(_d,1,2), R(_f,1,2), R(_u,1,0), R(_f,1,0), R(_d,1,0), R(_b,1,2), R(_b,0,1), R(_f,0,1), R(_f,2,1), R(_b,2,1)
+    };
+    char nurkan_maski[8];
+    char reunan_maski[12];
+    char käytetyt_pituudet[25];
+#undef R
 
     while(1) {
 	for(int i=0; i<pötkö; i++) {
@@ -456,17 +497,92 @@ void* laskenta(void* vp) {
 		siirto(&kuutio, isarja[i*2], 0, isarja[i*2+1]);
 	    kuutio.sivut = apu;
 
-	    /* Lasketaan tarvittavat toistot.
-	       Tehdään se sarja kerrallaan käyttäen edellä luotuja indeksejä. */
+	    /* Lasketaan tarvittavat toistot */
+#if 0
+	    /* Tässä tehdään sarja kerrallaan käyttäen edellä luotuja indeksejä. */
 	    int lasku = 0;
 	    do {
 		for(int i=0; i<kuutio.N2*6; i++)
 		    apusivut[i] = kuutio.sivut[(int)muutos[i]];
 		apu=apusivut; apusivut=kuutio.sivut; kuutio.sivut=apu;
-		lasku += pit;
+		lasku++;
 	    } while(!onkoRatkaistu(&kuutio));
+	    lasku *= pit;
 #else
-	    /* Tämä on yksinkertainen ja hidas menetelmä:
+	    /* Polkuosio: Tämä on ylivertaisesti nopein menetelmä.
+	       Tässä ei tehdä siirtoja ollenkaan,
+	       vaan analysoidaan kunkin palan kulkema polku
+	       ja otetaan niitten pituuksista pienin yhteinen kertoja. */
+	    memset(reunan_maski, 0, 12);
+	    memset(nurkan_maski, 0, 8);
+	    memset(käytetyt_pituudet, 0, 24);
+	    int pituudet[20], kierroksia=0;
+	    /* reunat */
+	    for(int pala=0; pala<12; pala++) {
+		if(reunan_maski[pala])
+		    continue;
+		int kierrospit = 0;
+		int tämä = reunan_ind[pala];
+		const int pala1 = pala + 12;
+		reunan_maski[pala] = 1;
+		while(1) {
+		    kierrospit++;
+		    if(muutos[tämä] == reunan_ind[pala]) // jos 'tämä' on lähtöisin aloitussijainnista
+			break; // takaisin alussa
+		    if(muutos[tämä] == reunan_ind[pala1]) {
+			kierrospit *= 2; // takaisin alussa, mutta väärin päin
+			break;
+		    }
+		    tämä = muutos[tämä];
+		    /* Nyt muutos[tämä] on alunperin muutos[muutos[tämä]].
+		       Siirretään siis huomio siihen kohtaan, josta äsken tarkasteltu pala oli lähtöisin.
+		       Silmukka siis kierretään takaperin. */
+		    for(int i=0; i<24; i++)
+			if(reunan_ind[i] == tämä) {
+			    reunan_maski[i%12] = 1;
+			    break;
+			}
+		}
+		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
+		    pituudet[kierroksia++] = kierrospit;
+		    käytetyt_pituudet[kierrospit] = 1;
+		}
+	    }
+	    /* nurkat */
+	    if(sexa==9 && trexa==19)
+		;//asm("int $3");
+	    for(int pala=0; pala<8; pala++) {
+		if(nurkan_maski[pala])
+		    continue;
+		int kierrospit = 0;
+		int tämä = nurkan_ind[pala];
+		const int pala1=pala+8, pala2=pala+16;
+		nurkan_maski[pala] = 1;
+		while(1) {
+		    kierrospit++;
+		    if(muutos[tämä] == nurkan_ind[pala])
+			break; // takaisin alussa
+		    if(muutos[tämä] == nurkan_ind[pala1] ||
+		       muutos[tämä] == nurkan_ind[pala2]) {
+			kierrospit *= 3; // takaisin alussa, mutta väärin päin
+			break;
+		    }
+		    tämä = muutos[tämä];
+		    for(int i=0; i<24; i++)
+			if(nurkan_ind[i] == tämä) {
+			    nurkan_maski[i%8] = 1;
+			    break;
+			}
+		}
+		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
+		    pituudet[kierroksia++] = kierrospit;
+		    käytetyt_pituudet[kierrospit] = 1;
+		}
+	    }
+	    int lasku = lcm_(pituudet, kierroksia) * pit;
+#endif
+#else
+	    /* Tämä on kaikista yksinkertaisin ja hitain menetelmä:
 	       Tehdään siirto kerrallaan ja tarkistetaan onko ratkaistu. */
 	    unsigned kohta=0;
 	    int lasku=0;
@@ -482,7 +598,7 @@ void* laskenta(void* vp) {
 		return NULL; }
 	    if(verbose) {
 		isarja_sarjaksi(isarja, pit, sarja);
-		printf("%-10li %s\t%i\n", sexa, sarja, lasku);
+		printf("%-6li%-6li %s\t%i\n", sexa, trexa, sarja, lasku);
 	    }
 	}
 	tied.tulostfun(&tied, käytyjä, sivuttuja);
