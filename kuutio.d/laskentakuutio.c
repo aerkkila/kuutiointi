@@ -29,7 +29,7 @@ void* laskenta(void* vp);
 
 uint64 powi(uint64 a, uint64 n);
 void stp_sarjaksi(uint64, uint64, int, char* ulos);
-void isarja_sarjaksi(int*, int, char*);
+char* isarja_sarjaksi(int*, int, char*);
 
 struct Lista {
     unsigned *lasku, *kutakin;
@@ -309,13 +309,14 @@ void tulosta_sarja_stp(uint64 sexa, uint64 trexa, int pit) {
 }
 #endif
 
-void isarja_sarjaksi(int* isarja, int pit, char* sarja) {
+char* isarja_sarjaksi(int* isarja, int pit, char* sarja) {
     for(int i=0; i<pit; i++) {
 	sarja[(pit-i-1)*3] = tahkot[isarja[(pit-i-1)*2]];
 	sarja[(pit-i-1)*3+1] = suuntakirjaimet_90aste[isarja[(pit-i-1)*2+1]];
 	sarja[(pit-i-1)*3+2] = ' ';
     }
     sarja[pit*3] = '\0';
+    return sarja;
 }
 
 size_t puolitushaku(unsigned* a, size_t pit, unsigned kohde) {
