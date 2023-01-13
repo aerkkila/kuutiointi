@@ -187,7 +187,37 @@ void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
 
 void nop(){}
 
+/* Käytetään osiossa 'polkuosio'. */
+#define R(tahko,j,i) SIVU2(3*3, 3, tahko, j, i)
+const int nurkasta_indeksi[] = {
+    R(_r,0,0), R(_r,0,2), R(_r,2,0), R(_r,2,2), R(_l,0,0), R(_l,0,2), R(_l,2,0), R(_l,2,2),
+    R(_f,0,2), R(_u,0,2), R(_d,0,2), R(_b,2,0), R(_b,0,2), R(_u,2,0), R(_d,2,0), R(_f,2,0),
+    R(_u,2,2), R(_b,0,0), R(_f,2,2), R(_d,2,2), R(_u,0,0), R(_f,0,0), R(_b,2,2), R(_d,0,0)
+};
+const int reunasta_indeksi[] = {
+    R(_r,0,1), R(_r,1,2), R(_r,2,1), R(_r,1,0), R(_l,0,1), R(_l,1,2), R(_l,2,1), R(_l,1,0), R(_u,0,1), R(_u,2,1), R(_d,0,1), R(_d,2,1),
+    R(_u,1,2), R(_b,1,0), R(_d,1,2), R(_f,1,2), R(_u,1,0), R(_f,1,0), R(_d,1,0), R(_b,1,2), R(_b,0,1), R(_f,0,1), R(_f,2,1), R(_b,2,1)
+};
+int indeksistä_nurkka[3*3 * 6] = {-1};
+int indeksistä_reuna[3*3 * 6] = {-1};
+
+void aseta_hakuindeksit() {
+    for(int i=0; i<54; i++)
+	for(int n=0; n<24; n++)
+	    if(nurkasta_indeksi[n] == i) {
+		indeksistä_nurkka[i] = n;
+		break;
+	    }
+    for(int i=0; i<54; i++)
+	for(int n=0; n<24; n++)
+	    if(reunasta_indeksi[n] == i) {
+		indeksistä_reuna[i] = n;
+		break;
+	    }
+}
+
 int main(int argc, char** argv) {
+    aseta_hakuindeksit();
     /*komentoriviargumentit*/
     int maxpit_l = 4;
     int minpit_l = -1;
@@ -215,9 +245,10 @@ int main(int argc, char** argv) {
     kunkin_tila = _kunkin_tila;
     valmis = _valmis;
     rajan_anto = _rajan_anto;
-    memset(kunkin_tila, 0, töitä*sizeof(int));
 
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
+	memset(kunkin_tila, 0, töitä*sizeof(int));
+	memset(valmis, 0, sizeof(_valmis));
 	struct Lista listat[töitä];
 	uint64 sexa1 = _d*powi(6, pit-2); // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
 	sexa1 = viimeinen_sexa(sexa1, pit); // Tarkemmin päätepiste jäljellä olevan ajan arvioimiseksi.
@@ -255,7 +286,8 @@ int main(int argc, char** argv) {
 	    free(listat[i].kutakin);
 	}
     }
-    write(STDOUT_FILENO, "\033[K", 3);
+    if(!verbose)
+	write(STDOUT_FILENO, "\033[K", 3);
 }
 
 #ifdef DEBUG
@@ -448,23 +480,12 @@ void* laskenta(void* vp) {
     if(sexa > tied.raja)
 	sexa = tied.raja;
     long käytyjä = 0, sivuttuja = sexa-tied.alku;
-    const int pötkö = 1;
+    const int pötkö = 200;
 
     assert(kuutio.N2*6 <= 256);
     char muutos[kuutio.N2*6];
     char* apusivut = malloc(kuutio.N2*6);
 
-    /* Käytetään osiossa 'polkuosio'. */
-#define R(tahko,j,i) SIVU2(kuutio.N2, kuutio.N, tahko, j, i)
-    int nurkan_ind[] = {
-	R(_r,0,0), R(_r,0,2), R(_r,2,0), R(_r,2,2), R(_l,0,0), R(_l,0,2), R(_l,2,0), R(_l,2,2),
-	R(_f,0,2), R(_u,0,2), R(_d,0,2), R(_b,2,0), R(_b,0,2), R(_u,2,0), R(_d,2,0), R(_f,2,0),
-	R(_u,2,2), R(_b,0,0), R(_f,2,2), R(_d,2,2), R(_u,0,0), R(_f,0,0), R(_b,2,2), R(_d,0,0)
-    };
-    int reunan_ind[] = {
-	R(_r,0,1), R(_r,1,2), R(_r,2,1), R(_r,1,0), R(_l,0,1), R(_l,1,2), R(_l,2,1), R(_l,1,0), R(_u,0,1), R(_u,2,1), R(_d,0,1), R(_d,2,1),
-	R(_u,1,2), R(_b,1,0), R(_d,1,2), R(_f,1,2), R(_u,1,0), R(_f,1,0), R(_d,1,0), R(_b,1,2), R(_b,0,1), R(_f,0,1), R(_f,2,1), R(_b,2,1)
-    };
     char nurkan_maski[8];
     char reunan_maski[12];
     char käytetyt_pituudet[25];
@@ -522,14 +543,14 @@ void* laskenta(void* vp) {
 		if(reunan_maski[pala])
 		    continue;
 		int kierrospit = 0;
-		int tämä = reunan_ind[pala];
+		int tämä = reunasta_indeksi[pala];
 		const int pala1 = pala + 12;
 		reunan_maski[pala] = 1;
 		while(1) {
 		    kierrospit++;
-		    if(muutos[tämä] == reunan_ind[pala]) // jos 'tämä' on lähtöisin aloitussijainnista
+		    if(muutos[tämä] == reunasta_indeksi[pala]) // jos 'tämä' on lähtöisin aloitussijainnista
 			break; // takaisin alussa
-		    if(muutos[tämä] == reunan_ind[pala1]) {
+		    if(muutos[tämä] == reunasta_indeksi[pala1]) {
 			kierrospit *= 2; // takaisin alussa, mutta väärin päin
 			break;
 		    }
@@ -537,11 +558,7 @@ void* laskenta(void* vp) {
 		    /* Nyt muutos[tämä] on alunperin muutos[muutos[tämä]].
 		       Siirretään siis huomio siihen kohtaan, josta äsken tarkasteltu pala oli lähtöisin.
 		       Silmukka siis kierretään takaperin. */
-		    for(int i=0; i<24; i++)
-			if(reunan_ind[i] == tämä) {
-			    reunan_maski[i%12] = 1;
-			    break;
-			}
+		    reunan_maski[indeksistä_reuna[tämä]%12] = 1;
 		}
 		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
 		    pituudet[kierroksia++] = kierrospit;
@@ -555,24 +572,20 @@ void* laskenta(void* vp) {
 		if(nurkan_maski[pala])
 		    continue;
 		int kierrospit = 0;
-		int tämä = nurkan_ind[pala];
+		int tämä = nurkasta_indeksi[pala];
 		const int pala1=pala+8, pala2=pala+16;
 		nurkan_maski[pala] = 1;
 		while(1) {
 		    kierrospit++;
-		    if(muutos[tämä] == nurkan_ind[pala])
+		    if(muutos[tämä] == nurkasta_indeksi[pala])
 			break; // takaisin alussa
-		    if(muutos[tämä] == nurkan_ind[pala1] ||
-		       muutos[tämä] == nurkan_ind[pala2]) {
+		    if(muutos[tämä] == nurkasta_indeksi[pala1] ||
+		       muutos[tämä] == nurkasta_indeksi[pala2]) {
 			kierrospit *= 3; // takaisin alussa, mutta väärin päin
 			break;
 		    }
 		    tämä = muutos[tämä];
-		    for(int i=0; i<24; i++)
-			if(nurkan_ind[i] == tämä) {
-			    nurkan_maski[i%8] = 1;
-			    break;
-			}
+		    nurkan_maski[indeksistä_nurkka[tämä]%8] = 1;
 		}
 		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
 		    pituudet[kierroksia++] = kierrospit;
