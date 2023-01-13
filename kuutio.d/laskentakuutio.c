@@ -567,8 +567,6 @@ void* laskenta(void* vp) {
 		}
 	    }
 	    /* nurkat */
-	    if(sexa==9 && trexa==19)
-		;//asm("int $3");
 	    for(int pala=0; pala<8; pala++) {
 		if(nurkan_maski[pala])
 		    continue;
