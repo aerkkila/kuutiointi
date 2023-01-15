@@ -32,8 +32,8 @@ void stp_sarjaksi(uint64, uint64, int, char* ulos);
 char* isarja_sarjaksi(int*, int, char*);
 
 struct Lista {
-    unsigned *lasku, *kutakin;
     size_t pit, kapasit;
+    unsigned *lasku, *kutakin;
 };
 
 typedef struct ST {
