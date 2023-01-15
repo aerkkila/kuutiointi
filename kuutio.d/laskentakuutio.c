@@ -31,9 +31,15 @@ uint64 powi(uint64 a, uint64 n);
 void stp_sarjaksi(uint64, uint64, int, char* ulos);
 char* isarja_sarjaksi(int*, int, char*);
 
+enum {kutakin_e, rkierr_e, nkierr_e, jäseniä_yht};
+typedef struct {
+    unsigned kutakin, rkierr, nkierr;
+} lisjäsen;
+
 struct Lista {
     size_t pit, kapasit;
-    unsigned *lasku, *kutakin;
+    unsigned *lasku;
+    lisjäsen *jäsen;
 };
 
 typedef struct ST {
@@ -90,7 +96,7 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 	unsigned summa = 0;
 	for(int i=0; i<töitä; i++)
 	    if(EI_LOPUSSA(i) && listat[i].lasku[ind[i]] == pienin)
-		summa += listat[i].kutakin[ind[i]++];
+		summa += listat[i].jäsen[ind[i]++].kutakin;
 
 	fprintf(f, "%-8u %u\n", pienin, summa);
     } while(n_eilopussa > 1);
@@ -101,7 +107,7 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 	    if(lasku)
 		printf("Varoitus %s: rivi %i\n", __FILE__, __LINE__);
 	    for(int j=ind[i]; j<listat[i].pit; j++)
-		fprintf(f, "%-8u %u\n", listat[i].lasku[j], listat[i].kutakin[j]);
+		fprintf(f, "%-8u %u\n", listat[i].lasku[j], listat[i].jäsen[j].kutakin);
 	    lasku++;
 	}
     fclose(f);
@@ -283,7 +289,7 @@ int main(int argc, char** argv) {
 
 	for(int i=0; i<töitä; i++) {
 	    free(listat[i].lasku);
-	    free(listat[i].kutakin);
+	    free(listat[i].jäsen);
 	}
     }
     if(!verbose)
@@ -341,36 +347,38 @@ alku:
 
 /* Kutsuttakoon ainoastaan funktiosta luku_listalle. */
 int _jatka_listaa(struct Lista* lista) {
-    lista->lasku   = realloc(lista->lasku,   (lista->kapasit+=1024)*sizeof(unsigned));
-    lista->kutakin = realloc(lista->kutakin, (lista->kapasit)      *sizeof(unsigned));
-    return !(lista->lasku && lista->kutakin);
+    lista->lasku = realloc(lista->lasku, (lista->kapasit+=1024)*sizeof(unsigned));
+    lista->jäsen = realloc(lista->jäsen, (lista->kapasit)      *sizeof(lisjäsen));
+    return !(lista->lasku && lista->jäsen);
 }
 
-void _luku_listalle(int lasku, int ind, struct Lista* lista) {
+void _luku_listalle(int lasku, int ind, struct Lista* lista, unsigned rkierr, unsigned nkierr) {
     lista->lasku[ind] = lasku;
-    lista->kutakin[ind] = 1;
+    lista->jäsen[ind].kutakin = 1;
+    lista->jäsen[ind].rkierr = rkierr;
+    lista->jäsen[ind].nkierr = nkierr;
     lista->pit++;
 }
 
-int luku_listalle(int lasku, struct Lista* lista) {
+int luku_listalle(int lasku, struct Lista* lista, unsigned rkierr, unsigned nkierr) {
     if(!lista->kapasit) {
 	if(_jatka_listaa(lista))
 	    return 1;
-	_luku_listalle(lasku, 0, lista);
+	_luku_listalle(lasku, 0, lista, rkierr, nkierr);
 	return 0;
     }
 
     size_t ind = puolitushaku(lista->lasku, lista->pit, lasku);
     if(ind < lista->pit && lista->lasku[ind] == lasku) {
-	lista->kutakin[ind]++;
+	lista->jäsen[ind].kutakin++;
 	return 0;
     }
     if(lista->pit+1 > lista->kapasit)
 	if(_jatka_listaa(lista))
 	    return 1;
-    memmove(lista->lasku+ind+1,   lista->lasku+ind,   (lista->pit-ind)*sizeof(unsigned));
-    memmove(lista->kutakin+ind+1, lista->kutakin+ind, (lista->pit-ind)*sizeof(unsigned));
-    _luku_listalle(lasku, ind, lista);
+    memmove(lista->lasku+ind+1, lista->lasku+ind, (lista->pit-ind)*sizeof(unsigned));
+    memmove(lista->jäsen+ind+1, lista->jäsen+ind, (lista->pit-ind)*sizeof(unsigned[jäseniä_yht]));
+    _luku_listalle(lasku, ind, lista, rkierr, nkierr);
     return 0;
 }
 
@@ -566,6 +574,7 @@ void* laskenta(void* vp) {
 		    käytetyt_pituudet[kierrospit] = 1;
 		}
 	    }
+	    int rkierr = kierroksia;
 	    /* nurkat */
 	    for(int pala=0; pala<8; pala++) {
 		if(nurkan_maski[pala])
@@ -605,7 +614,7 @@ void* laskenta(void* vp) {
 	    } while(!onkoRatkaistu(&kuutio));
 #endif
 
-	    if(luku_listalle(lasku, tied.lista)) {
+	    if(luku_listalle(lasku, tied.lista, rkierr, kierroksia-rkierr)) {
 		puts("epäonnistui");
 		return NULL; }
 	    if(verbose) {
