@@ -31,9 +31,8 @@ uint64 powi(uint64 a, uint64 n);
 void stp_sarjaksi(uint64, uint64, int, char* ulos);
 char* isarja_sarjaksi(int*, int, char*);
 
-enum {kutakin_e, rkierr_e, nkierr_e, jäseniä_yht};
 typedef struct {
-    unsigned kutakin, rkierr, nkierr;
+    unsigned kutakin;
 } lisjäsen;
 
 struct Lista {
@@ -77,18 +76,21 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
     if(!f) {
 	err(1, "fopen funktiossa vie_tiedostoksi");
 	return; }
-    fprintf(f, "siirtoja kpl\n");
-    size_t ind[töitä];
+    fprintf(f, "toistoja,kpl,\n");
+    size_t ind[töitä]; // mikä indeksi kunkin säikeen listasta on meneillään
     memset(ind, 0, töitä*sizeof(size_t));
     unsigned pienin, n_eilopussa;
+    lisjäsen* minjäsen;
     do {
 	pienin = (unsigned)-1;
 	n_eilopussa = 0;
 	for(int i=0; i<töitä; i++)
 	    if(EI_LOPUSSA(i)) {
 		n_eilopussa++;
-		if(listat[i].lasku[ind[i]] < pienin)
+		if(listat[i].lasku[ind[i]] < pienin) {
 		    pienin = listat[i].lasku[ind[i]];
+		    minjäsen = listat[i].jäsen+ind[i];
+		}
 	    }
 	if(pienin == -1)
 	    break;
@@ -98,8 +100,9 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 	    if(EI_LOPUSSA(i) && listat[i].lasku[ind[i]] == pienin)
 		summa += listat[i].jäsen[ind[i]++].kutakin;
 
-	fprintf(f, "%-8u %u\n", pienin, summa);
+	fprintf(f, "%u,%u,\n", pienin, summa);
     } while(n_eilopussa > 1);
+
     /* Enintään yhtä työtä on jäljellä. */
     int lasku = 0;
     for(int i=0; i<töitä; i++)
@@ -107,7 +110,7 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 	    if(lasku)
 		printf("Varoitus %s: rivi %i\n", __FILE__, __LINE__);
 	    for(int j=ind[i]; j<listat[i].pit; j++)
-		fprintf(f, "%-8u %u\n", listat[i].lasku[j], listat[i].jäsen[j].kutakin);
+		fprintf(f, "%u,%u,\n", listat[i].lasku[j], listat[i].jäsen[j].kutakin);
 	    lasku++;
 	}
     fclose(f);
@@ -352,19 +355,17 @@ int _jatka_listaa(struct Lista* lista) {
     return !(lista->lasku && lista->jäsen);
 }
 
-void _luku_listalle(int lasku, int ind, struct Lista* lista, unsigned rkierr, unsigned nkierr) {
+void _luku_listalle(int lasku, int ind, struct Lista* lista) {
     lista->lasku[ind] = lasku;
     lista->jäsen[ind].kutakin = 1;
-    lista->jäsen[ind].rkierr = rkierr;
-    lista->jäsen[ind].nkierr = nkierr;
     lista->pit++;
 }
 
-int luku_listalle(int lasku, struct Lista* lista, unsigned rkierr, unsigned nkierr) {
+int luku_listalle(int lasku, struct Lista* lista) {
     if(!lista->kapasit) {
 	if(_jatka_listaa(lista))
 	    return 1;
-	_luku_listalle(lasku, 0, lista, rkierr, nkierr);
+	_luku_listalle(lasku, 0, lista);
 	return 0;
     }
 
@@ -377,8 +378,8 @@ int luku_listalle(int lasku, struct Lista* lista, unsigned rkierr, unsigned nkie
 	if(_jatka_listaa(lista))
 	    return 1;
     memmove(lista->lasku+ind+1, lista->lasku+ind, (lista->pit-ind)*sizeof(unsigned));
-    memmove(lista->jäsen+ind+1, lista->jäsen+ind, (lista->pit-ind)*sizeof(unsigned[jäseniä_yht]));
-    _luku_listalle(lasku, ind, lista, rkierr, nkierr);
+    memmove(lista->jäsen+ind+1, lista->jäsen+ind, (lista->pit-ind)*sizeof(lisjäsen));
+    _luku_listalle(lasku, ind, lista);
     return 0;
 }
 
@@ -574,7 +575,6 @@ void* laskenta(void* vp) {
 		    käytetyt_pituudet[kierrospit] = 1;
 		}
 	    }
-	    int rkierr = kierroksia;
 	    /* nurkat */
 	    for(int pala=0; pala<8; pala++) {
 		if(nurkan_maski[pala])
@@ -600,7 +600,7 @@ void* laskenta(void* vp) {
 		    käytetyt_pituudet[kierrospit] = 1;
 		}
 	    }
-	    int lasku = lcm_(pituudet, kierroksia) * pit;
+	    int lasku = lcm_(pituudet, kierroksia);
 #endif
 #else
 	    /* Tämä on kaikista yksinkertaisin ja hitain menetelmä:
@@ -614,12 +614,12 @@ void* laskenta(void* vp) {
 	    } while(!onkoRatkaistu(&kuutio));
 #endif
 
-	    if(luku_listalle(lasku, tied.lista, rkierr, kierroksia-rkierr)) {
+	    if(luku_listalle(lasku, tied.lista)) {
 		puts("epäonnistui");
 		return NULL; }
 	    if(verbose) {
 		isarja_sarjaksi(isarja, pit, sarja);
-		printf("%-6li%-6li %s\t%i\n", sexa, trexa, sarja, lasku);
+		printf("%-8li%-8li %s\t%i\n", sexa, trexa, sarja, lasku);
 	    }
 	}
 	tied.tulostfun(&tied, käytyjä, sivuttuja);

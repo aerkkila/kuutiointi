@@ -9,11 +9,11 @@ struct Ikkuna: public QWidget {
     ~Ikkuna() {
 	delete this->plot;
     }
-    void piirrä(int*, int*, int, int);
+    void piirrä(int*, long*, int, int);
     QCustomPlot* plot;
 };
 
-void Ikkuna::piirrä(int* x, int* y, int pit, int n) {
+void Ikkuna::piirrä(int* x, long* y, int pit, int n) {
     QVector<double> x1(pit), y1(pit);
     for(int i=0; i<pit; i++) {
 	x1[i] = x[i];
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     ikk.plot->plotLayout()->clear();
     char nimi[] = "sarjat_.txt";
 
-    for(char i='4'; i<='8'; i++) {
+    for(char i='4'; i<='9'; i++) {
 	nimi[sizeof(nimi)-6] = i;
 	FILE *f = fopen(nimi, "r");
 	if(!f) {
@@ -48,9 +48,11 @@ int main(int argc, char** argv) {
 		pit++;
 	fseek(f, alku, SEEK_SET);
 	int siirtoja[pit];
-	int kpl[pit];
-	for(int i=0; i<pit; i++)
-	    fscanf(f, "%i%i", siirtoja+i, kpl+i);
+	long kpl[pit];
+	for(int i=0; i<pit; i++) {
+	    fscanf(f, "%i,%li,", siirtoja+i, kpl+i);
+	    while(fgetc(f) != '\n');
+	}
 	fclose(f);
 	ikk.piirrä(siirtoja, kpl, pit, i-'4');
     }
