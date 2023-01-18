@@ -30,6 +30,9 @@ void* laskenta(void* vp);
 uint64 powi(uint64 a, uint64 n);
 void stp_sarjaksi(uint64, uint64, int, char* ulos);
 char* isarja_sarjaksi(int*, int, char*);
+uint64 _korjaa_sexa(uint64, int, int*, long);
+uint64 _korjaa_sexa_viisaasti(uint64, int, int*, long);
+uint64 (*korjaa_sexa_ptr)(uint64, int, int*, long);
 
 typedef struct {
     unsigned kutakin;
@@ -258,6 +261,7 @@ int main(int argc, char** argv) {
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 	memset(kunkin_tila, 0, töitä*sizeof(int));
 	memset(valmis, 0, sizeof(_valmis));
+	korjaa_sexa_ptr = pit<8? _korjaa_sexa: _korjaa_sexa_viisaasti;
 	struct Lista listat[töitä];
 	uint64 sexa1 = _d*powi(6, pit-2); // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
 	sexa1 = viimeinen_sexa(sexa1, pit); // Tarkemmin päätepiste jäljellä olevan ajan arvioimiseksi.
@@ -383,7 +387,9 @@ int luku_listalle(int lasku, struct Lista* lista) {
     return 0;
 }
 
-/* isarjassa parilliset indeksit ovat tahkoja */
+/* isarjassa parilliset indeksit ovat tahkoja.
+   Tämä palauttaa sen indeksin, jota pitää muuttaa + 1.
+   Tällöin ei-yhtenevyys saa olla 0. */
 int yhtenevyys_aiempaan(int* isarja, int pit) {
     enum {x,y,z};
     char puhdas_aks[3] = {1,1,1};
@@ -416,9 +422,9 @@ int yhtenevyys_aiempaan(int* isarja, int pit) {
 
     for(i=0; i<(pit-1)*2; i+=2)
 	if(_tarkistus())
-	    return 1;
+	    return i/2 + 1;
     if(i<pit*2)
-	return _tarkistus();
+	return _tarkistus()*pit;
     return 0;
 }
 
@@ -653,7 +659,7 @@ int sexa_ei_kelpaa(uint64 sexa, int pit) {
 }
 
 /* Muuttujan pit nimen muuttaminen rikkoisi PIT_SARJA-makron.
-   Kutsuttakoon vain funktioista seuraava_sarja ja korjaa_sarja. */
+   Kutsuttakoon vain alla olevista funktioista. */
 uint64 _korjaa_sexa(uint64 sexa, int pit, int* isarja, long raja) {
     while(sexa < raja) {
 	while(sexa_ei_kelpaa(sexa, pit)) sexa++;
@@ -668,6 +674,44 @@ uint64 _korjaa_sexa(uint64 sexa, int pit, int* isarja, long raja) {
 	    printf("%s yhtenevä\n", sarja);
 	}
 	sexa++;
+    }
+    return sexa;
+}
+
+/* Lyhyellä sarjalla on optimaalista käyttää yllä olevaa funktiota _korjaa_sexa,
+   jossa vain kokeillaan järjestyksessä, mikä kelpaa.
+   Pitkällä sarjalla, voitaisiin joutua kokeilemaan miljoonia peräkkäin,
+   joten on parempi nähdä vaivaa oikean luvun löytämiseksi vähillä yrityksillä.
+   Tämä on kannattavaa kun pit >= 9 tai ehkä 8. */
+uint64 _korjaa_sexa_viisaasti(uint64 sexa, int pit, int* isarja, long raja) {
+    int n0, n1;
+    n0 = NLUKU(sexa, 0, 6);
+    while(sexa < raja) {
+	while(sexa_ei_kelpaa(sexa, pit) && sexa < raja) {
+	    for(int i=1; i<pit; i++) {
+		n1 = NLUKU(sexa, i, 6);
+		if(n0 == n1) {
+		    uint64 potenssi = powi(6, i-1);
+		    sexa = (sexa / potenssi + 1) * potenssi; // esim. 34425 -> 34500
+		    goto Break;
+		}
+		n0 = n1;
+	    }
+	    sexa++; // ellei osattu tehdä mitään viisaampaa
+Break:;
+	}
+	/* Yllä ei tarkistettu yhtenevyyttä. Eikä luotu isarjaa. */
+	sexa_isarjaan(isarja, sexa, pit);
+	int ind;
+	if(!(ind=yhtenevyys_aiempaan(isarja, pit)))
+	    return sexa;
+	if(verbose) {
+	    char sarja[PIT_SARJA+1];
+	    isarja_sarjaksi(isarja, pit, sarja);
+	    printf("%s yhtenevä\n", sarja);
+	}
+	uint64 potenssi = powi(6, pit-ind);
+	sexa = (sexa / potenssi + 1) * potenssi;
     }
     return sexa;
 }
@@ -687,12 +731,16 @@ uint64 viimeinen_sexa(uint64 sexa, int pit) {
 }
 uint64 ensimmäinen_sexa(uint64 raja, int pit) {
     int isarja[PIT_ISARJA];
+    uint64 sexa = korjaa_sexa_ptr(0, pit, isarja, raja);
+    return sexa < raja? sexa: raja;
+    /*
     for(uint64 sexa=0; sexa<raja; sexa++) {
 	while(sexa_ei_kelpaa(sexa, pit)) sexa++;
 	sexa_isarjaan(isarja, sexa, pit);
 	if(!yhtenevyys_aiempaan(isarja, pit))
 	    return sexa;
     }
+    */
     return raja;
 }
 #undef PIT_SARJA
