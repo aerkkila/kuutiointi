@@ -21,18 +21,20 @@ static const int isuunnat[] = {1,3,2}; // montako kertaa 90° myötäpäivään 
 static const char* suuntakirjaimet_90aste = "@ 2'";
 typedef long unsigned uint64;
 
-void seuraava_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja);
-void korjaa_sarja  (uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja);
-uint64 viimeinen_sexa(uint64 sexa, int pit);
-uint64 ensimmäinen_sexa(uint64 raja, int pit);
+static void seuraava_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja);
+static void korjaa_sarja  (uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja);
+static uint64 viimeinen_sexa(uint64 sexa, int pit);
+static uint64 ensimmäinen_sexa(uint64 raja, int pit);
 void* laskenta(void* vp);
 
-uint64 powi(uint64 a, uint64 n);
-void stp_sarjaksi(uint64, uint64, int, char* ulos);
-char* isarja_sarjaksi(int*, int, char*);
-uint64 _korjaa_sexa(uint64, int, int*, long);
-uint64 _korjaa_sexa_viisaasti(uint64, int, int*, long);
-uint64 (*korjaa_sexa_ptr)(uint64, int, int*, long);
+static uint64 powi(uint64 a, uint64 n);
+static char* isarja_sarjaksi(int*, int, char*);
+static uint64 _korjaa_sexa(uint64, int, int*, long);
+static uint64 _korjaa_sexa_viisaasti(uint64, int, int*, long);
+static uint64 (*korjaa_sexa_ptr)(uint64, int, int*, long);
+#ifdef DEBUG
+static void stp_sarjaksi(uint64, uint64, int, char* ulos);
+#endif
 
 typedef struct {
     unsigned kutakin;
@@ -61,9 +63,9 @@ typedef struct ST {
    Kun luku esitetään kanta-kantaisena, mikä on vähiten merkitsevästä alkaen i. numero.
    Jakojäännös noukkii i+1 viimeistä lukua, esim (kanta=10,i=1). 1215 % 10^2 -> 15.
    Jakolasku noukkii i:nnen luvun: 15 / 10^1 -> 1 */
-#define NLUKU(luku, i, kanta) ((luku) % powi(kanta,i+1) / powi(kanta,i))
+#define NLUKU(luku, i, kanta) ((luku) % powi(kanta, (i)+1) / powi(kanta, i))
 
-uint64 powi(uint64 a, uint64 n) { // tämä toimii ajassa O(log(n))
+static uint64 powi(uint64 a, uint64 n) { // tämä toimii ajassa O(log(n))
     uint64 r=1;
 alku:
     if(!n) return r;
@@ -73,8 +75,11 @@ alku:
     goto alku;
 }
 
+#define _3pow(p) powi(3,p)
+#define _6pow(p) powi(6,p)
+
 #define EI_LOPUSSA(työ) (ind[työ] < listat[työ].pit)
-void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
+static void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
     FILE *f = fopen(nimi, "w");
     if(!f) {
 	err(1, "fopen funktiossa vie_tiedostoksi");
@@ -122,7 +127,7 @@ void vie_tiedostoksi(struct Lista* listat, int töitä, const char* nimi) {
 
 long *kunkin_tila;
 uint64 *rajan_anto, kaikkiaan_glob;
-int töitä=1, verbose=0;
+int töitä=1, verbose=0, hiljaa=0;
 short* volatile valmis;
 
 /* Operaattori &&, jolla otetaan viite goto-merkkiin on GNU-laajennos,
@@ -132,7 +137,7 @@ short* volatile valmis;
    Samaa voisi soveltaa liikennevaloihin: ei pidä vain katsoa onko valo punainen,
    vaan jos ketään ei tule, niin kyllä siitä pitäisi olla silloin lupa mennä.
    */
-int antakaa_työtä(säikeen_tiedot* tied) {
+static int antakaa_työtä(säikeen_tiedot* tied) {
     void* odottaminen_ = &&odottaminen;
     void* saaminen_ = &&saaminen;
     valmis[tied->id] = 1;
@@ -148,7 +153,7 @@ saaminen:
     return 1;
 }
 
-int anna_työtä(säikeen_tiedot* tied, uint64 sexa, int säie) {
+static int anna_työtä(säikeen_tiedot* tied, uint64 sexa, int säie) {
     if(valmis[säie] != 1) // funktion kutsun aikana jokin muu säie on voinut jo ehtiä varata tämän
 	return 1;
     valmis[säie] = tied->id+2; // varataan antamisvuoro tälle säikeelle
@@ -167,19 +172,19 @@ int anna_työtä(säikeen_tiedot* tied, uint64 sexa, int säie) {
     return 0;
 }
 
-double hetkinyt() {
+static double hetkinyt() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
-void tiedotusfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
+static void tiedotusfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
     kunkin_tila[tied->id] = käytyjä;
     kunkin_tila[tied->id+töitä] = sivuttuja;
 }
 
 /* Ensimmäinen säie saa tämän ja loput tiedotusfun-funktion. */
-void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
+static void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
     static double viimeaika = 0;
     double nyt = hetkinyt();
     if(nyt-viimeaika < 0.3)
@@ -197,23 +202,23 @@ void tulostfun(säikeen_tiedot* tied, long käytyjä, long sivuttuja) {
     fflush(stdout);
 }
 
-void nop(){}
+static void nop(){}
 
 /* Käytetään osiossa 'polkuosio'. */
 #define R(tahko,j,i) SIVU2(3*3, 3, tahko, j, i)
-const int nurkasta_indeksi[] = {
+static const unsigned char nurkasta_indeksi[] = {
     R(_r,0,0), R(_r,0,2), R(_r,2,0), R(_r,2,2), R(_l,0,0), R(_l,0,2), R(_l,2,0), R(_l,2,2),
     R(_f,0,2), R(_u,0,2), R(_d,0,2), R(_b,2,0), R(_b,0,2), R(_u,2,0), R(_d,2,0), R(_f,2,0),
     R(_u,2,2), R(_b,0,0), R(_f,2,2), R(_d,2,2), R(_u,0,0), R(_f,0,0), R(_b,2,2), R(_d,0,0)
 };
-const int reunasta_indeksi[] = {
-    R(_r,0,1), R(_r,1,2), R(_r,2,1), R(_r,1,0), R(_l,0,1), R(_l,1,2), R(_l,2,1), R(_l,1,0), R(_u,0,1), R(_u,2,1), R(_d,0,1), R(_d,2,1),
+static const unsigned char reunasta_indeksi[] = {
+    R(_r,0,1), R(_r,1,2), R(_r,2,1), R(_r,1,0), R(_l,0,1), R(_l,1,2), R(_l,2,1), R(_l,1,0), R(_u,0,1), R(_u,2,1), R(_d,0,1), R(_d,2,1), 100, 100, 100, 100,
     R(_u,1,2), R(_b,1,0), R(_d,1,2), R(_f,1,2), R(_u,1,0), R(_f,1,0), R(_d,1,0), R(_b,1,2), R(_b,0,1), R(_f,0,1), R(_f,2,1), R(_b,2,1)
-};
-int indeksistä_nurkka[3*3 * 6] = {-1};
-int indeksistä_reuna[3*3 * 6] = {-1};
+}; // tehtiin sellaiseksi, että saadaan ottaa jakojäännös 16:n kanssa
+static unsigned char indeksistä_nurkka[3*3 * 6] = {-1};
+static unsigned char indeksistä_reuna[3*3 * 6] = {-1};
 
-void aseta_hakuindeksit() {
+static void aseta_hakuindeksit() {
     for(int i=0; i<54; i++)
 	for(int n=0; n<24; n++)
 	    if(nurkasta_indeksi[n] == i) {
@@ -221,7 +226,7 @@ void aseta_hakuindeksit() {
 		break;
 	    }
     for(int i=0; i<54; i++)
-	for(int n=0; n<24; n++)
+	for(int n=0; n<28; n++)
 	    if(reunasta_indeksi[n] == i) {
 		indeksistä_reuna[i] = n;
 		break;
@@ -246,6 +251,8 @@ int main(int argc, char** argv) {
 	}
 	else if(!strcmp(argv[i], "-v"))
 	    verbose = 1;
+	else if(!strcmp(argv[i], "-s"))
+	    hiljaa = 1;
     if(minpit_l > maxpit_l)
 	maxpit_l = minpit_l;
     if(minpit_l < 0)
@@ -261,15 +268,15 @@ int main(int argc, char** argv) {
     for(int pit=minpit_l; pit<=maxpit_l; pit++) {
 	memset(kunkin_tila, 0, töitä*sizeof(int));
 	memset(valmis, 0, sizeof(_valmis));
-	korjaa_sexa_ptr = pit<8? _korjaa_sexa: _korjaa_sexa_viisaasti;
+	korjaa_sexa_ptr = pit<7? _korjaa_sexa: _korjaa_sexa_viisaasti;
 	struct Lista listat[töitä];
-	uint64 sexa1 = _d*powi(6, pit-2); // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
+	uint64 sexa1 = _d*_6pow(pit-2);     // Lopetetaan, kun toinen siirto olisi L+1=D, jolloin kaikki on käyty.
 	sexa1 = viimeinen_sexa(sexa1, pit); // Tarkemmin päätepiste jäljellä olevan ajan arvioimiseksi.
 	uint64 sexa0 = ensimmäinen_sexa(sexa1, pit);
 	kaikkiaan_glob = sexa1-sexa0;
 	uint64 pätkä = kaikkiaan_glob/töitä;
 	säikeen_tiedot t[töitä];
-	void(*funptr)(säikeen_tiedot*,long,long) = verbose? nop: tulostfun; // huomattakoon käänteisyys
+	void(*funptr)(säikeen_tiedot*,long,long) = verbose|hiljaa? nop: tulostfun; // huomattakoon käänteisyys
 	int i;
 	for(i=0; i<töitä-1; i++) {
 	    listat[i] = (struct Lista){0};
@@ -322,7 +329,7 @@ void tulosta_sarja_stp(uint64 sexa, uint64 trexa, int pit) {
 }
 #endif
 
-char* isarja_sarjaksi(int* isarja, int pit, char* sarja) {
+static char* isarja_sarjaksi(int* isarja, int pit, char* sarja) {
     for(int i=0; i<pit; i++) {
 	sarja[(pit-i-1)*3] = tahkot[isarja[(pit-i-1)*2]];
 	sarja[(pit-i-1)*3+1] = suuntakirjaimet_90aste[isarja[(pit-i-1)*2+1]];
@@ -332,7 +339,7 @@ char* isarja_sarjaksi(int* isarja, int pit, char* sarja) {
     return sarja;
 }
 
-size_t puolitushaku(unsigned* a, size_t pit, unsigned kohde) {
+static size_t puolitushaku(unsigned* a, size_t pit, unsigned kohde) {
     size_t i0 = 0, i1=pit, keski;
 alku:
     if(i1-i0 < 11) {
@@ -353,19 +360,19 @@ alku:
 }
 
 /* Kutsuttakoon ainoastaan funktiosta luku_listalle. */
-int _jatka_listaa(struct Lista* lista) {
+static int _jatka_listaa(struct Lista* lista) {
     lista->lasku = realloc(lista->lasku, (lista->kapasit+=1024)*sizeof(unsigned));
     lista->jäsen = realloc(lista->jäsen, (lista->kapasit)      *sizeof(lisjäsen));
     return !(lista->lasku && lista->jäsen);
 }
 
-void _luku_listalle(int lasku, int ind, struct Lista* lista) {
+static void _luku_listalle(int lasku, int ind, struct Lista* lista) {
     lista->lasku[ind] = lasku;
     lista->jäsen[ind].kutakin = 1;
     lista->pit++;
 }
 
-int luku_listalle(int lasku, struct Lista* lista) {
+static int luku_listalle(int lasku, struct Lista* lista) {
     if(!lista->kapasit) {
 	if(_jatka_listaa(lista))
 	    return 1;
@@ -390,7 +397,7 @@ int luku_listalle(int lasku, struct Lista* lista) {
 /* isarjassa parilliset indeksit ovat tahkoja.
    Tämä palauttaa sen indeksin, jota pitää muuttaa + 1.
    Tällöin ei-yhtenevyys saa olla 0. */
-int yhtenevyys_aiempaan(int* isarja, int pit) {
+static int yhtenevyys_aiempaan(int* isarja, int pit) {
     enum {x,y,z};
     char puhdas_aks[3] = {1,1,1};
     char puhdas_suunta[3] = {1,1,1};
@@ -433,13 +440,13 @@ int yhtenevyys_aiempaan(int* isarja, int pit) {
    sexa_isarjaan kutsuttakoon ainoastaan funktiosta korjaa_sexa
    Yhdistelmä riittävissä määrin kutsutaan funktiosta seuraava_sarja.
    */
-void sexa_isarjaan(int* isarja, uint64 sexa, int pit) {
+static void sexa_isarjaan(int* isarja, uint64 sexa, int pit) {
     for(int i=0; i<pit; i++) {
 	int ind = NLUKU(sexa, i, 6);
 	isarja[(pit-i-1)*2] = ind;
     }
 }
-void trexa_isarjaan(int* isarja, uint64 trexa, int pit) {
+static void trexa_isarjaan(int* isarja, uint64 trexa, int pit) {
     if(trexa == 0)
 	for(int i=0; i<pit; i++)
 	    isarja[i*2+1] = isuunnat[0];
@@ -450,26 +457,26 @@ void trexa_isarjaan(int* isarja, uint64 trexa, int pit) {
 	}
 }
 
-int gcd(int a, int b) {
+static unsigned short gcd(unsigned short a, unsigned short b) {
     while(b) {
-	int apu = b;
+	unsigned short apu = b;
 	b = a % b;
 	a = apu;
     }
     return a;
 }
 
-int lcm(int a, int b) {
+static unsigned short lcm(unsigned short a, unsigned short b) {
     if(a<b) {
 	a ^= b; b ^= a; a ^= b; }
     return a*b / gcd(a,b);
 }
 
-int lcm_(int* luvut, int pit) {
+static unsigned lcm_(unsigned short* luvut, unsigned short pit) {
     if(pit < 2)
 	return pit>0? luvut[0]: 0;
-    int ret = lcm(luvut[0], luvut[1]);
-    for(int i=2; i<pit; i++)
+    unsigned short ret = lcm(luvut[0], luvut[1]);
+    for(unsigned short i=2; i<pit; i++)
 	ret = lcm(ret, luvut[i]);
     return ret;
 }
@@ -506,6 +513,9 @@ void* laskenta(void* vp) {
     char reunan_maski[12];
     char käytetyt_pituudet[25];
 #undef R
+    char puhdas[kuutio.N2*6];
+    for(int i=0; i<kuutio.N2*6; i++)
+	puhdas[i] = i;
 
     while(1) {
 	for(int i=0; i<pötkö; i++) {
@@ -528,8 +538,7 @@ void* laskenta(void* vp) {
 	    /* Tarkistetaan, mitä tämä sarja tekee. */
 	    char* apu = kuutio.sivut;
 	    kuutio.sivut = muutos;
-	    for(int i=0; i<kuutio.N2*6; i++)
-		kuutio.sivut[i] = i;
+	    memcpy(kuutio.sivut, puhdas, kuutio.N2*6);
 	    for(int i=0; i<pit; i++)
 		siirto(&kuutio, isarja[i*2], 0, isarja[i*2+1]);
 	    kuutio.sivut = apu;
@@ -553,14 +562,14 @@ void* laskenta(void* vp) {
 	    memset(reunan_maski, 0, 12);
 	    memset(nurkan_maski, 0, 8);
 	    memset(käytetyt_pituudet, 0, 24);
-	    int pituudet[20], kierroksia=0;
+	    unsigned short pituudet[20], kierroksia=0;
 	    /* reunat */
 	    for(int pala=0; pala<12; pala++) {
 		if(reunan_maski[pala])
 		    continue;
-		int kierrospit = 0;
+		unsigned short kierrospit = 0;
 		int tämä = reunasta_indeksi[pala];
-		const int pala1 = pala + 12;
+		const int pala1 = pala + 16;
 		reunan_maski[pala] = 1;
 		while(1) {
 		    kierrospit++;
@@ -574,7 +583,7 @@ void* laskenta(void* vp) {
 		    /* Nyt muutos[tämä] on alunperin muutos[muutos[tämä]].
 		       Siirretään siis huomio siihen kohtaan, josta äsken tarkasteltu pala oli lähtöisin.
 		       Silmukka siis kierretään takaperin. */
-		    reunan_maski[indeksistä_reuna[tämä]%12] = 1;
+		    reunan_maski[indeksistä_reuna[tämä]%16] = 1;
 		}
 		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
 		    pituudet[kierroksia++] = kierrospit;
@@ -585,7 +594,7 @@ void* laskenta(void* vp) {
 	    for(int pala=0; pala<8; pala++) {
 		if(nurkan_maski[pala])
 		    continue;
-		int kierrospit = 0;
+		unsigned short kierrospit = 0;
 		int tämä = nurkasta_indeksi[pala];
 		const int pala1=pala+8, pala2=pala+16;
 		nurkan_maski[pala] = 1;
@@ -643,7 +652,7 @@ ulos:
 }
 
 /* Sama tahko ei saa esiintyä kahdesti peräkkäin eikä sama akseli kolmesti. */
-int sexa_ei_kelpaa(uint64 sexa, int pit) {
+static int sexa_ei_kelpaa(uint64 sexa, int pit) {
     int n0, n1, n2;
     n0 = NLUKU(sexa, 0, 6);
     n1 = NLUKU(sexa, 1, 6);
@@ -660,7 +669,7 @@ int sexa_ei_kelpaa(uint64 sexa, int pit) {
 
 /* Muuttujan pit nimen muuttaminen rikkoisi PIT_SARJA-makron.
    Kutsuttakoon vain alla olevista funktioista. */
-uint64 _korjaa_sexa(uint64 sexa, int pit, int* isarja, long raja) {
+static uint64 _korjaa_sexa(uint64 sexa, int pit, int* isarja, long raja) {
     while(sexa < raja) {
 	while(sexa_ei_kelpaa(sexa, pit)) sexa++;
 	if(!(sexa < raja))
@@ -683,7 +692,7 @@ uint64 _korjaa_sexa(uint64 sexa, int pit, int* isarja, long raja) {
    Pitkällä sarjalla, voitaisiin joutua kokeilemaan miljoonia peräkkäin,
    joten on parempi nähdä vaivaa oikean luvun löytämiseksi vähillä yrityksillä.
    Tämä on kannattavaa kun pit >= 9 tai ehkä 8. */
-uint64 _korjaa_sexa_viisaasti(uint64 sexa, int pit, int* isarja, long raja) {
+static uint64 _korjaa_sexa_viisaasti(uint64 sexa, int pit, int* isarja, long raja) {
     int n0, n1;
     n0 = NLUKU(sexa, 0, 6);
     while(sexa < raja) {
@@ -691,7 +700,7 @@ uint64 _korjaa_sexa_viisaasti(uint64 sexa, int pit, int* isarja, long raja) {
 	    for(int i=1; i<pit; i++) {
 		n1 = NLUKU(sexa, i, 6);
 		if(n0 == n1) {
-		    uint64 potenssi = powi(6, i-1);
+		    uint64 potenssi = _6pow(i-1);
 		    sexa = (sexa / potenssi + 1) * potenssi; // esim. 34425 -> 34500
 		    goto Break;
 		}
@@ -710,7 +719,7 @@ Break:;
 	    isarja_sarjaksi(isarja, pit, sarja);
 	    printf("%s yhtenevä\n", sarja);
 	}
-	uint64 potenssi = powi(6, pit-ind);
+	uint64 potenssi = _6pow(pit-ind);
 	sexa = (sexa / potenssi + 1) * potenssi;
     }
     return sexa;
@@ -719,7 +728,7 @@ Break:;
 /* Nämä kaksi ovat vähän kuin yllä oleva _korjaa_sexa,
    mutta näitä käytetään vain alussa pääfunktiossa määrittämään rajat,
    jotta osataan paremmin arvioida jäljellä oleva aika. */
-uint64 viimeinen_sexa(uint64 sexa, int pit) {
+static uint64 viimeinen_sexa(uint64 sexa, int pit) {
     int isarja[PIT_ISARJA];
     for(; sexa; sexa--) {
 	while(sexa_ei_kelpaa(sexa, pit)) sexa--;
@@ -729,7 +738,7 @@ uint64 viimeinen_sexa(uint64 sexa, int pit) {
     }
     return 0;
 }
-uint64 ensimmäinen_sexa(uint64 raja, int pit) {
+static uint64 ensimmäinen_sexa(uint64 raja, int pit) {
     int isarja[PIT_ISARJA];
     uint64 sexa = korjaa_sexa_ptr(0, pit, isarja, raja);
     return sexa < raja? sexa: raja;
@@ -746,14 +755,14 @@ uint64 ensimmäinen_sexa(uint64 raja, int pit) {
 #undef PIT_SARJA
 #undef PIT_ISARJA
 
-void seuraava_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja) {
-    if(++*trexa < powi(3, pit))
+static void seuraava_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja) {
+    if(++*trexa < _3pow(pit))
 	return trexa_isarjaan(isarja, *trexa, pit);
     trexa_isarjaan(isarja, *trexa=0, pit);
     *sexa = _korjaa_sexa(++*sexa, pit, isarja, raja);
 }
 
-void korjaa_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja) {
+static void korjaa_sarja(uint64 *sexa, uint64 *trexa, int pit, int* isarja, long raja) {
     *sexa = _korjaa_sexa(*sexa, pit, isarja, raja);
     trexa_isarjaan(isarja, *trexa, pit);
 }
