@@ -509,9 +509,8 @@ void* laskenta(void* vp) {
     char muutos[kuutio.N2*6];
     char* apusivut = malloc(kuutio.N2*6);
 
-    char nurkan_maski[8];
-    char reunan_maski[12];
-    char käytetyt_pituudet[25];
+    unsigned käytetyt_pituudet;
+    unsigned short nurkan_maski, reunan_maski;
 #undef R
     char puhdas[kuutio.N2*6];
     for(int i=0; i<kuutio.N2*6; i++)
@@ -559,20 +558,20 @@ void* laskenta(void* vp) {
 	       Tässä ei tehdä siirtoja ollenkaan,
 	       vaan analysoidaan kunkin palan kulkema polku
 	       ja otetaan niitten pituuksista pienin yhteinen kertoja. */
-	    memset(reunan_maski, 0, 12);
-	    memset(nurkan_maski, 0, 8);
-	    memset(käytetyt_pituudet, 0, 24);
+	    käytetyt_pituudet = nurkan_maski = reunan_maski = 0;
 	    unsigned short pituudet[20], kierroksia=0;
+	    char käytyjä = 0; // ainoastaan optimointi
 	    /* reunat */
-	    for(int pala=0; pala<12; pala++) {
-		if(reunan_maski[pala])
+	    for(int pala=0; käytyjä<11; pala++) {
+		if(reunan_maski & 1<<(pala))
 		    continue;
 		unsigned short kierrospit = 0;
 		int tämä = reunasta_indeksi[pala];
 		const int pala1 = pala + 16;
-		reunan_maski[pala] = 1;
+		reunan_maski |= 1<<pala;
 		while(1) {
 		    kierrospit++;
+		    käytyjä++;
 		    if(muutos[tämä] == reunasta_indeksi[pala]) // jos 'tämä' on lähtöisin aloitussijainnista
 			break; // takaisin alussa
 		    if(muutos[tämä] == reunasta_indeksi[pala1]) {
@@ -583,23 +582,25 @@ void* laskenta(void* vp) {
 		    /* Nyt muutos[tämä] on alunperin muutos[muutos[tämä]].
 		       Siirretään siis huomio siihen kohtaan, josta äsken tarkasteltu pala oli lähtöisin.
 		       Silmukka siis kierretään takaperin. */
-		    reunan_maski[indeksistä_reuna[tämä]%16] = 1;
+		    reunan_maski |= 1<<(indeksistä_reuna[tämä]%16);
 		}
-		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
+		if(kierrospit > 1 && !(käytetyt_pituudet & 1<<kierrospit)) {
 		    pituudet[kierroksia++] = kierrospit;
-		    käytetyt_pituudet[kierrospit] = 1;
+		    käytetyt_pituudet |= 1<<kierrospit;
 		}
 	    }
+	    käytyjä = 0;
 	    /* nurkat */
-	    for(int pala=0; pala<8; pala++) {
-		if(nurkan_maski[pala])
+	    for(int pala=0; käytyjä<7; pala++) {
+		if(nurkan_maski & 1<<pala)
 		    continue;
 		unsigned short kierrospit = 0;
 		int tämä = nurkasta_indeksi[pala];
 		const int pala1=pala+8, pala2=pala+16;
-		nurkan_maski[pala] = 1;
+		nurkan_maski |= 1<<pala;
 		while(1) {
 		    kierrospit++;
+		    käytyjä++;
 		    if(muutos[tämä] == nurkasta_indeksi[pala])
 			break; // takaisin alussa
 		    if(muutos[tämä] == nurkasta_indeksi[pala1] ||
@@ -608,11 +609,11 @@ void* laskenta(void* vp) {
 			break;
 		    }
 		    tämä = muutos[tämä];
-		    nurkan_maski[indeksistä_nurkka[tämä]%8] = 1;
+		    nurkan_maski |= 1<<(indeksistä_nurkka[tämä]%8);
 		}
-		if(kierrospit > 1 && !käytetyt_pituudet[kierrospit]) {
+		if(kierrospit > 1 && !(käytetyt_pituudet & 1<<kierrospit)) {
 		    pituudet[kierroksia++] = kierrospit;
-		    käytetyt_pituudet[kierrospit] = 1;
+		    käytetyt_pituudet |= 1<<kierrospit;
 		}
 	    }
 	    int lasku = lcm_(pituudet, kierroksia);
