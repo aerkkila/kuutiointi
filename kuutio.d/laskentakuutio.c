@@ -472,7 +472,7 @@ static unsigned short lcm(unsigned short a, unsigned short b) {
     return a*b / gcd(a,b);
 }
 
-static unsigned lcm_(unsigned short* luvut, unsigned short pit) {
+static unsigned lcm_(unsigned char* luvut, unsigned short pit) {
     if(pit < 2)
 	return pit>0? luvut[0]: 0;
     unsigned short ret = lcm(luvut[0], luvut[1]);
@@ -559,7 +559,7 @@ void* laskenta(void* vp) {
 	       vaan analysoidaan kunkin palan kulkema polku
 	       ja otetaan niitten pituuksista pienin yhteinen kertoja. */
 	    käytetyt_pituudet = nurkan_maski = reunan_maski = 0;
-	    unsigned short pituudet[20], kierroksia=0;
+	    unsigned char pituudet[20], kierroksia=0;
 	    char käytyjä = 0; // ainoastaan optimointi
 	    /* reunat */
 	    for(int pala=0; käytyjä<11; pala++) {

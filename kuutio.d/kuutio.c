@@ -98,8 +98,6 @@ void (*_tahkon_pyöritys[])(char*, char*, int) = {
 };
 
 void siirto(kuutio_t* ku, int tahko, int siirtokaista, int määrä) {
-    if(!(määrä%4)) return;
-    määrä %= 4;
     if(määrä < 0)
 	määrä += 4;
     int N = ku->N;

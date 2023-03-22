@@ -13,10 +13,6 @@ unsigned karsinta = 16; // N/karsinta+1 parasta ja huonointa tulosta pois keskia
 float jarjsuhde = 0.70;
 int sivutilaa = 16;
 
-int aaniraja = 12; //montako äänireunaa vaaditaan signaalin hyväksyntään
-double aanikesto = 0.25; //sekunteina minkä ajan kuluessa äänireunat pitää saada
-double aani_turvavali = 3.0; //aika, jonka sisällä äänellä lopetuksesta ääni ei voi käynnistää uutta ajanottoa
-
 const char* restrict ohjelman_nimi = "Skello";
 const char* restrict ulosnimi0 = "tulokset.txt";
 const char* restrict url_valittu = KOTIKANSIO "/valittu.bmp";
@@ -24,13 +20,10 @@ const char* restrict url_eivalittu = KOTIKANSIO "/eivalittu.bmp";
 const char* restrict tietoalkustr = "Avg5|   σ|Avg12|   σ|Keskiarvo|Mediaani";
 
 /* Seuraavissa järjestys on numeroitu asetelma.h:ssa. Järjestyksen muuttaminen pitää tehdä myös siellä */
-const char* restrict valikko_str = "tarkasteluaika: |ulosnimi: |eri_sekunnit|kuvaaja|kuutio|ääni: |autokuutio";
-const char* aanivaihtoehdot[] = {"pois", "kuuntelu", "pysäytys"};
+const char* restrict valikko_str = "tarkasteluaika: |ulosnimi: |eri_sekunnit|kuvaaja|kuutio|autokuutio";
 
 const char* tarkastelu_str[] = {"pois", "päällä"};
 int tarkasteluaikatila = 1;
-enum aanivaihtoehto äänitila = aani_pois_e;
-char* äänitila_str;
 
 const char* tekstialue[] = {
     "Ajan syöttö",
@@ -175,15 +168,6 @@ int asetelma() {
     strcat(muut_a->taul[ulosnimi_e], tmpc);
     ulosnimi = muut_a->taul[ulosnimi_e] + pit0;
 
-    pit0 = strlen(muut_a->taul[aani_e]);
-    int pit1 = 0;
-    for(int i=0; i<sizeof(aanivaihtoehdot)/sizeof(aanivaihtoehdot[0]); i++)
-	if(strlen(aanivaihtoehdot[i]) > pit1)
-	    pit1 = strlen(aanivaihtoehdot[i]);
-    muut_a->taul[aani_e] = realloc(muut_a->taul[aani_e], pit0+pit1+1);
-    äänitila_str = muut_a->taul[aani_e] + pit0;
-    strcpy(äänitila_str, aanivaihtoehdot[äänitila]);
-  
     if(avaa_fontit(&kellool, &tulosol, &jarjol1, &tilastotol, &lisaol, &sektusol, &valikkool, &tkstalol, NULL))
 	return 1;
   

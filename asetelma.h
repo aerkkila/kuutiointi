@@ -20,22 +20,14 @@ extern unsigned NxN;
 extern unsigned karsinta;
 extern float jarjsuhde;
 
-extern int aaniraja;
-extern double aanikesto;
-extern double aani_turvavali;
-
 extern const char* restrict ohjelman_nimi;
 extern const char* restrict ulosnimi0;
 extern const char* restrict url_valittu;
 extern const char* restrict url_eivalittu;
 extern const char* restrict tietoalkustr;
-enum {tarkasteluaika_e, ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, aani_e, autokuutio_e}; // valikon järjestys
+enum {tarkasteluaika_e, ulosnimi_e, eri_sekunnit_e, kuvaaja_e, kuutio_e, autokuutio_e}; // valikon järjestys
 extern const char* tarkastelu_str[];
 extern int tarkasteluaikatila;
-extern const char* aanivaihtoehdot[];
-enum aanivaihtoehto {aani_pois_e, aani_kuuntelu_e, ääni_pysäytys_e, ääni_vaihtoehtoja};
-extern enum aanivaihtoehto äänitila;
-extern char* äänitila_str;
 extern const char* tekstialue[];
 extern char* ulosnimi;
 extern SDL_Color kohdistinvari;
