@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <time.h>
-#include "listat.h"
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "../listat.h"
 
 /*Tätä kutsutaan python-ohjelmasta kellonajat.py kuvaajan piirtämiseksi.
   Palauttaa taulukon montako tulosta on saatu kullakin vuorokauden minuutilla*/

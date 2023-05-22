@@ -1,4 +1,4 @@
-all: skello kuutio.d/kuutio kellonajat.so
+all: skello kuutio.d/kuutio
 
 tiedostot=skello.c grafiikka.c tulokset.c asetelma1.c listat.c
 otsakkeet=asetelma.h grafiikka.h listat.h tulokset.h muistin_jako.h
@@ -10,21 +10,16 @@ skello: ${tiedostot} ${otsakkeet}
 kuutio.d/kuutio: kuutio.d/*.[ch]
 	cd kuutio.d && make
 
-kellonajat.so: kellonajat.c listat.c listat.h
-	gcc -Wall -Ofast -shared -o $@ -fPIC kellonajat.c listat.c -lm
-
 asetelma1.c: asetelma.c configure.sh
 	env KANSIO=/usr/share/skello ./configure.sh $@
 
-install: skello kuutio.d/kuutio kellonajat.so äänireuna
+install: skello kuutio.d/kuutio äänireuna
 	cp -f skello /usr/bin
-	cp -f kellonajat.py /usr/bin/skellonajat
-	chmod 755 /usr/bin/skellonajat
 	cp -f kuutio.d/kuutio /usr/bin/skello_kuutio
 	mkdir -p /usr/share/skello
-	cp -f kellonajat.so kuvaaja.py kuutio.d/savel.py /usr/share/skello
+	cp -f kuvaaja.py kuutio.d/savel.py /usr/share/skello
 	chmod 755 /usr/share/skello/*.py
 
 uninstall:
 	rm -rf /usr/share/skello
-	rm -f /usr/bin/skello /usr/bin/skello_kuutio /usr/bin/skellonajat
+	rm -f /usr/bin/skello /usr/bin/skello_kuutio
