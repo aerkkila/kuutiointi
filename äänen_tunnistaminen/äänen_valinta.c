@@ -6,7 +6,6 @@
 #include <sys/time.h>
 #include <sys/stat.h> // mkdir
 #include <err.h>
-#include "modkeys.h"
 #include "äänireuna.h"
 #include "luokittelupuu.h"
 #include "opetusääni.h"
@@ -26,7 +25,6 @@ typedef struct {
 
 
 void näpp_alas(Arg _);
-void näpp_ylös(Arg _);
 void hiiri_alas(Arg _);
 void ikkunatapahtuma(Arg _);
 void kohdistin_sivulle(Arg i_suunta);
@@ -111,7 +109,6 @@ static snd_pcm_t* kahva;
 static int ulos_fno;
 static int toistaa=0, piirto_raidat=0, jatka=1;
 static uint64_t hiirihetki0, toistohetki0, hetki=0;
-static unsigned modkey;
 
 Sidonta näpp_alas_sid[] = {
     { SDLK_g,        0,      kohdistin_sivulle,        {.i=-1}           },
@@ -157,30 +154,27 @@ Sidonta näpp_alas_sid[] = {
 Sidonta tapaht_sid[] = {
     { SDL_QUIT,            0, int_nollaksi,    {.v=&jatka} },
     { SDL_KEYDOWN,         0, näpp_alas,       {0}         },
-    { SDL_KEYUP,           0, näpp_ylös,       {0}         },
     { SDL_MOUSEBUTTONDOWN, 0, hiiri_alas,      {0}         },
     { SDL_WINDOWEVENT,     0, ikkunatapahtuma, {0}         },
 };
 
+static unsigned int modkey_tuplana() {
+    int m = 0;
+    unsigned mod = SDL_GetModState();
+    m |= KMOD_SHIFT * !!(mod & KMOD_SHIFT);
+    m |= KMOD_ALT   * !!(mod & KMOD_ALT);
+    m |= KMOD_CTRL  * !!(mod & KMOD_CTRL);
+    return m;
+}
+
 void näpp_alas(Arg turha) {
     for(int i=0; i<PITUUS(näpp_alas_sid); i++)
 	if(tapaht.key.keysym.sym == näpp_alas_sid[i].tapahtuma &&
-	   näpp_alas_sid[i].mod == modkey_tuplana(modkey))
+	   näpp_alas_sid[i].mod == modkey_tuplana())
 	    näpp_alas_sid[i].fun(näpp_alas_sid[i].arg);
   
     if('0' <= tapaht.key.keysym.sym && tapaht.key.keysym.sym <= '9')
 	siirtoluku = 1<<(tapaht.key.keysym.sym-'0');
-    switch(tapaht.key.keysym.sym) {
-#define _MODKEYS_SWITCH_KEYDOWN
-#include "modkeys.h"
-    }
-}
-
-void näpp_ylös(Arg turha) {
-    switch(tapaht.key.keysym.sym) {
-#define _MODKEYS_SWITCH_KEYUP
-#include "modkeys.h"
-    }
 }
 
 void hiiri_alas(Arg turha) {
@@ -689,7 +683,6 @@ void äänen_valinta(float* data1, int raitoja1, int raidan_pit1, snd_pcm_t* kah
     tausta = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ikk_w, ikk_h);
     SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-    modkey = 0;
     piirrä_raidat();
     aja();
 
