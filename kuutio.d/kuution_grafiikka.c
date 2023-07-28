@@ -198,14 +198,7 @@ static void animoi(int tahko, int kaista, int maara) {
     viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1e-6;
 }
 
-static void kääntö_(int tahko) {
-    animoi(tahko, -kuutio.N, 1);
-    for(int i=0; i<kuutio.N; i++)
-	siirto(&kuutio, tahko, i, 1);
-    kuva.paivita = 1;
-}
-
-static void siirto_(int tahko, int kaista, int maara) {
+static void __attribute__((unused)) siirto_(int tahko, int kaista, int maara) {
     animoi(tahko, kaista, maara);
     siirto(&kuutio, tahko, kaista, maara);
     kuva.paivita = 1;
@@ -527,9 +520,28 @@ void piirrä_viiva(void* karg1, void* karg2, int onko2vai3, int paksuus) {
     return;
 }
 
-void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
+#define A (rtu[n])
+static void _kääntöanim_pyöräytä(koordf akseli, float askel, int tahko, int i, int j) {
+    float normitussiirto = kuva.resKuut/2 + kuva.sij0;
     int3 paikka;
-    float siirto = kuva.resKuut/2 + kuva.sij0;
+    paikka = hae_ruutu(kuutio.N, tahko,i,j);
+    if(paikka.a[0] < 0)
+	return;
+    koordf* rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
+    for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
+	A = (koordf){{A.a[0]-normitussiirto, A.a[1]+normitussiirto, A.a[2]}}; //origo keskikohdaksi
+	A = yleispyöräytys(A, akseli, askel);
+	A = (koordf){{A.a[0]+normitussiirto, A.a[1]-normitussiirto, A.a[2]}}; //takaisin origosta
+    }
+    vari vari = VARIINT3(paikka);
+    aseta_vari(vari);
+    /* Näkymättömätkin piti kääntää, koska niistä voi tulla näkyviä myöhemmin käännön aikana. */
+    if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
+	piirrä_suunnikas(rtu);
+}
+#undef A
+
+void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
     const double spf = 1/30.0; // 1/fps
     double kokoKulma = PI/2*maara;
     double kulmaNyt = 0.0;
@@ -540,250 +552,87 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, doub
     double kului = 0;
 
     /*Monen kaistan samanaikainen pyöritys merkitään kaistan negatiivisuutena.*/
-  
-    /*––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
-    /*******************Koko kuution pyöritys************************************/
-    if(kaista == -kuutio.N) {
-	int pit = kuutio.N*kuutio.N*24;
-	while(alku+kului/2 < loppu) {
-	    float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
-	    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
-		break;
-	    kulmaNyt += askel;
-#define A kuva.ruudut[i]
-	    for(int i=0; i<pit; i++) {
-		A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
-		A = yleispyöräytys(A, akseli, askel);
-		A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
-	    }
-	    paivita();
-	    /*pysähdys*/
-	    gettimeofday(&hetki, NULL);
-	    double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
-	    kului = nyt - alku;
-	    if(kului < spf)
-		SDL_Delay((unsigned)((spf - kului)*1000));
-    
-	    /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
-	    gettimeofday(&hetki, NULL);
-	    alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
-	    SDL_RenderPresent(kuva.rend);
-	}
-	/*viimeinen askel menee loppuun*/
-	float askel = kokoKulma-kulmaNyt;
-	for(int i=0; i<pit; i++) {
-	    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
-	    A = yleispyöräytys(A, akseli, askel);
-	    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
-	}
-	paivita();
-	return;
-    }
-#undef A
-
-    /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
-
-    /*siivun pyörittäminen, joka on muuten sama kuin edellä tuleva tavallinen kääntö,
-      mutta for-silmukoitten rajat ovat erilaiset*/
-    if(kaista>0) {
-	/*Paikallaan pysyvä osa piirretään alussa toiseen tekstuuriin.
-	  Alle tuleva osa piirretään alustaan, jossa alfa-kanava on 255, jolloin ei tarvitse pyyhkiä ikkunaa
-	  Vain liikkuva osa piirretään aina uudestaan*/
-	koordf* rtu = kuva.ruudut+RUUTU(tahko, 0, 0);
-	int vastap_alla = ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0; //onko vastapäinen alla
-	SDL_SetRenderTarget(kuva.rend, alusta[1]);
-	SDL_SetRenderDrawColor(kuva.rend,0,0,0,255); //1. tulee alle eli alfa = 255
-	SDL_RenderClear(kuva.rend);
-	SDL_SetRenderTarget(kuva.rend, alusta[0]);
-	SDL_SetRenderDrawColor(kuva.rend,0,0,0,0); //0. tulee päälle
-	SDL_RenderClear(kuva.rend);
-	SDL_SetRenderTarget(kuva.rend, alusta[vastap_alla]); //piirretään vastapäinen, 1. jos vastap on alla
-	_piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista-1);
-	SDL_SetRenderTarget(kuva.rend, alusta[!vastap_alla]); //piirretään samanpuoleinen, 1. jos vastap on päällä
-	_piirrä_kaistoja(tahko, kaista);
-	SDL_SetRenderTarget(kuva.rend, NULL);
-
-	while(alku+kului/2 < loppu) {
-	    float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
-	    if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
-		break;
-	    kulmaNyt += askel;
-      
-	    SDL_RenderCopy(kuva.rend, alusta[1], NULL, NULL);
-    
-#define A (rtu[n])
-	    for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
-		for(int j=0; j<kuutio.N; j++) {
-		    paikka = hae_ruutu(kuutio.N, tahko,i,j);
-		    if(paikka.a[0] < 0)
-			continue;
-		    rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
-		    for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
-			A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
-			A = yleispyöräytys(A, akseli, askel);
-			A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
-		    }
-		    vari vari = VARIINT3(paikka);
-		    aseta_vari(vari);
-		    if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-			piirrä_suunnikas(rtu);
-		}
-	    for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
-		for(int i=0; i<kuutio.N; i++) {
-		    paikka = hae_ruutu(kuutio.N, tahko,i,j);
-		    if(paikka.a[0] < 0)
-			continue;
-		    rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
-		    for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
-			A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
-			A = yleispyöräytys(A, akseli, askel);
-			A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
-		    }
-		    vari vari = VARIINT3(paikka);
-		    aseta_vari(vari);
-		    if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-			piirrä_suunnikas(rtu);
-		}
-	    /*pysähdys*/
-	    gettimeofday(&hetki, NULL);
-	    double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
-	    kului = nyt - alku;
-	    if(kului < spf)
-		SDL_Delay((unsigned)((spf - kului)*1000));
-    
-	    /*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
-	    gettimeofday(&hetki, NULL);
-	    alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
-	    SDL_RenderCopy(kuva.rend, alusta[0], NULL, NULL);
-	    SDL_RenderPresent(kuva.rend);
-	}
-    
-	/*viimeinen askel menee loppuun*/
-	SDL_RenderCopy(kuva.rend, alusta[1], NULL, NULL);
-	float askel = kokoKulma-kulmaNyt;
-	for(int i=-kaista-1, ii=0; ii<2; i=kuutio.N+kaista, ii++) //molemmat i-päät
-	    for(int j=0; j<kuutio.N; j++) {
-		paikka = hae_ruutu(kuutio.N, tahko,i,j);
-		if(paikka.a[0] < 0)
-		    continue;
-		rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
-		for(int n=0; n<4; n++) {
-		    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
-		    A = yleispyöräytys(A, akseli, askel);
-		    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
-		}
-		vari vari = VARIINT3(paikka);
-		aseta_vari(vari);
-		if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-		    piirrä_suunnikas(rtu);
-	    }
-	for(int j=-kaista-1, jj=0; jj<2; j=kuutio.N+kaista, jj++)
-	    for(int i=0; i<kuutio.N; i++) {
-		paikka = hae_ruutu(kuutio.N, tahko,i,j);
-		if(paikka.a[0] < 0)
-		    continue;
-		rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
-		for(int n=0; n<4; n++) {
-		    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
-		    A = yleispyöräytys(A, akseli, askel);
-		    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
-		}
-		vari vari = VARIINT3(paikka);
-		aseta_vari(vari);
-		if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0)
-		    piirrä_suunnikas(rtu);
-	    }
-	SDL_RenderCopy(kuva.rend, alusta[0], NULL, NULL);
-	SDL_RenderPresent(kuva.rend);
-	return;
-    }
-
-    /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––*/
-    /*normaalin tahkon pyörittäminen*/
 
     /*Paikallaan pysyvä osa piirretään alussa toiseen tekstuuriin.
+      Alle tuleva osa piirretään alustaan, jossa alfa-kanava on 255, jolloin ei tarvitse pyyhkiä ikkunaa
       Vain liikkuva osa piirretään aina uudestaan*/
-    SDL_SetRenderTarget(kuva.rend, *alusta);
-    SDL_SetRenderDrawColor(kuva.rend,0,0,0,0);
-    SDL_RenderClear(kuva.rend);
-    _piirrä_kaistoja((tahko+3)%6, kuutio.N-kaista-1);
-    //if(kaista>1)
-    //_piirrä_kaistoja(tahko, kaista-1);
-    SDL_SetRenderTarget(kuva.rend, NULL);
-  
-    koordf* rtu;
-    /*etupuoli laitetaan päälle ja muut alle*/
-    rtu = kuva.ruudut+RUUTU(tahko,0,0);
-    int piirto_tulee_paalle = ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0;
+    koordf* rtu = kuva.ruudut+RUUTU(tahko, 0, 0);
+    int vastap_alla = ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0; //onko vastapäinen alla
+    int abskaista = kaista >= 0 ? kaista : -kaista;
 
-    while(alku+kului/2 < loppu) {
+    /* Alle tuleva alusta. */
+    SDL_SetRenderTarget(kuva.rend, alusta[1]);
+    SDL_SetRenderDrawColor(kuva.rend,0,0,0,255); // 1. tulee alle eli alfa = 255
+    SDL_RenderClear(kuva.rend);
+    /* Jos on liikkumaton osa, joka tulee alle, piirretään se.
+       Piirrä_kaistoja-funktiossa ensimmäinen kaista on 1 ja pelkkä sivu on 0. */
+    if (vastap_alla && (abskaista != kuutio.N-1))
+	_piirrä_kaistoja((tahko+3)%6, kuutio.N-1-abskaista);
+    else if (!vastap_alla && kaista > 0)
+	_piirrä_kaistoja(tahko, kaista); // tämä on alla, joten piirretään aina tähän asti
+
+    /* Päälle tuleva alusta. */
+    SDL_SetRenderTarget(kuva.rend, alusta[0]);
+    SDL_SetRenderDrawColor(kuva.rend,0,0,0,0); // 0. tulee päälle
+    SDL_SetTextureBlendMode(alusta[0], SDL_BLENDMODE_BLEND); // varmistetaan alfa-kanava
+    SDL_RenderClear(kuva.rend);
+    /* Mahdollinen päälle tuleva liikkumaton osa. */
+    if (vastap_alla && kaista > 0) // tämä tahko on päällä ja ei käännetä päällimmäistä kaistaa
+	_piirrä_kaistoja(tahko, kaista); // aina tähän asti
+    else if (!vastap_alla && abskaista < kuutio.N-1)
+	_piirrä_kaistoja((tahko+3)%6, kuutio.N-1-abskaista);
+
+    SDL_SetRenderTarget(kuva.rend, NULL);
+
+    while (alku+kului/2 < loppu) {
 	float askel = (kokoKulma - kulmaNyt) * spf / (loppu-alku);
 	if(fabs(kulmaNyt+askel) > fabs(kokoKulma))
 	    break;
 	kulmaNyt += askel;
 
-	SDL_SetRenderDrawColor(kuva.rend,0,0,0,0);
-	SDL_RenderClear(kuva.rend);
-	if(piirto_tulee_paalle)
-	    SDL_RenderCopy(kuva.rend, *alusta, NULL, NULL);
-    
-	// A = (rtu[n])
-	for(int i=-1; i<kuutio.N+1; i++)
-	    for(int j=-1; j<kuutio.N+1; j++) {
-		if((i==-1) + (i==kuutio.N) + (j==-1) + (j==kuutio.N) == 2)
-		    continue;
-		paikka = hae_ruutu(kuutio.N, tahko,i,j);
-		if(paikka.a[0] < 0)
-		    continue;
-		rtu = kuva.ruudut+RUUTUINT3(paikka);
-		for(int n=0; n<4; n++) { //n tarkoittaa ruudun jokaisen nurkan koordinaattia
-		    A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}}; //origo keskikohdaksi
-		    A = yleispyöräytys(A, akseli, askel);
-		    A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}}; //takaisin origosta
-		}
-		if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
-		    vari vari = VARIINT3(paikka);
-		    aseta_vari(vari);
-		    piirrä_suunnikas(rtu);
-		}
+	/* Alusta[1] tulee alle. Sitten piirretään kuva ja lopuksi laitetaan alusta[0] päälle. */
+	SDL_RenderCopy(kuva.rend, alusta[1], NULL, NULL);
+
+	int kaista0, kaista1;
+	if (kaista < 0)
+	    kaista0 = 0, kaista1 = -kaista + 1;
+	else
+	    kaista0 = kaista, kaista1 = kaista+1;
+
+	for(int kaistanyt=kaista0; kaistanyt<kaista1; kaistanyt++) {
+	    /* j-suunnassa molemmat i:n puolet */
+	    for(int j=0; j<kuutio.N; j++) {
+		_kääntöanim_pyöräytä(akseli, askel, tahko, -kaistanyt-1, j);
+		_kääntöanim_pyöräytä(akseli, askel, tahko, kuutio.N+kaistanyt, j);
 	    }
+	    /* i-suunnassa molemmat j:n puolet */
+	    for(int i=0; i<kuutio.N; i++) {
+		_kääntöanim_pyöräytä(akseli, askel, tahko, i, -kaistanyt-1);
+		_kääntöanim_pyöräytä(akseli, askel, tahko, i, kuutio.N+kaistanyt);
+	    }
+	    /* Tarvittaessa käännetään vielä sivu. */
+	    int aputahko = tahko;
+	    if (kaistanyt == kuutio.N-1) {
+		aputahko = (tahko+3) % 6;
+		goto sivun_kääntö;
+	    }
+	    if (kaistanyt == 0)
+sivun_kääntö:
+		for(int j=0; j<kuutio.N; j++)
+		    for(int i=0; i<kuutio.N; i++)
+			_kääntöanim_pyöräytä(akseli, askel, aputahko, i, j);
+	}
 	/*pysähdys*/
 	gettimeofday(&hetki, NULL);
 	double nyt = hetki.tv_sec + hetki.tv_usec*1.0e-6;
 	kului = nyt - alku;
 	if(kului < spf)
 	    SDL_Delay((unsigned)((spf - kului)*1000));
-    
+
 	/*näyttämiseen kuluva aika lasketaan uuden kuvan tekemiseen*/
 	gettimeofday(&hetki, NULL);
 	alku = hetki.tv_sec + hetki.tv_usec*1.0e-6;
-	if(!piirto_tulee_paalle)
-	    SDL_RenderCopy(kuva.rend, *alusta, NULL, NULL);
+	SDL_RenderCopy(kuva.rend, alusta[0], NULL, NULL);
 	SDL_RenderPresent(kuva.rend);
     }
-    /*viimeinen askel menee loppuun*/
-    if(piirto_tulee_paalle)
-	SDL_RenderCopy(kuva.rend, *alusta, NULL, NULL);
-    float askel = kokoKulma-kulmaNyt;
-    for(int i=-1; i<kuutio.N+1; i++)
-	for(int j=-1; j<kuutio.N+1; j++) {
-	    paikka = hae_ruutu(kuutio.N, tahko,i,j);
-	    if(paikka.a[0] < 0)
-		continue;
-	    rtu = kuva.ruudut+RUUTU(paikka.a[0],paikka.a[1],paikka.a[2]);
-	    for(int n=0; n<4; n++) {
-		A = (koordf){{A.a[0]-siirto, A.a[1]+siirto, A.a[2]}};
-		A = yleispyöräytys(A, akseli, askel);
-		A = (koordf){{A.a[0]+siirto, A.a[1]-siirto, A.a[2]}};
-	    }
-	    if(ristitulo_z(suuntavektori(rtu+0, rtu+3), suuntavektori(rtu+0, rtu+1)) > 0) {
-		vari vari = VARIINT3(paikka);
-		aseta_vari(vari);
-		piirrä_suunnikas(rtu);
-	    }
-	}
-    if(!piirto_tulee_paalle)
-	SDL_RenderCopy(kuva.rend, *alusta, NULL, NULL);
-    SDL_RenderPresent(kuva.rend);
 }
-#undef A

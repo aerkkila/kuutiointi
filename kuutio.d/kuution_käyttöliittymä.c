@@ -85,12 +85,12 @@ while(SDL_PollEvent(&tapaht)) {
       for(int kaista=1; kaista<N-1; kaista++)
 	siirto_(_l, kaista, 1);
       break;
-    case SDL_SCANCODE_H:     kääntö_(_d); break;
-    case SDL_SCANCODE_G:     kääntö_(_u); break;
-    case SDL_SCANCODE_N:     kääntö_(_r); break;
-    case SDL_SCANCODE_V:     kääntö_(_l); break;
-    case SDL_SCANCODE_COMMA: kääntö_(_f); break;
-    case SDL_SCANCODE_C:     kääntö_(_b); break;
+    case SDL_SCANCODE_H:     siirto_(_d, -kuutio.N, 1); break;
+    case SDL_SCANCODE_G:     siirto_(_u, -kuutio.N, 1); break;
+    case SDL_SCANCODE_N:     siirto_(_r, -kuutio.N, 1); break;
+    case SDL_SCANCODE_V:     siirto_(_l, -kuutio.N, 1); break;
+    case SDL_SCANCODE_COMMA: siirto_(_f, -kuutio.N, 1); break;
+    case SDL_SCANCODE_C:     siirto_(_b, -kuutio.N, 1); break;
     default:
       switch(tapaht.key.keysym.sym) {
       case SDLK_RSHIFT:
@@ -141,7 +141,7 @@ while(SDL_PollEvent(&tapaht)) {
 #undef B
 #ifndef __EI_SEKUNTIKELLOA__
       case SDLK_F1:
-	lue_siirrot(ipc);
+	lue_siirrot_skellosta(ipc);
 	kuva.paivita = 1;
 	ipc->viesti = ipcTarkastelu;
 	viimeViesti = ipcTarkastelu;

@@ -102,9 +102,6 @@ int main(int argc, char** argv) {
       return 1;
   }
   SDL_SetRenderDrawBlendMode(kuva.rend, SDL_BLENDMODE_NONE); //muualla otetaan sellaisenaan
-#ifdef AUTOMAATTI
-#include "automaattikuutio.c" //toistetaan jotain sarjaa automaattisesti
-#endif
   
 #include "kuution_käyttöliittymä.c"
   

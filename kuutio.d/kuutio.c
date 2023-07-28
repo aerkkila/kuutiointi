@@ -102,7 +102,12 @@ void siirto(kuutio_t* ku, int tahko, int siirtokaista, int määrä) {
 	määrä += 4;
     int N = ku->N;
     int tahko0 = tahko;
-    if(siirtokaista < 0 || siirtokaista >= N) return;
+    if (siirtokaista < 0) { // monen kaistan pyöritys
+	for(int i=0; i<=-siirtokaista; i++)
+	    siirto(ku, tahko, i, määrä);
+	return;
+    }
+    if(siirtokaista >= N) return;
     if(tahko >= 3) {
 	tahko -= 3;
 	siirtokaista = N - siirtokaista - 1;
