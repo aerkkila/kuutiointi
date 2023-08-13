@@ -20,6 +20,7 @@ kuutio_t kuutio;
 int* sijainnit;
 char* sarjat;
 char* selitteet;
+char* peilautuuko;
 int* iselitteet;
 int sarjoja, isarja = 0, peilikuva = 0;
 
@@ -30,19 +31,22 @@ void lue_sarjat(const char* tiednimi) {
     struct stat buf;
     if (fstat(fileno(f), &buf) < 0)
 	err(2, "fstat");
-    /* Jokainen sarja on >>>-alkuisella rivillä */
-    int tunniste = ('>'<<2*8) + ('>'<<1*8) + ('>'<<0*8);
+    /* Jokainen peilattava sarja on ">>>"-alkuisella rivillä
+       ja peilautumaton ">>="-alkuisella. */
+    int tunniste_peil = ('>'<<2*8) + ('>'<<1*8) + ('>'<<0*8);
+    int tunniste_pton = ('>'>>0*8) + ('>'<<1*8) + ('='<<2*8);
     int ind = 0, indseli = 0;
     sarjoja = 0;
-    sarjat = malloc(buf.st_size);
-    sijainnit = malloc(buf.st_size / 20 * sizeof(int));
-    iselitteet = malloc(buf.st_size / 20 * sizeof(int));
-    selitteet = malloc(buf.st_size);
+    sarjat	= malloc(buf.st_size);
+    sijainnit	= malloc(buf.st_size / 20 * sizeof(int));
+    iselitteet	= malloc(buf.st_size / 20 * sizeof(int));
+    peilautuuko	= malloc(buf.st_size / 20);
+    selitteet	= malloc(buf.st_size);
     int selisij = 0;
     while(!feof(f)) {
 	int yrite = 0;
 	fread(&yrite, 1, 3, f);
-	if (yrite != tunniste) {
+	if (yrite != tunniste_peil && yrite != tunniste_pton) {
 	    memcpy(selitteet+indseli, &yrite, 3);
 	    if (selitteet[indseli] != '#') {
 		indseli += 3;
@@ -53,6 +57,7 @@ void lue_sarjat(const char* tiednimi) {
 	}
 	else {
 	    char c;
+	    peilautuuko[sarjoja] = yrite == tunniste_peil;
 	    sijainnit[sarjoja++] = ind;
 	    selitteet[indseli++] = '\0';
 	    iselitteet[sarjoja-1] = selisij;
@@ -69,6 +74,7 @@ void lue_sarjat(const char* tiednimi) {
     }
     fclose(f);
     sijainnit = realloc(sijainnit, sarjoja*sizeof(int));
+    peilautuuko =  realloc(peilautuuko, sarjoja);
     sarjat = realloc(sarjat, ind);
 }
 
@@ -152,7 +158,7 @@ void alkuun() {
 void seuraava_sarja() {
     isarja = rand() % sarjoja;
     alkuun();
-    peilikuva = rand() % 2;
+    peilikuva = peilautuuko[isarja] && rand() % 2;
     sarja_takaperin(sarjat + sijainnit[isarja]);
     kuva.paivita = 1;
 }
@@ -249,5 +255,6 @@ ulos:
     free(sarjat);
     free(selitteet);
     free(iselitteet);
+    free(peilautuuko);
     return 0;
 }
