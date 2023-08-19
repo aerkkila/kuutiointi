@@ -22,7 +22,7 @@ char* sarjat;
 char* selitteet;
 char* peilautuuko;
 int* iselitteet;
-int sarjoja, isarja = 0, peilikuva = 0;
+int sarjoja, isarja = 0, isarja_viimeksi = 0, peilikuva = 0;
 
 void lue_sarjat(const char* tiednimi) {
     FILE* f = fopen(tiednimi, "r");
@@ -33,7 +33,7 @@ void lue_sarjat(const char* tiednimi) {
 	err(2, "fstat");
     /* Jokainen peilattava sarja on ">>>"-alkuisella rivillä
        ja peilautumaton ">>="-alkuisella. */
-    int tunniste_peil = ('>'<<2*8) + ('>'<<1*8) + ('>'<<0*8);
+    int tunniste_peil = ('>'<<0*8) + ('>'<<1*8) + ('>'<<2*8);
     int tunniste_pton = ('>'>>0*8) + ('>'<<1*8) + ('='<<2*8);
     int ind = 0, indseli = 0;
     sarjoja = 0;
@@ -155,16 +155,61 @@ void alkuun() {
 	memset(kuutio.sivut+i*kuutio.N2, i, kuutio.N2);
 }
 
-void seuraava_sarja() {
-    isarja = rand() % sarjoja;
+void satunnainen_y_käännös() {
+    int määrä = rand() % 4;
+    siirto(&kuutio, _u, -(kuutio.N-1), määrä);
+    kuva.paivita = 1;
+}
+
+void vaihdettiin_sarja() {
     alkuun();
-    peilikuva = peilautuuko[isarja] && rand() % 2;
+    satunnainen_y_käännös();
     sarja_takaperin(sarjat + sijainnit[isarja]);
     kuva.paivita = 1;
 }
 
+void satunnainen_sarja() {
+    isarja_viimeksi = isarja;
+    isarja = rand() % sarjoja;
+    peilikuva = peilautuuko[isarja] && rand() % 2;
+    vaihdettiin_sarja();
+}
+
+void seuraava_sarja() {
+    isarja_viimeksi = isarja++;
+    if (isarja >= sarjoja)
+	isarja = sarjoja-1;
+    vaihdettiin_sarja();
+}
+
+void edellinen_sarja() {
+    isarja_viimeksi = isarja--;
+    if (isarja < 0)
+	isarja = 0;
+    vaihdettiin_sarja();
+}
+
+void viimesarja() {
+    int apu = isarja;
+    isarja = isarja_viimeksi;
+    isarja_viimeksi = apu;
+    vaihdettiin_sarja();
+}
+
+void ensimmäinen_sarja() {
+    isarja_viimeksi = isarja;
+    isarja = 0;
+    vaihdettiin_sarja();
+}
+
+void vaihda_peilikuvuus() {
+    peilikuva = !peilikuva;
+    vaihdettiin_sarja();
+}
+
 int main(int argc, char** argv) {
-    srand(time(NULL));
+    //srand(time(NULL));
+    srand(6);
     int N = 3;
     if (argc < 2)
 	return 1;
@@ -217,9 +262,7 @@ silmukka:
 		}
 		break;
 	    case SDL_KEYDOWN:
-		if (tapaht.key.keysym.sym == SDLK_SPACE)
-		    seuraava_sarja();
-		else if (tapaht.key.keysym.sym == SDLK_RETURN) {
+		if (tapaht.key.keysym.sym == SDLK_RETURN) {
 		    puts(selitteet + iselitteet[isarja]);
 		    if (peilikuva)
 			printf("\033[91m");
@@ -227,6 +270,18 @@ silmukka:
 		    if (peilikuva)
 			printf("\033[0m");
 		}
+		else if (tapaht.key.keysym.sym == SDLK_SPACE)
+		    satunnainen_sarja();
+		else if (tapaht.key.keysym.sym == SDLK_LEFT)
+		    edellinen_sarja();
+		else if (tapaht.key.keysym.sym == SDLK_RIGHT)
+		    seuraava_sarja();
+		else if (tapaht.key.keysym.sym == SDLK_0)
+		    ensimmäinen_sarja();
+		else if (tapaht.key.keysym.sym == SDLK_1)
+		    viimesarja();
+		else if (tapaht.key.keysym.sym == SDLK_p)
+		    vaihda_peilikuvuus();
 		else if (tapaht.key.keysym.sym == SDLK_UP)
 		    tee_sarja(sarjat+sijainnit[isarja]);
 		else if (tapaht.key.keysym.sym == SDLK_BACKSPACE) {
