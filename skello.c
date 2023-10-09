@@ -858,7 +858,7 @@ char* sekoitus() {
     int pinta, puolisko;
     char akselikielto=0, kieltoakseli=0, puoliskokielto=0, sallittu_puolisko=0;
     int pakskieltoja[2] = {0};
-    int pit = (NxN==2)? 9 : (NxN-2)*20;
+    int pit = ((NxN==2)? 9 : (NxN-2)*20) + rand() % 2; // + 0/1 ettei parillisuus ole aina sama
     char pakskiellot[2][paksuus];
     int maxpit;
 

@@ -153,11 +153,11 @@ int onkoRatkaistu(kuutio_t* kuutp) {
     return 1;
 }
 
-int _ijmuunnos_negpos(int kuutio_N, int ij) { return ij + kuutio_N; }
-int _ijmuunnos_pospos(int kuutio_N, int ij) { return kuutio_N*2-1 - ij; }
-int _ijmuunnos_negneg(int kuutio_N, int ij) { return -ij - 1; }
-int _ijmuunnos_posneg(int kuutio_N, int ij) { return ij - kuutio_N; }
-int (*_ijmuunnos_[])(int,int) = {
+static int _ijmuunnos_negpos(int kuutio_N, int ij) { return ij + kuutio_N; }
+static int _ijmuunnos_pospos(int kuutio_N, int ij) { return kuutio_N*2-1 - ij; }
+static int _ijmuunnos_negneg(int kuutio_N, int ij) { return -ij - 1; }
+static int _ijmuunnos_posneg(int kuutio_N, int ij) { return ij - kuutio_N; }
+static int (*_ijmuunnos_[])(int,int) = {
     _ijmuunnos_pospos,
     _ijmuunnos_posneg,
     _ijmuunnos_negpos,
@@ -178,11 +178,11 @@ alku:
 
     int saapuva;
     switch(s_sivut_arg[tahko1][tahko0]) {
-    case 0: saapuva=0; neg1=1; break;
-    case 2: saapuva=0; neg1=0; break;
-    case 3: saapuva=1; neg1=1; break;
-    case 1: saapuva=1; neg1=0; break;
-    default: exit(1);
+	case 0: saapuva=0; neg1=1; break;
+	case 2: saapuva=0; neg1=0; break;
+	case 3: saapuva=1; neg1=1; break;
+	case 1: saapuva=1; neg1=0; break;
+	default: exit(1);
     }
     muunnosfun = _ijmuunnos_[neg0*2+neg1];
     ji1[saapuva] = muunnosfun(kuutio_N, ji0[ylittävä]);
