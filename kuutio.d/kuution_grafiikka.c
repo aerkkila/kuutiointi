@@ -596,7 +596,7 @@ void kääntöanimaatio(int tahko, int kaista, koordf akseli, double määrä, d
 
 	int kaista0, kaista1;
 	if (kaista < 0)
-	    kaista0 = 0, kaista1 = -kaista + 1;
+	    kaista0 = 0, kaista1 = -kaista;
 	else
 	    kaista0 = kaista, kaista1 = kaista+1;
 
