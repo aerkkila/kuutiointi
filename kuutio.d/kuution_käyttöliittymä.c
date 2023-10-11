@@ -1,6 +1,5 @@
 /*Tämä liitetään include-komennolla pääfunktioon*/
 
-#define siirtoInl1(tahko, maara) siirto_(tahko, siirtokaista, maara)
 SDL_Event tapaht; 
 int xVanha=0, yVanha=0; //alustetaan ettei kääntäjä varoittele turhaan
 char hiiri_painettu = 0;
@@ -41,42 +40,18 @@ while(SDL_PollEvent(&tapaht)) {
     break;
   case SDL_KEYDOWN:
     switch(tapaht.key.keysym.scancode) {
-    case SDL_SCANCODE_I:
-      siirtoInl1(_u, 1);
-      break;
-    case SDL_SCANCODE_L:
-      siirtoInl1(_r, 1);
-      break;
-    case SDL_SCANCODE_J:
-      siirtoInl1(_r, 3);
-      break;
-    case SDL_SCANCODE_PERIOD:
-      siirtoInl1(_d, 3);
-      break;
-    case SDL_SCANCODE_K:
-      siirtoInl1(_f, 1);
-      break;
-    case SDL_SCANCODE_O:
-      siirtoInl1(_b, 3);
-      break;
-    case SDL_SCANCODE_E:
-      siirtoInl1(_u, 3);
-      break;
-    case SDL_SCANCODE_F:
-      siirtoInl1(_l, 1);
-      break;
-    case SDL_SCANCODE_S:
-      siirtoInl1(_l, 3);
-      break;
-    case SDL_SCANCODE_X:
-      siirtoInl1(_d, 1);
-      break;
-    case SDL_SCANCODE_D:
-      siirtoInl1(_f, 3);
-      break;
-    case SDL_SCANCODE_W:
-      siirtoInl1(_b, 1);
-      break;
+    case SDL_SCANCODE_I:	siirto_(_u, siirtokaista, 1); break;
+    case SDL_SCANCODE_L:	siirto_(_r, siirtokaista, 1); break;
+    case SDL_SCANCODE_J:	siirto_(_r, siirtokaista, 3); break;
+    case SDL_SCANCODE_PERIOD:	siirto_(_d, siirtokaista, 3); break;
+    case SDL_SCANCODE_K:	siirto_(_f, siirtokaista, 1); break;
+    case SDL_SCANCODE_O:	siirto_(_b, siirtokaista, 3); break;
+    case SDL_SCANCODE_E:	siirto_(_u, siirtokaista, 3); break;
+    case SDL_SCANCODE_F:	siirto_(_l, siirtokaista, 1); break;
+    case SDL_SCANCODE_S:	siirto_(_l, siirtokaista, 3); break;
+    case SDL_SCANCODE_X:	siirto_(_d, siirtokaista, 1); break;
+    case SDL_SCANCODE_D:	siirto_(_f, siirtokaista, 3); break;
+    case SDL_SCANCODE_W:	siirto_(_b, siirtokaista, 1); break;
     case SDL_SCANCODE_U:
       for(int kaista=1; kaista<N-1; kaista++)
 	siirto_(_r, kaista, 1);
@@ -85,12 +60,12 @@ while(SDL_PollEvent(&tapaht)) {
       for(int kaista=1; kaista<N-1; kaista++)
 	siirto_(_l, kaista, 1);
       break;
-    case SDL_SCANCODE_H:     siirto_(_d, -kuutio.N, 1); break;
-    case SDL_SCANCODE_G:     siirto_(_u, -kuutio.N, 1); break;
-    case SDL_SCANCODE_N:     siirto_(_r, -kuutio.N, 1); break;
-    case SDL_SCANCODE_V:     siirto_(_l, -kuutio.N, 1); break;
-    case SDL_SCANCODE_COMMA: siirto_(_f, -kuutio.N, 1); break;
-    case SDL_SCANCODE_C:     siirto_(_b, -kuutio.N, 1); break;
+    case SDL_SCANCODE_H:	siirto_(_d, -kuutio.N, 1); break;
+    case SDL_SCANCODE_G:	siirto_(_u, -kuutio.N, 1); break;
+    case SDL_SCANCODE_N:	siirto_(_r, -kuutio.N, 1); break;
+    case SDL_SCANCODE_V:	siirto_(_l, -kuutio.N, 1); break;
+    case SDL_SCANCODE_COMMA:	siirto_(_f, -kuutio.N, 1); break;
+    case SDL_SCANCODE_C:	siirto_(_b, -kuutio.N, 1); break;
     default:
       switch(tapaht.key.keysym.sym) {
       case SDLK_RSHIFT:
@@ -282,8 +257,8 @@ while(SDL_PollEvent(&tapaht)) {
 if(savelPtr) {
   static char suunta = 1;
   static double savLoppuHetki = 1.0;
-  float savel = *savelPtr;
-  if(savel < 0) {
+  float sävel = *savelPtr;
+  if(sävel < 0) {
     if(savLoppuHetki < 0) { //sävel päättyi juuri
       struct timeval hetki;
       gettimeofday(&hetki, NULL);
@@ -293,7 +268,7 @@ if(savelPtr) {
       gettimeofday(&hetki, NULL);
       double hetkiNyt = hetki.tv_sec + hetki.tv_usec*1.0/1000000;
       if(hetkiNyt - savLoppuHetki > 1.0 && kuva.korostus >= 0) {
-	siirtoInl1(kuva.korostus, suunta);
+	siirto_(kuva.korostus, siirtokaista, suunta);
 	kuva.korostus = -1;
 	savLoppuHetki = 1;
 	*savelPtr = -1.0;
@@ -302,7 +277,7 @@ if(savelPtr) {
     goto LOPPU;
   }
   savLoppuHetki = -1.0;
-  int puoliask = savel_ero(savel);
+  int puoliask = savel_ero(sävel);
   printf("%i\n", puoliask);
   *savelPtr = -1.0;
   suunta = 1;

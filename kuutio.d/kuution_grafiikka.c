@@ -41,6 +41,7 @@ koordf pyöräytä(koordf xyz, koordf kulmat) {
 #define co (cosf(kulma))
 #define si (sinf(kulma))
 koordf yleispyöräytys(koordf koord, koordf aks, float kulma) {
+    kulma = -kulma; // Rotaatiomatriisi pyörittää vastapäivään, halutaan myötäpäivään.
     float x,y,z;
     x = (k(0) * (co + u(0)*u(0)*(1-co)) +
 	 k(1) * (u(0)*u(1)*(1-co) - u(2)*si) +
@@ -177,7 +178,7 @@ double hetkiNyt() {
     return (double)t.tv_sec + t.tv_usec*1e-6;
 }
 
-static void animoi(int tahko, int kaista, int maara) {
+static void animoi(int tahko, int kaista, int määrä) {
     static double viimeKaantohetki = -1.0;
     struct timeval hetki;
     gettimeofday(&hetki, NULL);
@@ -191,16 +192,16 @@ static void animoi(int tahko, int kaista, int maara) {
     if(tahko>=3)
 	for(int i=0; i<3; i++)
 	    akseli.a[i] *= -1;
-    kääntöanimaatio(tahko, kaista, akseli, maara-2, kaantoaika);
+    kääntöanimaatio(tahko, kaista, akseli, määrä>2 ? -1 : määrä, kaantoaika);
     tee_ruutujen_koordtit();
     kuva.paivita = 1;
     gettimeofday(&hetki, NULL);
     viimeKaantohetki = hetki.tv_sec + hetki.tv_usec*1e-6;
 }
 
-static void __attribute__((unused)) siirto_(int tahko, int kaista, int maara) {
-    animoi(tahko, kaista, maara);
-    siirto(&kuutio, tahko, kaista, maara);
+static void __attribute__((unused)) siirto_(int tahko, int kaista, int määrä) {
+    animoi(tahko, kaista, määrä);
+    siirto(&kuutio, tahko, kaista, määrä);
     kuva.paivita = 1;
     kuutio.ratkaistu = onkoRatkaistu(&kuutio);
 #ifndef __EI_SEKUNTIKELLOA__
@@ -541,9 +542,9 @@ static void _kääntöanim_pyöräytä(koordf akseli, float askel, int tahko, in
 }
 #undef A
 
-void kääntöanimaatio(int tahko, int kaista, koordf akseli, double maara, double aika) {
+void kääntöanimaatio(int tahko, int kaista, koordf akseli, double määrä, double aika) {
     const double spf = 1/30.0; // 1/fps
-    double kokoKulma = PI/2*maara;
+    double kokoKulma = PI/2*määrä;
     double kulmaNyt = 0.0;
     struct timeval hetki;
     gettimeofday(&hetki, NULL);

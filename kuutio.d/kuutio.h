@@ -41,7 +41,7 @@ extern kuutio_t kuutio;
 
 void luo_kuutio(kuutio_t*, int);
 int onkoRatkaistu(kuutio_t*);
-void siirto(kuutio_t* kuutio, int tahko, int kaista, int maara);
+void siirto(kuutio_t* kuutio, int tahko, int kaista, int määrä);
 void paivita();
 int3 hae_ruutu(int kuutio_N, int tahko, int i0, int j0);
 int3 hae_siivu(int3 ruutu);

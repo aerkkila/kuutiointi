@@ -1,10 +1,10 @@
-#define KAANTO(tahko, kaista, maara, aika) {				\
+#define KÄÄNTÖ(tahko, kaista, määrä, aika) {				\
     koordf akseli = kuva.kannat[tahko%3];				\
     if(tahko/3)								\
       for(int i=0; i<3; i++)						\
 	akseli.a[i] *= -1;						\
-    kaantoanimaatio(tahko, kaista, akseli, maara-2, aika);		\
-    siirto(&kuutio,tahko,kaista,maara);					\
+    kaantoanimaatio(tahko, kaista, akseli, määrä-2, aika);		\
+    siirto(&kuutio,tahko,kaista,määrä);					\
     tee_ruutujen_koordtit();						\
   }
 
@@ -40,16 +40,16 @@ do {
   double aika = 0.3;
   switch(autolasku%4) {
   case 0:
-    KAANTO(_r, 1, 1, aika);
+    KÄÄNTÖ(_r, 1, 1, aika);
     break;
   case 1:
-    KAANTO(_b, 1, 1, aika);
+    KÄÄNTÖ(_b, 1, 1, aika);
     break;
   case 2:
-    KAANTO(_l, 1, 1, aika);
+    KÄÄNTÖ(_l, 1, 1, aika);
     break;
   case 3:
-    KAANTO(_f, 1, 1, aika);
+    KÄÄNTÖ(_f, 1, 1, aika);
     break;
   }
   
